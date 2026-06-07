@@ -1,27 +1,25 @@
 # supernerd.tv
 
-Astro site. The cinematic hero is ported in `src/components/Hero.astro`; assets live in `public/hero/`.
+Cinematic single-page site for Supernerd / Shaun Harrison.
+Built with Astro. Deployed on Cloudflare Pages.
 
-## Run it locally
-1. Install Node.js 18+ (https://nodejs.org)
-2. In this folder:
-   ```
-   npm install
-   npm run dev
-   ```
-3. Open the printed localhost URL. Resize the window to see the fluid scaling; on a phone, tap to enter and tilt for parallax.
+## Structure
+- `src/pages/index.astro` — the whole page: pinned "scene" (hero → bio that
+  settles then releases), persistent top bar + slide-down menu, contact modal,
+  full-bio modal, social icons, flask brand mark, and placeholder Work/Studio
+  pages. All CSS + JS are inline in this file.
+- `public/hero/` — image planes: smoke, flask, person, frontsmoke, wordcrop,
+  flask_mark.
+- `public/` — favicons (favicon.ico, favicon-32.png, favicon.png,
+  apple-touch-icon.png).
 
-## Push to your GitHub
+## Develop
 ```
-git init
-git add .
-git commit -m "Hero ported to Astro"
-git branch -M main
-git remote add origin https://github.com/<you>/supernerd-tv.git
-git push -u origin main
+npm install
+npm run dev      # http://localhost:4321
+npm run build    # outputs to dist/
 ```
 
-## Whats next (later phases)
-- Sanity Studio (visual admin) + a Project schema
-- Branded projects grid + project detail pages reading from Sanity
-- Cloudflare Stream for video, Cloudflare Pages for hosting, GoDaddy DNS -> live
+## Deploy (Cloudflare Pages)
+Framework preset: **Astro** · Build command: `npm run build` · Output dir: `dist`
+Pushing to GitHub auto-redeploys.
