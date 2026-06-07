@@ -94,6 +94,10 @@
   #pend{ position:absolute; inset:-6%; width:112%; height:112%; z-index:5; background-image:url("/hero/personEnd.webp"); background-size:cover; background-position:70% center; opacity:0; pointer-events:none; will-change:transform,opacity; backface-visibility:hidden; }
   #pseq{position:absolute; inset:-6%; width:112%; height:112%; z-index:5; pointer-events:none; will-change:transform; backface-visibility:hidden;}
   .p-fsmoke{ z-index:6; background-image:url("/hero/frontsmoke.png"); mix-blend-mode:screen; }
+  #flaskglow{position:absolute; inset:-6%; width:112%; height:112%; z-index:6; opacity:0; pointer-events:none; will-change:transform,opacity;}
+  #flaskglow .fg{position:absolute; inset:0; background:url("/hero/flaskglow.png") no-repeat; background-size:cover; background-position:70% center; mix-blend-mode:screen; animation:fpulse 2.8s ease-in-out infinite; will-change:opacity;}
+  @keyframes fpulse{0%,100%{opacity:.4} 50%{opacity:.95}}
+  @media (prefers-reduced-motion:reduce){ #flaskglow .fg{animation:none; opacity:.7} }
   .vignette{position:absolute;inset:0;z-index:7;pointer-events:none;
     background:radial-gradient(120% 95% at 60% 42%, transparent 52%, rgba(0,0,0,.62) 100%)}
   .grain{position:absolute;inset:-50%;z-index:8;pointer-events:none;opacity:.05;
@@ -117,7 +121,7 @@
   .morelink:hover span{transform:translateX(4px)}
   .flaskmark{display:block;height:clamp(40px,5vh,58px);width:auto;margin-top:clamp(26px,4vh,44px);opacity:.92}
   .morerow{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-  .moregif{height:clamp(40px,5vh,58px);width:auto;mix-blend-mode:screen;pointer-events:none;filter:saturate(1.05) brightness(1.05)}
+  .moregif{height:clamp(52px,6.6vh,76px);width:auto;mix-blend-mode:screen;pointer-events:none;filter:saturate(1.05) brightness(1.05)}
   .cflask{height:46px;margin:28px auto 0}
 
   .bmodal{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;
@@ -147,8 +151,8 @@
     font-family:var(--mono);font-weight:700;font-size:12px;letter-spacing:.14em;text-transform:uppercase;
     border:none;border-radius:3px;padding:14px 22px;cursor:pointer}
   .cta .dot{width:7px;height:7px;border-radius:50%;background:#0b0c00}
-  .social{position:fixed;z-index:39;top:clamp(66px,8vh,82px);right:clamp(20px,4vw,54px);
-    display:flex;flex-direction:column;align-items:flex-end;gap:15px;pointer-events:auto}
+  .social{position:fixed;z-index:39;top:clamp(64px,7.6vh,80px);right:clamp(20px,4vw,54px);
+    display:flex;flex-direction:row;align-items:center;gap:18px;pointer-events:auto}
   .social a{color:var(--bone);opacity:.78;display:block;transition:opacity .25s,color .25s}
   .social a:hover{color:var(--green-hi);opacity:1}
   .social svg{width:18px;height:18px;display:block;fill:currentColor}
@@ -302,6 +306,7 @@
     <div class="plane p-person"></div>
     <div id="pend"></div>
     <div class="plane p-fsmoke"></div>
+    <div class="flaskglow" id="flaskglow"><div class="fg"></div></div>
     <div class="vignette"></div>
     <div class="grain"></div>
 
@@ -311,8 +316,8 @@
         <h1 class="bname" id="bname">Shaun Harrison</h1>
         <p class="lead">An award-winning Art Director and founder of <b>Supernerd</b> — a design and production boutique bridging art, culture, events, and technology. Across <b>16+ years</b> he's led creative direction for tours, television, live events, and brand activations.</p>
         <div class="morerow">
-          <a class="morelink" id="moreBtn">More <span>&rarr;</span></a>
           <img class="moregif" src="/hero/bioflask.gif" alt="" aria-hidden="true">
+          <a class="morelink" id="moreBtn">More <span>&rarr;</span></a>
         </div>
         <p class="bquote">“ Creativity has always shaped global culture. My role is to make sure it's <span>seen, celebrated, and elevated.</span> ”</p>
       </div>
@@ -454,7 +459,7 @@
   const fine=matchMedia('(pointer:fine)').matches;
   const $=s=>document.querySelector(s);
   const smoke=$('.p-smoke'),flask=$('.p-flask'),person=$('.p-person'),fsmoke=$('.p-fsmoke');
-  const word=$('#word'),wedge=$('#wedge'),bioov=$('#bioov'),nm=$('#bname'),ui=$('#ui'),intro=$('#intro');
+  const word=$('#word'),wedge=$('#wedge'),bioov=$('#bioov'),nm=$('#bname'),ui=$('#ui'),intro=$('#intro'),flaskglow=$('#flaskglow');
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const fOut=(P,s,e)=>1-clamp((P-s)/(e-s),0,1);
   const fIn=(P,s,e)=>clamp((P-s)/(e-s),0,1);
@@ -493,6 +498,7 @@
     person.style.transform=ptr; person.style.opacity=fOut(P,0,.04);
     if(pseq){ pseq.style.transform=ptr; const fi=Math.round(P*(FRAMES-1)); if(fi!==lastF) drawSeq(fi); }
     if(pend){ pend.style.transform=ptr; pend.style.opacity=fIn(P,.9,1); }
+    if(flaskglow){ flaskglow.style.transform=ptr; flaskglow.style.opacity=fIn(P,.9,1); }
     const wp=fIn(P,.1,.5); wedge.style.opacity=wp; wedge.style.transform=`translate(${((1-wp)*60).toFixed(1)}px,${lagY.toFixed(1)}px)`;
     bioov.style.transform=`translateY(${(H*(1-P)+lagY).toFixed(1)}px)`;
     const no=clamp((P-.4)/.5,0,1); nm.style.opacity=no; nm.style.filter=`blur(${((1-no)*16).toFixed(1)}px)`;
