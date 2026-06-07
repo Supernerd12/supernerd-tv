@@ -165,9 +165,17 @@
   .page p{font-family:var(--mono);font-size:14px;letter-spacing:.06em;color:var(--dim)}
 
   /* ---------- WORK ---------- */
-  .work{display:block; align-items:initial; position:relative; z-index:3;
-    box-shadow:0 -42px 90px rgba(0,0,0,.6); /* casts up onto the slower-rising bio for depth */
-    padding:clamp(96px,13vh,156px) clamp(22px,6vw,120px) clamp(70px,9vh,120px);}
+  .work{display:block; align-items:initial; position:relative; z-index:3; padding:0;
+    box-shadow:0 -42px 90px rgba(0,0,0,.6); /* casts up onto the slower-rising bio for depth */}
+  .worklist{padding:clamp(96px,13vh,156px) clamp(22px,6vw,120px) clamp(70px,9vh,120px)}
+  .reel{position:relative; width:100%; height:100vh; min-height:560px; overflow:hidden; background:#000}
+  .reelv{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block}
+  .reelveil{position:absolute; inset:0; pointer-events:none;
+    background:linear-gradient(to bottom, rgba(5,5,5,.30) 0%, rgba(5,5,5,0) 20%, rgba(5,5,5,0) 58%, rgba(5,5,5,.97) 100%)}
+  .reelcap{position:absolute; left:clamp(22px,6vw,120px); right:clamp(22px,6vw,120px); bottom:clamp(30px,5vh,64px);
+    display:flex; align-items:baseline; justify-content:space-between; gap:18px; pointer-events:none}
+  .reelcap .rce{font-family:var(--mono); font-size:11px; letter-spacing:.24em; text-transform:uppercase; color:var(--green-hi)}
+  .reelcap .reelhint{font-family:var(--mono); font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim)}
   .work .head{display:flex; align-items:flex-end; justify-content:space-between; gap:24px;
     flex-wrap:wrap; margin-bottom:clamp(32px,6vh,68px)}
   .work .head h2{font-family:var(--disp); font-weight:800; font-size:clamp(46px,9vw,128px);
@@ -335,6 +343,18 @@
 </div>
 
 <section class="page work">
+  <!-- REEL: when your Cloudflare Stream video is ready, paste its HLS URL into data-hls=""
+       (https://customer-XXXX.cloudflarestream.com/<VIDEO_UID>/manifest/video.m3u8).
+       Until then it plays the bundled /work/reel.mp4 fallback. -->
+  <div class="reel" id="reel">
+    <video class="reelv" id="reelv" autoplay muted loop playsinline preload="auto" poster="/work/reel-poster.webp" data-hls="">
+      <source src="/work/reel.mp4" type="video/mp4">
+    </video>
+    <div class="reelveil"></div>
+    <div class="reelcap"><span class="rce">Showreel</span><span class="reelhint">selected work below &darr;</span></div>
+  </div>
+
+  <div class="worklist">
   <div class="head">
     <h2>Work</h2>
     <div class="meta">Productions · tours · activations<br>across <b>16+ years</b></div>
@@ -423,6 +443,7 @@
       <div class="wright"><div class="wyear">Harlem</div><div class="wsoon"><span class="pl"></span> reel soon</div></div>
     </div>
 
+  </div>
   </div>
 </section>
 
@@ -533,6 +554,19 @@
   const bmodal=$('#bmodal');
   $('#metaBtn').addEventListener('click',()=>scrollToY(innerHeight*SPAN*0.99,3200));
   $('#moreBtn').addEventListener('click',()=>document.body.classList.add('bio-open'));
+  (function(){
+    const rv=document.getElementById('reelv'); if(!rv) return;
+    const src=(rv.dataset.hls||'').trim();
+    if(src){
+      if(rv.canPlayType('application/vnd.apple.mpegurl')){ rv.src=src; }
+      else { const sc=document.createElement('script');
+        sc.src='https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.15/hls.min.js';
+        sc.onload=()=>{ if(window.Hls&&Hls.isSupported()){ const h=new Hls({maxBufferLength:6}); h.loadSource(src); h.attachMedia(rv); } };
+        document.head.appendChild(sc); }
+    }
+    rv.muted=true; const pr=rv.play&&rv.play(); if(pr&&pr.catch) pr.catch(()=>{});
+    if('IntersectionObserver' in window){ new IntersectionObserver(es=>es.forEach(e=>{ e.isIntersecting?(rv.play&&rv.play().catch(()=>{})):(rv.pause&&rv.pause()); }),{threshold:.05}).observe(rv); }
+  })();
   $('#bclose').addEventListener('click',()=>document.body.classList.remove('bio-open'));
   bmodal.addEventListener('click',e=>{ if(e.target===bmodal) document.body.classList.remove('bio-open'); });
   addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeContact(); document.body.classList.remove('menu-open','bio-open'); } });
