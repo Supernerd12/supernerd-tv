@@ -347,7 +347,7 @@
        (https://customer-XXXX.cloudflarestream.com/<VIDEO_UID>/manifest/video.m3u8).
        Until then it plays the bundled /work/reel.mp4 fallback. -->
   <div class="reel" id="reel">
-    <video class="reelv" id="reelv" autoplay muted loop playsinline preload="auto" poster="/work/reel-poster.webp" data-hls="">
+    <video class="reelv" id="reelv" autoplay muted loop playsinline preload="auto" poster="/work/reel-poster.webp" data-hls="https://customer-jo6j16htmygzl1y3.cloudflarestream.com/d0dc8c487a18d04d83410e52b3677535/manifest/video.m3u8">
       <source src="/work/reel.mp4" type="video/mp4">
     </video>
     <div class="reelveil"></div>
@@ -560,7 +560,7 @@
     if(src){
       if(rv.canPlayType('application/vnd.apple.mpegurl')){ rv.src=src; }
       else { const sc=document.createElement('script');
-        sc.src='https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.15/hls.min.js';
+        sc.src='https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js';
         sc.onload=()=>{ if(window.Hls&&Hls.isSupported()){ const h=new Hls({maxBufferLength:6}); h.loadSource(src); h.attachMedia(rv); } };
         document.head.appendChild(sc); }
     }
