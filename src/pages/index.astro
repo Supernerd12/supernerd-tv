@@ -91,6 +91,7 @@
     width:calc(68.1vw + 171px); max-width:1700px; height:auto; pointer-events:none;
     filter:drop-shadow(0 0 30px rgba(186,192,30,.22)); will-change:transform; }
   .p-person{ z-index:5; background-image:url("/hero/person.png"); background-position:70% center; }
+  #pseq{position:absolute; inset:-6%; width:112%; height:112%; z-index:5; pointer-events:none; will-change:transform; backface-visibility:hidden;}
   .p-fsmoke{ z-index:6; background-image:url("/hero/frontsmoke.png"); mix-blend-mode:screen; }
   .vignette{position:absolute;inset:0;z-index:7;pointer-events:none;
     background:radial-gradient(120% 95% at 60% 42%, transparent 52%, rgba(0,0,0,.62) 100%)}
@@ -172,7 +173,8 @@
   .stage{transition:opacity 1.2s var(--ease)}
 
   @media (max-width:640px){
-    .topbar{padding:16px 18px}.brand{display:none}.side,.social{display:none}
+    .topbar{padding:16px 18px}.brand{display:none}.side{display:none}
+    .social{flex-direction:row;gap:18px;top:66px;bottom:auto;right:18px}
     .bottom{left:20px;right:20px;bottom:26px;max-width:none}
     .bioov .wrap{left:20px;right:20px;width:auto;top:auto;bottom:6%;transform:none}
   }
@@ -227,6 +229,7 @@
     <div class="wedge" id="wedge"></div>
     <img class="wordimg" id="word" src="/hero/wordcrop.png" alt="supernerd">
     <div class="plane p-person"></div>
+    <canvas id="pseq"></canvas>
     <div class="plane p-fsmoke"></div>
     <div class="vignette"></div>
     <div class="grain"></div>
@@ -284,9 +287,24 @@
   const fIn=(P,s,e)=>clamp((P-s)/(e-s),0,1);
 
   let tx=0,ty=0,cx=0,cy=0,raf=null;
+
+  // person turn sequence (scroll-scrubbed canvas over the static poster)
+  const pseq=$('#pseq'), pctx=pseq?pseq.getContext('2d'):null;
+  const FRAMES=48, fimgs=[]; let lastF=-1, curP=0, dpr=Math.min(2,window.devicePixelRatio||1);
+  function sizeSeq(){ if(!pseq)return; const r=pseq.getBoundingClientRect(); if(!r.width)return;
+    pseq.width=Math.round(r.width*dpr); pseq.height=Math.round(r.height*dpr); lastF=-1; drawSeq(Math.round(curP*(FRAMES-1))); }
+  function drawSeq(i){ if(!pctx)return; const img=fimgs[i]; if(!img||!img.complete||!img.naturalWidth)return;
+    const cw=pseq.width,ch=pseq.height,iw=img.naturalWidth,ih=img.naturalHeight;
+    const s=Math.max(cw/iw,ch/ih),w=iw*s,h=ih*s,x=(cw-w)*0.7,y=(ch-h)*0.5;
+    pctx.clearRect(0,0,cw,ch); pctx.drawImage(img,x,y,w,h); lastF=i; }
+  for(let k=0;k<FRAMES;k++){ const im=new Image(); const n=String(k).padStart(2,'0');
+    im.onload=()=>{ const want=Math.round(curP*(FRAMES-1)); if(k===want||(lastF<0&&k===0)) drawSeq(want); };
+    im.src='/hero/seq/f'+n+'.webp'; fimgs[k]=im; }
+  addEventListener('resize',sizeSeq);
+
   function render(){
     raf=null;
-    const y=scrollY||pageYOffset,H=innerHeight,P=clamp(y/H,0,1);
+    const y=scrollY||pageYOffset,H=innerHeight,P=clamp(y/H,0,1); curP=P;
     cx+=(tx-cx)*0.12; cy+=(ty-cy)*0.12;
     smoke.style.opacity=fOut(P,0,.55);
     smoke.style.transform=`translate(${(-cx*6).toFixed(1)}px,${(-cy*4).toFixed(1)}px)`;
@@ -295,6 +313,7 @@
     flask.style.transform=`translate(${(-cx*14).toFixed(1)}px,${(-P*0.55*H-cy*7).toFixed(1)}px)`;
     word.style.transform=`translate(${(-cx*12).toFixed(1)}px,${(-P*1.0*H-cy*6).toFixed(1)}px) translateY(-50%)`;
     person.style.transform=`translate(${(-cx*8).toFixed(1)}px,${(-cy*4).toFixed(1)}px)`;
+    if(pseq){ pseq.style.transform=person.style.transform; const fi=Math.round(P*(FRAMES-1)); if(fi!==lastF) drawSeq(fi); }
     const wp=fIn(P,.1,.5); wedge.style.opacity=wp; wedge.style.transform=`translateX(${((1-wp)*60).toFixed(1)}px)`;
     bioov.style.transform=`translateY(${(H*(1-P)).toFixed(1)}px)`;
     const no=clamp((P-.4)/.5,0,1); nm.style.opacity=no; nm.style.filter=`blur(${((1-no)*16).toFixed(1)}px)`;
@@ -342,10 +361,10 @@
   }));
 
   function enter(){ if(document.body.classList.contains('live'))return;
-    document.body.classList.add('live'); intro.classList.add('gone'); enableGyro(); schedule(); }
+    document.body.classList.add('live'); intro.classList.add('gone'); enableGyro(); sizeSeq(); schedule(); }
   ['click','keydown','wheel','touchstart'].forEach(ev=>addEventListener(ev,enter,{once:true,passive:true}));
   setTimeout(()=>{ if(!document.body.classList.contains('live')) enter(); },4600);
-  schedule();
+  sizeSeq(); schedule();
 })();
 </script>
 </body>
