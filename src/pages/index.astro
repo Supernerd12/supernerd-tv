@@ -78,7 +78,7 @@
   .cclose:hover{color:var(--bone)}
 
   /* ---------- scene (hero -> bio), pins then releases ---------- */
-  .scene{position:relative; height:200vh;}
+  .scene{position:relative; height:250vh;} /* turn length: keep JS SPAN in sync — 1 + (250-100)/100 = 1.5 */
   .stage{position:sticky; top:0; height:100vh; overflow:hidden;
     background:radial-gradient(125% 100% at 64% 44%, #111308 0%, #080804 52%, #030302 100%);}
   .plane{position:absolute; inset:-6%; width:112%; height:112%;
@@ -158,6 +158,60 @@
   .page h2{font-family:var(--disp);font-weight:800;font-size:clamp(48px,10vw,140px);line-height:.92;letter-spacing:-.02em;margin:14px 0 18px}
   .page p{font-family:var(--mono);font-size:14px;letter-spacing:.06em;color:var(--dim)}
 
+  /* ---------- WORK ---------- */
+  .work{display:block; align-items:initial;
+    padding:clamp(96px,13vh,156px) clamp(22px,6vw,120px) clamp(70px,9vh,120px);}
+  .work .head{display:flex; align-items:flex-end; justify-content:space-between; gap:24px;
+    flex-wrap:wrap; margin-bottom:clamp(32px,6vh,68px)}
+  .work .head h2{font-family:var(--disp); font-weight:800; font-size:clamp(46px,9vw,128px);
+    line-height:.9; letter-spacing:-.02em; margin:0}
+  .work .head .meta{font-family:var(--mono); font-size:12px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--dim); text-align:right; line-height:1.8}
+  .work .head .meta b{color:var(--green-hi); font-weight:400}
+  .wlist{border-top:1px solid rgba(186,192,30,.16)}
+  .wrow{position:relative; display:grid; grid-template-columns:60px 1fr auto; align-items:center;
+    gap:clamp(14px,3vw,40px); padding:clamp(20px,3.2vh,34px) clamp(6px,1.6vw,22px);
+    border-bottom:1px solid rgba(186,192,30,.16); color:var(--bone); overflow:hidden;
+    transition:background .4s var(--ease), padding-left .4s var(--ease)}
+  .wrow::before{content:""; position:absolute; left:0; top:0; bottom:0; width:0; background:var(--green);
+    opacity:.9; transition:width .4s var(--ease)}
+  .wrow:hover{background:rgba(186,192,30,.06); padding-left:clamp(16px,2.4vw,34px)}
+  .wrow:hover::before{width:3px}
+  .wnum{font-family:var(--mono); font-size:13px; letter-spacing:.06em; color:var(--green); opacity:.85; align-self:start; padding-top:6px}
+  .wclient{font-family:var(--disp); font-weight:700; letter-spacing:-.01em; line-height:1.04;
+    font-size:clamp(23px,3.8vw,50px); transition:color .3s}
+  .wrow:hover .wclient{color:var(--green-hi)}
+  .wdesc{font-family:var(--mono); font-size:12.5px; line-height:1.62; color:var(--dim); margin-top:10px; max-width:64ch}
+  .wtags{display:flex; flex-wrap:wrap; gap:8px; margin-top:14px}
+  .wtag{font-family:var(--mono); font-size:10px; letter-spacing:.16em; text-transform:uppercase;
+    color:rgba(236,236,234,.72); border:1px solid rgba(236,236,234,.2); border-radius:2px; padding:5px 9px}
+  .wright{display:flex; flex-direction:column; align-items:flex-end; gap:11px; text-align:right; align-self:start; padding-top:6px}
+  .wyear{font-family:var(--mono); font-size:12px; letter-spacing:.14em; color:var(--dim); white-space:nowrap}
+  .wsoon{font-family:var(--mono); font-size:10px; letter-spacing:.18em; text-transform:uppercase;
+    color:var(--green-hi); opacity:.72; display:inline-flex; align-items:center; gap:7px; white-space:nowrap}
+  .wsoon .pl{width:5px; height:5px; border-radius:50%; background:var(--green-hi)}
+
+  /* ---------- STUDIO ---------- */
+  .studio{display:block; align-items:initial;
+    padding:clamp(96px,13vh,156px) clamp(22px,6vw,120px) clamp(80px,10vh,130px)}
+  .studio .pnum{display:block; margin-bottom:18px}
+  .studio h2{font-family:var(--disp); font-weight:800; font-size:clamp(40px,7.4vw,104px); line-height:.94;
+    letter-spacing:-.02em; max-width:17ch; margin:0 0 clamp(22px,3.5vh,40px)}
+  .studio h2 span{color:var(--green-hi)}
+  .studio .slead{font-family:var(--disp); font-weight:500; font-size:clamp(16px,1.7vw,23px); line-height:1.5;
+    max-width:60ch; color:rgba(236,236,234,.82); margin-bottom:clamp(40px,6vh,76px)}
+  .caps{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:1px;
+    background:rgba(186,192,30,.16); border:1px solid rgba(186,192,30,.16)}
+  .cap{background:var(--ink); padding:clamp(22px,2.6vw,34px); transition:background .4s var(--ease)}
+  .cap:hover{background:rgba(186,192,30,.05)}
+  .cap .cn{font-family:var(--mono); font-size:11px; letter-spacing:.12em; color:var(--green); opacity:.8}
+  .cap h4{font-family:var(--disp); font-weight:700; font-size:clamp(19px,1.9vw,25px); margin:12px 0 9px; line-height:1.1}
+  .cap p{font-family:var(--mono); font-size:12px; line-height:1.65; color:var(--dim)}
+  .sfoot{display:flex; align-items:center; justify-content:space-between; gap:24px; flex-wrap:wrap;
+    margin-top:clamp(44px,7vh,88px); padding-top:clamp(28px,4vh,44px); border-top:1px solid rgba(186,192,30,.16)}
+  .sfoot p{font-family:var(--disp); font-weight:700; font-size:clamp(20px,2.6vw,34px); line-height:1.2; max-width:24ch; margin:0}
+  .sfoot p span{color:var(--green-hi)}
+
   /* intro */
   .intro{position:fixed;inset:0;z-index:70;background:#040404;display:flex;flex-direction:column;
     align-items:center;justify-content:center;gap:18px;text-align:center;cursor:pointer;
@@ -178,6 +232,11 @@
     .social{flex-direction:row;gap:18px;top:66px;bottom:auto;right:18px}
     .bottom{left:20px;right:20px;bottom:26px;max-width:none}
     .bioov .wrap{left:20px;right:20px;width:auto;top:auto;bottom:6%;transform:none}
+    .wrow{grid-template-columns:30px 1fr; gap:6px 14px}
+    .wright{grid-column:2; flex-direction:row; align-items:center; justify-content:flex-start;
+      gap:14px; text-align:left; margin-top:12px; padding-top:0}
+    .work .head .meta{text-align:left}
+    .sfoot{flex-direction:column; align-items:flex-start}
   }
 </style>
 </head>
@@ -264,10 +323,115 @@
 </div>
 
 <section class="page work">
-  <div><span class="pnum">02 — WORK</span><h2>Work</h2><p>Selected productions, tours &amp; activations — coming soon.</p></div>
+  <div class="head">
+    <h2>Work</h2>
+    <div class="meta">Productions · tours · activations<br>across <b>16+ years</b></div>
+  </div>
+  <!-- EDIT: clients, years and order are a first pass from the bio — confirm/reorder freely.
+       Each .wrow is reel-ready: drop a Cloudflare Stream embed or still into a media well later. -->
+  <div class="wlist">
+
+    <div class="wrow">
+      <div class="wnum">01</div>
+      <div>
+        <div class="wclient">Hollywood Unlocked Impact Awards</div>
+        <div class="wdesc">Five consecutive years of stage design, motion graphics and show flow — earned media reaching into the billions, with headline talent year after year.</div>
+        <div class="wtags"><span class="wtag">Art Direction</span><span class="wtag">Creative Production</span><span class="wtag">Broadcast</span></div>
+      </div>
+      <div class="wright"><div class="wyear">Recurring</div><div class="wsoon"><span class="pl"></span> reel soon</div></div>
+    </div>
+
+    <div class="wrow">
+      <div class="wnum">02</div>
+      <div>
+        <div class="wclient">World's Strongest Man</div>
+        <div class="wdesc">Broadcast art direction for the competition's premiere on CBS — translating raw spectacle into a designed, televised show.</div>
+        <div class="wtags"><span class="wtag">Art Direction</span><span class="wtag">Broadcast</span></div>
+      </div>
+      <div class="wright"><div class="wyear">CBS</div><div class="wsoon"><span class="pl"></span> reel soon</div></div>
+    </div>
+
+    <div class="wrow">
+      <div class="wnum">03</div>
+      <div>
+        <div class="wclient">Chris Brown</div>
+        <div class="wdesc">Creative direction and production design for live tour staging.</div>
+        <div class="wtags"><span class="wtag">Touring</span><span class="wtag">Live Production</span></div>
+      </div>
+      <div class="wright"><div class="wyear">Tour</div><div class="wsoon"><span class="pl"></span> reel soon</div></div>
+    </div>
+
+    <div class="wrow">
+      <div class="wnum">04</div>
+      <div>
+        <div class="wclient">Cardi B</div>
+        <div class="wdesc">Creative direction and production design for live tour staging.</div>
+        <div class="wtags"><span class="wtag">Touring</span><span class="wtag">Live Production</span></div>
+      </div>
+      <div class="wright"><div class="wyear">Tour</div><div class="wsoon"><span class="pl"></span> reel soon</div></div>
+    </div>
+
+    <div class="wrow">
+      <div class="wnum">05</div>
+      <div>
+        <div class="wclient">Apollo Theater — Young Patrons Sessions</div>
+        <div class="wdesc">A branded Harlem rooftop celebration drawing nearly 300 tastemakers, media and Grammy-nominated performers.</div>
+        <div class="wtags"><span class="wtag">Live Experience</span><span class="wtag">Activation</span></div>
+      </div>
+      <div class="wright"><div class="wyear">Harlem</div><div class="wsoon"><span class="pl"></span> reel soon</div></div>
+    </div>
+
+    <div class="wrow">
+      <div class="wnum">06</div>
+      <div>
+        <div class="wclient">McDonald's × Art Basel</div>
+        <div class="wdesc">A weekend activation built for an African-American audience of influencers and creators — bringing a global brand into the culture.</div>
+        <div class="wtags"><span class="wtag">Brand Activation</span><span class="wtag">Experiential</span></div>
+      </div>
+      <div class="wright"><div class="wyear">Miami</div><div class="wsoon"><span class="pl"></span> reel soon</div></div>
+    </div>
+
+    <div class="wrow">
+      <div class="wnum">07</div>
+      <div>
+        <div class="wclient">The Grammys — Red Carpet</div>
+        <div class="wdesc">Red carpet staging and design for music's biggest night.</div>
+        <div class="wtags"><span class="wtag">Staging</span><span class="wtag">Art Direction</span></div>
+      </div>
+      <div class="wright"><div class="wyear">Staging</div><div class="wsoon"><span class="pl"></span> reel soon</div></div>
+    </div>
+
+    <div class="wrow">
+      <div class="wnum">08</div>
+      <div>
+        <div class="wclient">Red Door Harlem</div>
+        <div class="wdesc">An original Supernerd nightlife concept — venue identity and experience design for a Harlem room of its own.</div>
+        <div class="wtags"><span class="wtag">Experience Design</span><span class="wtag">Venue</span></div>
+      </div>
+      <div class="wright"><div class="wyear">Harlem</div><div class="wsoon"><span class="pl"></span> reel soon</div></div>
+    </div>
+
+  </div>
 </section>
+
 <section class="page studio">
-  <div><span class="pnum">03 — STUDIO</span><h2>Studio</h2><p>How Supernerd builds — coming soon.</p></div>
+  <div>
+    <span class="pnum">03 — STUDIO</span>
+    <h2>The studio behind the <span>moment.</span></h2>
+    <p class="slead">Supernerd is a design and production boutique working where art, culture, events and technology meet. For 16+ years we've been the unseen architecture behind cultural moments — turning a bold idea into something built, staged, and impossible to forget.</p>
+    <div class="caps">
+      <div class="cap"><div class="cn">01</div><h4>Art Direction</h4><p>Stage, set and visual systems that give a moment its look and feel.</p></div>
+      <div class="cap"><div class="cn">02</div><h4>Creative Production</h4><p>Concept to call-sheet — owning show flow, vendors and the build.</p></div>
+      <div class="cap"><div class="cn">03</div><h4>Live Experiences</h4><p>Tours, awards shows and rooftop nights engineered end to end.</p></div>
+      <div class="cap"><div class="cn">04</div><h4>Motion &amp; Design</h4><p>Broadcast motion graphics, screens and identity that move.</p></div>
+      <div class="cap"><div class="cn">05</div><h4>Brand Activations</h4><p>Culture-first activations that put brands inside the conversation.</p></div>
+      <div class="cap"><div class="cn">06</div><h4>Emerging Tech</h4><p>An early mover in AR and AI — viral work where craft meets code.</p></div>
+    </div>
+    <div class="sfoot">
+      <p>Got something that needs to be <span>unforgettable?</span></p>
+      <button class="cta" id="studioContactBtn"><span class="dot"></span> Start a project</button>
+    </div>
+  </div>
 </section>
 
 <div class="intro" id="intro">
@@ -287,6 +451,7 @@
   const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
   const fOut=(P,s,e)=>1-clamp((P-s)/(e-s),0,1);
   const fIn=(P,s,e)=>clamp((P-s)/(e-s),0,1);
+  const SPAN=1.5; // viewports of scroll the turn spans; keep in sync with .scene height (250vh)
 
   let tx=0,ty=0,cx=0,cy=0,raf=null;
 
@@ -306,7 +471,7 @@
 
   function render(){
     raf=null;
-    const y=scrollY||pageYOffset,H=innerHeight,P=clamp(y/H,0,1); curP=P;
+    const y=scrollY||pageYOffset,H=innerHeight,P=clamp(y/(H*SPAN),0,1); curP=P;
     cx+=(tx-cx)*0.12; cy+=(ty-cy)*0.12;
     smoke.style.opacity=fOut(P,0,.55);
     smoke.style.transform=`translate(${(-cx*6).toFixed(1)}px,${(-cy*4).toFixed(1)}px)`;
@@ -346,10 +511,11 @@
   function openContact(){ document.body.classList.remove('menu-open'); document.body.classList.add('contact-open'); }
   function closeContact(){ document.body.classList.remove('contact-open'); }
   $('#contactBtn').addEventListener('click',openContact);
+  $('#studioContactBtn')?.addEventListener('click',openContact);
   $('#cclose').addEventListener('click',closeContact);
   cmodal.addEventListener('click',e=>{ if(e.target===cmodal) closeContact(); });
   const bmodal=$('#bmodal');
-  $('#metaBtn').addEventListener('click',()=>scrollToY(innerHeight*0.99,2600));
+  $('#metaBtn').addEventListener('click',()=>scrollToY(innerHeight*SPAN*0.99,3200));
   $('#moreBtn').addEventListener('click',()=>document.body.classList.add('bio-open'));
   $('#bclose').addEventListener('click',()=>document.body.classList.remove('bio-open'));
   bmodal.addEventListener('click',e=>{ if(e.target===bmodal) document.body.classList.remove('bio-open'); });
@@ -359,7 +525,7 @@
     if(a.hasAttribute('data-contact')){ openContact(); return; }
     const g=a.dataset.go; let y=0, dur=900;
     if(g==='0') y=0;
-    else if(g==='bio'){ y=innerHeight*0.99; dur=2600; }
+    else if(g==='bio'){ y=innerHeight*SPAN*0.99; dur=3200; }
     else { const el=document.querySelector(g); if(el) y=el.getBoundingClientRect().top+scrollY; }
     scrollToY(y,dur);
   }));
