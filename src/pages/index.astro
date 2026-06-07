@@ -159,7 +159,8 @@
   .page p{font-family:var(--mono);font-size:14px;letter-spacing:.06em;color:var(--dim)}
 
   /* ---------- WORK ---------- */
-  .work{display:block; align-items:initial;
+  .work{display:block; align-items:initial; position:relative; z-index:3;
+    box-shadow:0 -42px 90px rgba(0,0,0,.6); /* casts up onto the slower-rising bio for depth */
     padding:clamp(96px,13vh,156px) clamp(22px,6vw,120px) clamp(70px,9vh,120px);}
   .work .head{display:flex; align-items:flex-end; justify-content:space-between; gap:24px;
     flex-wrap:wrap; margin-bottom:clamp(32px,6vh,68px)}
@@ -452,19 +453,20 @@
   const fOut=(P,s,e)=>1-clamp((P-s)/(e-s),0,1);
   const fIn=(P,s,e)=>clamp((P-s)/(e-s),0,1);
   const SPAN=1.5; // viewports of scroll the turn spans; keep in sync with .scene height (250vh)
+  const BIO_LAG=0.45; // on exit, the settled bio rises at this fraction of scroll speed so Work slides over it (depth). 1 = no lag
 
   let tx=0,ty=0,cx=0,cy=0,raf=null;
 
   // person turn sequence (scroll-scrubbed canvas) + sharp posters at the ends
   const pseq=$('#pseq'), pctx=pseq?pseq.getContext('2d'):null, pend=$('#pend');
-  const FRAMES=48, fimgs=[]; let lastF=-1, curP=0, dpr=Math.min(2,window.devicePixelRatio||1);
-  const IW=1920, IH=1080, BX=674/IW, BY=75/IH, BW=1228/IW, BH=1005/IH; // crop mapped into full-frame coords
+  const FRAMES=121, fimgs=[]; let lastF=-1, curP=0, dpr=Math.min(2,window.devicePixelRatio||1);
+  const IW=1920, IH=1080, BX=0.44257, BY=0.15479, BW=0.42499, BH=0.84521; // new tall frames shrunk to match the current figure's exact on-screen size (feet/head/center)
   function sizeSeq(){ if(!pseq)return; const r=pseq.getBoundingClientRect(); if(!r.width)return;
     pseq.width=Math.round(r.width*dpr); pseq.height=Math.round(r.height*dpr); lastF=-1; drawSeq(Math.round(curP*(FRAMES-1))); }
   function drawSeq(i){ if(!pctx)return; const img=fimgs[i]; if(!img||!img.complete||!img.naturalWidth)return;
     const cw=pseq.width,ch=pseq.height, s=Math.max(cw/IW,ch/IH), fX=(cw-IW*s)*0.7, fY=(ch-IH*s)*0.5;
     pctx.clearRect(0,0,cw,ch); pctx.drawImage(img, fX+BX*IW*s, fY+BY*IH*s, BW*IW*s, BH*IH*s); lastF=i; }
-  for(let k=0;k<FRAMES;k++){ const im=new Image(); const n=String(k).padStart(2,'0');
+  for(let k=0;k<FRAMES;k++){ const im=new Image(); const n=String(k).padStart(3,'0');
     im.onload=()=>{ const want=Math.round(curP*(FRAMES-1)); if(k===want||(lastF<0&&k===0)) drawSeq(want); };
     im.src='/hero/seq/f'+n+'.webp'; fimgs[k]=im; }
   addEventListener('resize',sizeSeq);
@@ -472,6 +474,8 @@
   function render(){
     raf=null;
     const y=scrollY||pageYOffset,H=innerHeight,P=clamp(y/(H*SPAN),0,1); curP=P;
+    const yExit=Math.max(0,y-H*SPAN);                 // px scrolled past the settled bio
+    const lagY=(1-BIO_LAG)*Math.min(yExit,H);         // how far the bio is held back so Work covers it slower-than-1:1
     cx+=(tx-cx)*0.12; cy+=(ty-cy)*0.12;
     smoke.style.opacity=fOut(P,0,.55);
     smoke.style.transform=`translate(${(-cx*6).toFixed(1)}px,${(-cy*4).toFixed(1)}px)`;
@@ -479,12 +483,12 @@
     fsmoke.style.transform=`translate(${(-cx*30).toFixed(1)}px,${(-cy*16).toFixed(1)}px)`;
     flask.style.transform=`translate(${(-cx*14).toFixed(1)}px,${(-P*0.55*H-cy*7).toFixed(1)}px)`;
     word.style.transform=`translate(${(-cx*12).toFixed(1)}px,${(-P*1.0*H-cy*6).toFixed(1)}px) translateY(-50%)`;
-    const ptr=`translate(${(-cx*8).toFixed(1)}px,${(-cy*4).toFixed(1)}px)`;
+    const ptr=`translate(${(-cx*8).toFixed(1)}px,${(-cy*4+lagY).toFixed(1)}px)`;
     person.style.transform=ptr; person.style.opacity=fOut(P,0,.04);
     if(pseq){ pseq.style.transform=ptr; const fi=Math.round(P*(FRAMES-1)); if(fi!==lastF) drawSeq(fi); }
     if(pend){ pend.style.transform=ptr; pend.style.opacity=fIn(P,.9,1); }
-    const wp=fIn(P,.1,.5); wedge.style.opacity=wp; wedge.style.transform=`translateX(${((1-wp)*60).toFixed(1)}px)`;
-    bioov.style.transform=`translateY(${(H*(1-P)).toFixed(1)}px)`;
+    const wp=fIn(P,.1,.5); wedge.style.opacity=wp; wedge.style.transform=`translate(${((1-wp)*60).toFixed(1)}px,${lagY.toFixed(1)}px)`;
+    bioov.style.transform=`translateY(${(H*(1-P)+lagY).toFixed(1)}px)`;
     const no=clamp((P-.4)/.5,0,1); nm.style.opacity=no; nm.style.filter=`blur(${((1-no)*16).toFixed(1)}px)`;
     ui.style.transform=`translateY(${(-P*H).toFixed(1)}px)`; ui.style.opacity=fOut(P,0,.5);
     if(Math.abs(cx-tx)>0.001||Math.abs(cy-ty)>0.001) schedule();
