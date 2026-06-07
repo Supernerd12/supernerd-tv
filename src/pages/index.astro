@@ -90,7 +90,8 @@
   .wordimg { position:absolute; z-index:4; left:-5%; top:52%; transform:translateY(-50%);
     width:calc(68.1vw + 171px); max-width:1700px; height:auto; pointer-events:none;
     filter:drop-shadow(0 0 30px rgba(186,192,30,.22)); will-change:transform; }
-  .p-person{ z-index:5; background-image:url("/hero/person.png"); background-position:70% center; }
+  .p-person{ z-index:5; background-image:url("/hero/person0.webp"); background-position:70% center; }
+  #pend{ position:absolute; inset:-6%; width:112%; height:112%; z-index:5; background-image:url("/hero/personEnd.webp"); background-size:cover; background-position:70% center; opacity:0; pointer-events:none; will-change:transform,opacity; backface-visibility:hidden; }
   #pseq{position:absolute; inset:-6%; width:112%; height:112%; z-index:5; pointer-events:none; will-change:transform; backface-visibility:hidden;}
   .p-fsmoke{ z-index:6; background-image:url("/hero/frontsmoke.png"); mix-blend-mode:screen; }
   .vignette{position:absolute;inset:0;z-index:7;pointer-events:none;
@@ -228,8 +229,9 @@
     <div class="plane p-flask"></div>
     <div class="wedge" id="wedge"></div>
     <img class="wordimg" id="word" src="/hero/wordcrop.png" alt="supernerd">
-    <div class="plane p-person"></div>
     <canvas id="pseq"></canvas>
+    <div class="plane p-person"></div>
+    <div id="pend"></div>
     <div class="plane p-fsmoke"></div>
     <div class="vignette"></div>
     <div class="grain"></div>
@@ -288,15 +290,15 @@
 
   let tx=0,ty=0,cx=0,cy=0,raf=null;
 
-  // person turn sequence (scroll-scrubbed canvas over the static poster)
-  const pseq=$('#pseq'), pctx=pseq?pseq.getContext('2d'):null;
+  // person turn sequence (scroll-scrubbed canvas) + sharp posters at the ends
+  const pseq=$('#pseq'), pctx=pseq?pseq.getContext('2d'):null, pend=$('#pend');
   const FRAMES=48, fimgs=[]; let lastF=-1, curP=0, dpr=Math.min(2,window.devicePixelRatio||1);
+  const IW=1920, IH=1080, BX=674/IW, BY=75/IH, BW=1228/IW, BH=1005/IH; // crop mapped into full-frame coords
   function sizeSeq(){ if(!pseq)return; const r=pseq.getBoundingClientRect(); if(!r.width)return;
     pseq.width=Math.round(r.width*dpr); pseq.height=Math.round(r.height*dpr); lastF=-1; drawSeq(Math.round(curP*(FRAMES-1))); }
   function drawSeq(i){ if(!pctx)return; const img=fimgs[i]; if(!img||!img.complete||!img.naturalWidth)return;
-    const cw=pseq.width,ch=pseq.height,iw=img.naturalWidth,ih=img.naturalHeight;
-    const s=Math.max(cw/iw,ch/ih),w=iw*s,h=ih*s,x=(cw-w)*0.7,y=(ch-h)*0.5;
-    pctx.clearRect(0,0,cw,ch); pctx.drawImage(img,x,y,w,h); lastF=i; }
+    const cw=pseq.width,ch=pseq.height, s=Math.max(cw/IW,ch/IH), fX=(cw-IW*s)*0.7, fY=(ch-IH*s)*0.5;
+    pctx.clearRect(0,0,cw,ch); pctx.drawImage(img, fX+BX*IW*s, fY+BY*IH*s, BW*IW*s, BH*IH*s); lastF=i; }
   for(let k=0;k<FRAMES;k++){ const im=new Image(); const n=String(k).padStart(2,'0');
     im.onload=()=>{ const want=Math.round(curP*(FRAMES-1)); if(k===want||(lastF<0&&k===0)) drawSeq(want); };
     im.src='/hero/seq/f'+n+'.webp'; fimgs[k]=im; }
@@ -312,8 +314,10 @@
     fsmoke.style.transform=`translate(${(-cx*30).toFixed(1)}px,${(-cy*16).toFixed(1)}px)`;
     flask.style.transform=`translate(${(-cx*14).toFixed(1)}px,${(-P*0.55*H-cy*7).toFixed(1)}px)`;
     word.style.transform=`translate(${(-cx*12).toFixed(1)}px,${(-P*1.0*H-cy*6).toFixed(1)}px) translateY(-50%)`;
-    person.style.transform=`translate(${(-cx*8).toFixed(1)}px,${(-cy*4).toFixed(1)}px)`;
-    if(pseq){ pseq.style.transform=person.style.transform; const fi=Math.round(P*(FRAMES-1)); if(fi!==lastF) drawSeq(fi); }
+    const ptr=`translate(${(-cx*8).toFixed(1)}px,${(-cy*4).toFixed(1)}px)`;
+    person.style.transform=ptr; person.style.opacity=fOut(P,0,.04);
+    if(pseq){ pseq.style.transform=ptr; const fi=Math.round(P*(FRAMES-1)); if(fi!==lastF) drawSeq(fi); }
+    if(pend){ pend.style.transform=ptr; pend.style.opacity=fIn(P,.9,1); }
     const wp=fIn(P,.1,.5); wedge.style.opacity=wp; wedge.style.transform=`translateX(${((1-wp)*60).toFixed(1)}px)`;
     bioov.style.transform=`translateY(${(H*(1-P)).toFixed(1)}px)`;
     const no=clamp((P-.4)/.5,0,1); nm.style.opacity=no; nm.style.filter=`blur(${((1-no)*16).toFixed(1)}px)`;
@@ -333,7 +337,7 @@
     if(D&&typeof D.requestPermission==='function'){ D.requestPermission().then(s=>{if(s==='granted')startGyro();}).catch(()=>{}); } else if(D){ startGyro(); } }
 
   // smooth fast scroll
-  function scrollToY(ty,dur){ dur=dur||650; const s=scrollY,d=ty-s,t0=performance.now(),ez=x=>1-Math.pow(1-x,3);
+  function scrollToY(ty,dur){ dur=dur||650; const s=scrollY,d=ty-s,t0=performance.now(),ez=x=> x<0.5 ? 4*x*x*x : 1-Math.pow(-2*x+2,3)/2;
     (function step(t){ const k=Math.min(1,(t-t0)/dur); scrollTo(0,s+d*ez(k)); if(k<1)requestAnimationFrame(step); })(performance.now()); }
 
   // menu + contact
@@ -345,7 +349,7 @@
   $('#cclose').addEventListener('click',closeContact);
   cmodal.addEventListener('click',e=>{ if(e.target===cmodal) closeContact(); });
   const bmodal=$('#bmodal');
-  $('#metaBtn').addEventListener('click',()=>scrollToY(innerHeight*0.99));
+  $('#metaBtn').addEventListener('click',()=>scrollToY(innerHeight*0.99,2600));
   $('#moreBtn').addEventListener('click',()=>document.body.classList.add('bio-open'));
   $('#bclose').addEventListener('click',()=>document.body.classList.remove('bio-open'));
   bmodal.addEventListener('click',e=>{ if(e.target===bmodal) document.body.classList.remove('bio-open'); });
@@ -353,11 +357,11 @@
   menu.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{
     document.body.classList.remove('menu-open');
     if(a.hasAttribute('data-contact')){ openContact(); return; }
-    const g=a.dataset.go; let y=0;
+    const g=a.dataset.go; let y=0, dur=900;
     if(g==='0') y=0;
-    else if(g==='bio') y=innerHeight*0.99;
+    else if(g==='bio'){ y=innerHeight*0.99; dur=2600; }
     else { const el=document.querySelector(g); if(el) y=el.getBoundingClientRect().top+scrollY; }
-    scrollToY(y);
+    scrollToY(y,dur);
   }));
 
   function enter(){ if(document.body.classList.contains('live'))return;
