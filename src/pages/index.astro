@@ -254,12 +254,15 @@
     .sfoot{flex-direction:column; align-items:flex-start}
   }
 
-  .collab{display:block; min-height:auto; align-items:initial; padding:0; background:var(--ink); border-top:1px solid rgba(186,192,30,.12)}
-  .cl-track{position:relative; height:360vh}
+  .collab{display:block; min-height:auto; align-items:initial; padding:0; background:var(--ink); border-top:1px solid rgba(186,192,30,.12); position:relative; z-index:4; margin-top:-6vh; box-shadow:0 -50px 100px 8px rgba(0,0,0,.7)}
+  .cl-track{position:relative; height:190vh}
   .cl-sticky{position:sticky; top:0; height:100vh; display:flex; align-items:center; overflow:hidden}
-  .cl-inner{width:100%; padding:0 clamp(22px,6vw,120px)}
+  .cl-robot{position:absolute; top:-6vh; right:-6vw; width:clamp(440px,60vw,1150px); z-index:1; pointer-events:none; will-change:contents}
+  .cl-robot img{display:block; width:100%; height:auto}
+  .cl-inner{position:relative; z-index:2; width:100%; padding:0 clamp(22px,6vw,120px)}
   .cl-head{margin-bottom:clamp(26px,4.4vh,52px)}
   .cl-h{font-family:var(--disp); font-weight:800; font-size:clamp(40px,8.5vw,104px); letter-spacing:-.03em; line-height:.92; margin:0; color:var(--bone)}
+  .cl-h .cl-w{display:inline}
   .cl-ey{font-family:var(--mono); font-weight:400; font-size:11px; letter-spacing:.34em; text-transform:uppercase; color:var(--green-hi); margin-top:clamp(12px,2vh,20px)}
   .cl-body{position:relative}
   .cl-spine{position:absolute; left:-30px; top:4px; width:2px; height:calc(100% - 22px); transform:scaleY(0); transform-origin:top; background:repeating-linear-gradient(to bottom,var(--green) 0 3px,transparent 3px 12px)}
@@ -285,15 +288,17 @@
   .cl-row>.cl-lg:first-child{margin-left:0}
   .cl-lg:hover{opacity:1}
   .collab.cl-on [data-rev]{transition:opacity .7s cubic-bezier(.2,.7,.2,1), transform .7s cubic-bezier(.2,.7,.2,1), filter .7s ease}
-  .collab.cl-on .cl-rise{opacity:0; transform:translateY(28px)}
   .collab.cl-on .cl-slide{opacity:0; transform:translateX(-26px)}
   .collab.cl-on .cl-foc{opacity:0; transform:scale(1.05); filter:blur(9px)}
-  .collab.cl-on .cl-rise.in,.collab.cl-on .cl-slide.in{opacity:1; transform:none}
+  .collab.cl-on .cl-slide.in{opacity:1; transform:none}
   .collab.cl-on .cl-foc.in{opacity:1; transform:none; filter:none}
   .collab.cl-on .cl-branch.in{transform:scaleX(1)}
   @media (prefers-reduced-motion:reduce){.cl-row{animation:none}}
+  @media (max-width:1024px){ .cl-robot{width:clamp(360px,64vw,820px); top:-3vh; right:-8vw} }
   @media (max-height:760px){ .cl-h{font-size:clamp(30px,5.6vw,58px)} .cl-cat{margin-bottom:clamp(12px,2vh,22px)} .cl-lg{height:clamp(36px,5vh,52px)} .cl-nm{font-size:clamp(17px,3.2vw,28px)} .cl-head{margin-bottom:clamp(16px,3vh,30px)} }
-  @media (max-width:760px){ .cl-spine,.cl-branch{display:none} .cl-track{height:300vh} }
+  @media (max-width:820px){ .cl-h .cl-w{display:block; line-height:.9} .cl-robot{width:78vw; right:-12vw; opacity:.8} }
+  @media (max-width:760px){ .cl-spine{left:-18px} .cl-branch{left:-18px; width:16px} .cl-track{height:240vh} }
+  @media (max-width:440px){ .cl-spine,.cl-branch{display:none} }
   @media (max-width:640px){ .cl-lg{height:clamp(34px,5.4vh,48px)} .cl-h{font-size:clamp(38px,13vw,64px)} }
 </style>
 </head>
@@ -491,36 +496,39 @@
 
 <section class="page collab" id="collab">
   <div class="cl-track">
-    <div class="cl-sticky"><div class="cl-inner">
-      <div class="cl-head">
-        <h2 class="cl-h cl-rise" data-rev="0.02">Stronger Together</h2>
-        <div class="cl-ey cl-rise" data-rev="0.06">Supernerd Collaborators</div>
+    <div class="cl-sticky">
+      <div class="cl-robot" aria-hidden="true"><img id="clrobot" alt=""></div>
+      <div class="cl-inner">
+        <div class="cl-head">
+          <h2 class="cl-h"><span class="cl-w">Stronger</span> <span class="cl-w">Together</span></h2>
+          <div class="cl-ey">Supernerd Collaborators</div>
+        </div>
+        <div class="cl-body">
+          <div class="cl-spine"></div>
+          <div class="cl-cat">
+            <div class="cl-branch" data-rev="0.04"></div>
+            <div class="cl-lab cl-slide" data-rev="0.04"><b>Entertainment</b></div>
+            <div class="cl-mq cl-slide" data-rev="0.10"><div class="cl-row s1"><span class="cl-nm">Cardi B</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Lil Wayne</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Charlamagne Tha God</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Chris Brown</span><span class="cl-sep">&#9670;</span><span class="cl-nm">H.E.R.</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Daniel Caesar</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Offset</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Ella Mai</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Cardi B</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Lil Wayne</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Charlamagne Tha God</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Chris Brown</span><span class="cl-sep">&#9670;</span><span class="cl-nm">H.E.R.</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Daniel Caesar</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Offset</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Ella Mai</span><span class="cl-sep">&#9670;</span></div></div>
+            <div class="cl-mq cl-slide" data-rev="0.14"><div class="cl-row rev s2"><span class="cl-nm">Cee-Lo</span><span class="cl-sep">&#9670;</span><span class="cl-nm">David Guetta</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Kal Penn</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Ruth Carter</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Jason Lee</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Blac Chyna</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Fat Joe</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Daley</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Cee-Lo</span><span class="cl-sep">&#9670;</span><span class="cl-nm">David Guetta</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Kal Penn</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Ruth Carter</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Jason Lee</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Blac Chyna</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Fat Joe</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Daley</span><span class="cl-sep">&#9670;</span></div></div>
+          </div>
+          <div class="cl-cat">
+            <div class="cl-branch" data-rev="0.26"></div>
+            <div class="cl-lab cl-slide" data-rev="0.26"><b>Television</b></div>
+            <div class="cl-mq cl-foc" data-rev="0.33"><div class="cl-row"><img class="cl-lg" src="/work/logos/television/01_vh1.png" alt="Vh1" loading="lazy"><img class="cl-lg" src="/work/logos/television/02_bet.png" alt="Bet" loading="lazy"><img class="cl-lg" src="/work/logos/television/03_cbs.png" alt="Cbs" loading="lazy"><img class="cl-lg" src="/work/logos/television/04_comedy-central.png" alt="Comedy Central" loading="lazy"><img class="cl-lg" src="/work/logos/television/05_mtv.png" alt="Mtv" loading="lazy"><img class="cl-lg" src="/work/logos/television/06_spike.png" alt="Spike" loading="lazy"><img class="cl-lg" src="/work/logos/television/07_hbo.png" alt="Hbo" loading="lazy"><img class="cl-lg" src="/work/logos/television/08_nickelodeon.png" alt="Nickelodeon" loading="lazy"><img class="cl-lg" src="/work/logos/television/09_bravo.png" alt="Bravo" loading="lazy"><img class="cl-lg" src="/work/logos/television/10_mtv2.png" alt="Mtv2" loading="lazy"><img class="cl-lg" src="/work/logos/television/11_nbc.png" alt="Nbc" loading="lazy"><img class="cl-lg" src="/work/logos/television/12_logo-tv.png" alt="Logo Tv" loading="lazy"><img class="cl-lg" src="/work/logos/television/13_e.png" alt="E" loading="lazy"><img class="cl-lg" src="/work/logos/television/14_mtv-tres.png" alt="Mtv Tres" loading="lazy"><img class="cl-lg" src="/work/logos/television/15_zeus-network.png" alt="Zeus Network" loading="lazy"><img class="cl-lg" src="/work/logos/television/01_vh1.png" alt="Vh1" loading="lazy"><img class="cl-lg" src="/work/logos/television/02_bet.png" alt="Bet" loading="lazy"><img class="cl-lg" src="/work/logos/television/03_cbs.png" alt="Cbs" loading="lazy"><img class="cl-lg" src="/work/logos/television/04_comedy-central.png" alt="Comedy Central" loading="lazy"><img class="cl-lg" src="/work/logos/television/05_mtv.png" alt="Mtv" loading="lazy"><img class="cl-lg" src="/work/logos/television/06_spike.png" alt="Spike" loading="lazy"><img class="cl-lg" src="/work/logos/television/07_hbo.png" alt="Hbo" loading="lazy"><img class="cl-lg" src="/work/logos/television/08_nickelodeon.png" alt="Nickelodeon" loading="lazy"><img class="cl-lg" src="/work/logos/television/09_bravo.png" alt="Bravo" loading="lazy"><img class="cl-lg" src="/work/logos/television/10_mtv2.png" alt="Mtv2" loading="lazy"><img class="cl-lg" src="/work/logos/television/11_nbc.png" alt="Nbc" loading="lazy"><img class="cl-lg" src="/work/logos/television/12_logo-tv.png" alt="Logo Tv" loading="lazy"><img class="cl-lg" src="/work/logos/television/13_e.png" alt="E" loading="lazy"><img class="cl-lg" src="/work/logos/television/14_mtv-tres.png" alt="Mtv Tres" loading="lazy"><img class="cl-lg" src="/work/logos/television/15_zeus-network.png" alt="Zeus Network" loading="lazy"></div></div>
+          </div>
+          <div class="cl-cat">
+            <div class="cl-branch" data-rev="0.46"></div>
+            <div class="cl-lab cl-slide" data-rev="0.46"><b>Beauty</b></div>
+            <div class="cl-mq cl-foc" data-rev="0.53"><div class="cl-row rev s2"><img class="cl-lg" src="/work/logos/beauty/01_maybelline.png" alt="Maybelline" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/02_loreal.png" alt="Loreal" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/03_dark-and-lovely.png" alt="Dark And Lovely" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/04_matrix.png" alt="Matrix" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/05_urban-decay.png" alt="Urban Decay" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/06_essie.png" alt="Essie" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/07_kiehls.png" alt="Kiehls" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/08_guerlain.png" alt="Guerlain" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/09_sally-hansen.png" alt="Sally Hansen" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/10_ysl.png" alt="Ysl" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/11_carols-daughter.png" alt="Carols Daughter" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/01_maybelline.png" alt="Maybelline" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/02_loreal.png" alt="Loreal" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/03_dark-and-lovely.png" alt="Dark And Lovely" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/04_matrix.png" alt="Matrix" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/05_urban-decay.png" alt="Urban Decay" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/06_essie.png" alt="Essie" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/07_kiehls.png" alt="Kiehls" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/08_guerlain.png" alt="Guerlain" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/09_sally-hansen.png" alt="Sally Hansen" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/10_ysl.png" alt="Ysl" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/11_carols-daughter.png" alt="Carols Daughter" loading="lazy"></div></div>
+          </div>
+          <div class="cl-cat">
+            <div class="cl-branch" data-rev="0.66"></div>
+            <div class="cl-lab cl-slide" data-rev="0.66"><b>Live Experiences</b></div>
+            <div class="cl-mq cl-foc" data-rev="0.73"><div class="cl-row s1"><img class="cl-lg" src="/work/logos/experience/01_mcdonalds.png" alt="Mcdonalds" loading="lazy"><img class="cl-lg" src="/work/logos/experience/02_slay.png" alt="Slay" loading="lazy"><img class="cl-lg" src="/work/logos/experience/03_hollywood-unlocked.png" alt="Hollywood Unlocked" loading="lazy"><img class="cl-lg" src="/work/logos/experience/04_apollo-theater.png" alt="Apollo Theater" loading="lazy"><img class="cl-lg" src="/work/logos/experience/05_twinkie-clark.png" alt="Twinkie Clark" loading="lazy"><img class="cl-lg" src="/work/logos/experience/06_worlds-strongest-man.png" alt="Worlds Strongest Man" loading="lazy"><img class="cl-lg" src="/work/logos/experience/01_mcdonalds.png" alt="Mcdonalds" loading="lazy"><img class="cl-lg" src="/work/logos/experience/02_slay.png" alt="Slay" loading="lazy"><img class="cl-lg" src="/work/logos/experience/03_hollywood-unlocked.png" alt="Hollywood Unlocked" loading="lazy"><img class="cl-lg" src="/work/logos/experience/04_apollo-theater.png" alt="Apollo Theater" loading="lazy"><img class="cl-lg" src="/work/logos/experience/05_twinkie-clark.png" alt="Twinkie Clark" loading="lazy"><img class="cl-lg" src="/work/logos/experience/06_worlds-strongest-man.png" alt="Worlds Strongest Man" loading="lazy"><img class="cl-lg" src="/work/logos/experience/01_mcdonalds.png" alt="Mcdonalds" loading="lazy"><img class="cl-lg" src="/work/logos/experience/02_slay.png" alt="Slay" loading="lazy"><img class="cl-lg" src="/work/logos/experience/03_hollywood-unlocked.png" alt="Hollywood Unlocked" loading="lazy"><img class="cl-lg" src="/work/logos/experience/04_apollo-theater.png" alt="Apollo Theater" loading="lazy"><img class="cl-lg" src="/work/logos/experience/05_twinkie-clark.png" alt="Twinkie Clark" loading="lazy"><img class="cl-lg" src="/work/logos/experience/06_worlds-strongest-man.png" alt="Worlds Strongest Man" loading="lazy"></div></div>
+          </div>
+        </div>
       </div>
-      <div class="cl-body">
-        <div class="cl-spine"></div>
-        <div class="cl-cat">
-          <div class="cl-branch" data-rev="0.08"></div>
-          <div class="cl-lab cl-slide" data-rev="0.08"><b>Entertainment</b></div>
-          <div class="cl-mq cl-slide" data-rev="0.13"><div class="cl-row s1"><span class="cl-nm">Cardi B</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Lil Wayne</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Charlamagne Tha God</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Chris Brown</span><span class="cl-sep">&#9670;</span><span class="cl-nm">H.E.R.</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Daniel Caesar</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Offset</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Ella Mai</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Cardi B</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Lil Wayne</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Charlamagne Tha God</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Chris Brown</span><span class="cl-sep">&#9670;</span><span class="cl-nm">H.E.R.</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Daniel Caesar</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Offset</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Ella Mai</span><span class="cl-sep">&#9670;</span></div></div>
-          <div class="cl-mq cl-slide" data-rev="0.17"><div class="cl-row rev s2"><span class="cl-nm">Cee-Lo</span><span class="cl-sep">&#9670;</span><span class="cl-nm">David Guetta</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Kal Penn</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Ruth Carter</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Jason Lee</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Blac Chyna</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Fat Joe</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Daley</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Cee-Lo</span><span class="cl-sep">&#9670;</span><span class="cl-nm">David Guetta</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Kal Penn</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Ruth Carter</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Jason Lee</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Blac Chyna</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Fat Joe</span><span class="cl-sep">&#9670;</span><span class="cl-nm">Daley</span><span class="cl-sep">&#9670;</span></div></div>
-        </div>
-        <div class="cl-cat">
-          <div class="cl-branch" data-rev="0.30"></div>
-          <div class="cl-lab cl-slide" data-rev="0.30"><b>Television</b></div>
-          <div class="cl-mq cl-foc" data-rev="0.37"><div class="cl-row"><img class="cl-lg" src="/work/logos/television/01_vh1.png" alt="Vh1" loading="lazy"><img class="cl-lg" src="/work/logos/television/02_bet.png" alt="Bet" loading="lazy"><img class="cl-lg" src="/work/logos/television/03_cbs.png" alt="Cbs" loading="lazy"><img class="cl-lg" src="/work/logos/television/04_comedy-central.png" alt="Comedy Central" loading="lazy"><img class="cl-lg" src="/work/logos/television/05_mtv.png" alt="Mtv" loading="lazy"><img class="cl-lg" src="/work/logos/television/06_spike.png" alt="Spike" loading="lazy"><img class="cl-lg" src="/work/logos/television/07_hbo.png" alt="Hbo" loading="lazy"><img class="cl-lg" src="/work/logos/television/08_nickelodeon.png" alt="Nickelodeon" loading="lazy"><img class="cl-lg" src="/work/logos/television/09_bravo.png" alt="Bravo" loading="lazy"><img class="cl-lg" src="/work/logos/television/10_mtv2.png" alt="Mtv2" loading="lazy"><img class="cl-lg" src="/work/logos/television/11_nbc.png" alt="Nbc" loading="lazy"><img class="cl-lg" src="/work/logos/television/12_logo-tv.png" alt="Logo Tv" loading="lazy"><img class="cl-lg" src="/work/logos/television/13_e.png" alt="E" loading="lazy"><img class="cl-lg" src="/work/logos/television/14_mtv-tres.png" alt="Mtv Tres" loading="lazy"><img class="cl-lg" src="/work/logos/television/15_zeus-network.png" alt="Zeus Network" loading="lazy"><img class="cl-lg" src="/work/logos/television/01_vh1.png" alt="Vh1" loading="lazy"><img class="cl-lg" src="/work/logos/television/02_bet.png" alt="Bet" loading="lazy"><img class="cl-lg" src="/work/logos/television/03_cbs.png" alt="Cbs" loading="lazy"><img class="cl-lg" src="/work/logos/television/04_comedy-central.png" alt="Comedy Central" loading="lazy"><img class="cl-lg" src="/work/logos/television/05_mtv.png" alt="Mtv" loading="lazy"><img class="cl-lg" src="/work/logos/television/06_spike.png" alt="Spike" loading="lazy"><img class="cl-lg" src="/work/logos/television/07_hbo.png" alt="Hbo" loading="lazy"><img class="cl-lg" src="/work/logos/television/08_nickelodeon.png" alt="Nickelodeon" loading="lazy"><img class="cl-lg" src="/work/logos/television/09_bravo.png" alt="Bravo" loading="lazy"><img class="cl-lg" src="/work/logos/television/10_mtv2.png" alt="Mtv2" loading="lazy"><img class="cl-lg" src="/work/logos/television/11_nbc.png" alt="Nbc" loading="lazy"><img class="cl-lg" src="/work/logos/television/12_logo-tv.png" alt="Logo Tv" loading="lazy"><img class="cl-lg" src="/work/logos/television/13_e.png" alt="E" loading="lazy"><img class="cl-lg" src="/work/logos/television/14_mtv-tres.png" alt="Mtv Tres" loading="lazy"><img class="cl-lg" src="/work/logos/television/15_zeus-network.png" alt="Zeus Network" loading="lazy"></div></div>
-        </div>
-        <div class="cl-cat">
-          <div class="cl-branch" data-rev="0.52"></div>
-          <div class="cl-lab cl-slide" data-rev="0.52"><b>Beauty</b></div>
-          <div class="cl-mq cl-foc" data-rev="0.59"><div class="cl-row rev s2"><img class="cl-lg" src="/work/logos/beauty/01_maybelline.png" alt="Maybelline" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/02_loreal.png" alt="Loreal" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/03_dark-and-lovely.png" alt="Dark And Lovely" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/04_matrix.png" alt="Matrix" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/05_urban-decay.png" alt="Urban Decay" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/06_essie.png" alt="Essie" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/07_kiehls.png" alt="Kiehls" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/08_guerlain.png" alt="Guerlain" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/09_sally-hansen.png" alt="Sally Hansen" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/10_ysl.png" alt="Ysl" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/11_carols-daughter.png" alt="Carols Daughter" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/01_maybelline.png" alt="Maybelline" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/02_loreal.png" alt="Loreal" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/03_dark-and-lovely.png" alt="Dark And Lovely" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/04_matrix.png" alt="Matrix" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/05_urban-decay.png" alt="Urban Decay" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/06_essie.png" alt="Essie" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/07_kiehls.png" alt="Kiehls" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/08_guerlain.png" alt="Guerlain" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/09_sally-hansen.png" alt="Sally Hansen" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/10_ysl.png" alt="Ysl" loading="lazy"><img class="cl-lg" src="/work/logos/beauty/11_carols-daughter.png" alt="Carols Daughter" loading="lazy"></div></div>
-        </div>
-        <div class="cl-cat">
-          <div class="cl-branch" data-rev="0.74"></div>
-          <div class="cl-lab cl-slide" data-rev="0.74"><b>Experience</b></div>
-          <div class="cl-mq cl-foc" data-rev="0.81"><div class="cl-row s1"><img class="cl-lg" src="/work/logos/experience/01_mcdonalds.png" alt="Mcdonalds" loading="lazy"><img class="cl-lg" src="/work/logos/experience/02_slay.png" alt="Slay" loading="lazy"><img class="cl-lg" src="/work/logos/experience/03_hollywood-unlocked.png" alt="Hollywood Unlocked" loading="lazy"><img class="cl-lg" src="/work/logos/experience/04_apollo-theater.png" alt="Apollo Theater" loading="lazy"><img class="cl-lg" src="/work/logos/experience/05_twinkie-clark.png" alt="Twinkie Clark" loading="lazy"><img class="cl-lg" src="/work/logos/experience/01_mcdonalds.png" alt="Mcdonalds" loading="lazy"><img class="cl-lg" src="/work/logos/experience/02_slay.png" alt="Slay" loading="lazy"><img class="cl-lg" src="/work/logos/experience/03_hollywood-unlocked.png" alt="Hollywood Unlocked" loading="lazy"><img class="cl-lg" src="/work/logos/experience/04_apollo-theater.png" alt="Apollo Theater" loading="lazy"><img class="cl-lg" src="/work/logos/experience/05_twinkie-clark.png" alt="Twinkie Clark" loading="lazy"><img class="cl-lg" src="/work/logos/experience/01_mcdonalds.png" alt="Mcdonalds" loading="lazy"><img class="cl-lg" src="/work/logos/experience/02_slay.png" alt="Slay" loading="lazy"><img class="cl-lg" src="/work/logos/experience/03_hollywood-unlocked.png" alt="Hollywood Unlocked" loading="lazy"><img class="cl-lg" src="/work/logos/experience/04_apollo-theater.png" alt="Apollo Theater" loading="lazy"><img class="cl-lg" src="/work/logos/experience/05_twinkie-clark.png" alt="Twinkie Clark" loading="lazy"></div></div>
-        </div>
-      </div>
-    </div></div>
+    </div>
   </div>
 </section>
 
@@ -646,21 +654,27 @@
   })();
   (function(){
     var sec=document.querySelector('.collab'); if(!sec) return;
-    var track=sec.querySelector('.cl-track'), spine=sec.querySelector('.cl-spine');
+    var track=sec.querySelector('.cl-track'), spine=sec.querySelector('.cl-spine'), robot=sec.querySelector('#clrobot');
     if(!track) return;
     var revs=[].slice.call(sec.querySelectorAll('[data-rev]'));
-    if(matchMedia('(prefers-reduced-motion: reduce)').matches){
-      revs.forEach(function(el){el.classList.add('in');}); if(spine) spine.style.transform='scaleY(1)'; return; }
-    sec.classList.add('cl-on');
+    var N=61, frames=[], pad=function(n){n=''+n; while(n.length<3)n='0'+n; return n;};
+    for(var k=0;k<N;k++){ var im=new Image(); im.src='/collab/seq/r'+pad(k)+'.webp'; frames.push(im); }
+    if(robot) robot.src=frames[0].src;
+    var cur=-1, reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if(reduce){ revs.forEach(function(el){el.classList.add('in');}); if(spine) spine.style.transform='scaleY(1)'; }
+    else sec.classList.add('cl-on');
     var vh=innerHeight, total=Math.max(1,track.offsetHeight-vh), ticking=false;
     function cl(v){return v<0?0:v>1?1:v;}
     function recalc(){ vh=innerHeight; total=Math.max(1,track.offsetHeight-vh); }
     function update(){ ticking=false;
       var p=cl(-track.getBoundingClientRect().top/total);
-      for(var i=0;i<revs.length;i++){ var t=parseFloat(revs[i].getAttribute('data-rev'));
-        if(p>=t){ if(!revs[i].classList.contains('in')) revs[i].classList.add('in'); }
-        else if(revs[i].classList.contains('in')) revs[i].classList.remove('in'); }
-      if(spine) spine.style.transform='scaleY('+cl((p-0.04)/0.9)+')';
+      if(!reduce){
+        for(var i=0;i<revs.length;i++){ var t=parseFloat(revs[i].getAttribute('data-rev'));
+          if(p>=t){ if(!revs[i].classList.contains('in')) revs[i].classList.add('in'); }
+          else if(revs[i].classList.contains('in')) revs[i].classList.remove('in'); }
+        if(spine) spine.style.transform='scaleY('+cl((p-0.02)/0.86)+')';
+      }
+      if(robot){ var idx=Math.round(p*(N-1)); if(idx!==cur){ cur=idx; robot.src=frames[idx].src; } }
     }
     function onScroll(){ if(!ticking){ ticking=true; requestAnimationFrame(update); } }
     addEventListener('scroll',onScroll,{passive:true});
