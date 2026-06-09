@@ -9,7 +9,7 @@
     "Fashion Design",
     "Live Experience"
   ],
-  "hero": "",
+  "hero": "/work/uploads/MAB_7329.webp",
   "clips": [
     {
       "label": "WAP Website",
@@ -33,6 +33,11 @@
     },
     {
       "label": "Summer Jam",
+      "video": "",
+      "poster": ""
+    },
+    {
+      "label": "Miami New Years",
       "video": "",
       "poster": ""
     }
