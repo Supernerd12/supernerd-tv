@@ -9,6 +9,12 @@ backend:
 media_folder: "public/work/uploads"
 public_folder: "/work/uploads"
 
+# Auto-clean uploaded filenames (lowercase, hyphens, no spaces/accents) so heroes never break
+media_libraries:
+  default:
+    config:
+      slugify_filename: true
+
 collections:
   - name: work
     label: "Work — Projects"
