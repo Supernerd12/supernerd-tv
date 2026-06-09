@@ -8,27 +8,47 @@
     "Live Experience"
   ],
   "hero": "",
-  "clips": [
+  "description": "",
+  "pieces": [
     {
+<<<<<<< HEAD
+      "title": "Open House",
+      "hero": "",
+      "video": "",
+      "description": "",
+      "gallery": []
+=======
       "label": "Open House",
       "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/b6c6dda8edecfaafa67ee6a344cfaf96/manifest/video.m3u8",
       "poster": "/work/uploads/Screen Shot 2026-06-09 at 3.16.38 AM.png"
+>>>>>>> f4ba6730956e286be28a3fbe27a5be87bffbafa0
     },
     {
-      "label": "LXTV",
+      "title": "LXTV",
+      "hero": "",
       "video": "",
-      "poster": ""
+      "description": "",
+      "gallery": []
     },
     {
+<<<<<<< HEAD
+      "title": "Mastercard",
+      "hero": "",
+      "video": "",
+      "description": "",
+      "gallery": []
+=======
       "label": "Mastercard",
       "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/54fdc1a561c5aa70075b94c454f5c593/manifest/video.m3u8",
       "poster": "/work/uploads/Screen Shot 2026-06-09 at 3.17.28 AM.png"
+>>>>>>> f4ba6730956e286be28a3fbe27a5be87bffbafa0
     },
     {
-      "label": "BYOD",
+      "title": "BYOD",
+      "hero": "",
       "video": "",
-      "poster": ""
+      "description": "",
+      "gallery": []
     }
-  ],
-  "storyboards": []
+  ]
 }

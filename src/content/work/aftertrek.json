@@ -6,13 +6,20 @@
     "Motion Design",
     "TV Show"
   ],
+<<<<<<< HEAD
+  "hero": "",
+  "description": "",
+  "pieces": [
+=======
   "hero": "/work/uploads/After_Trek_logo.jpg",
   "clips": [
+>>>>>>> f4ba6730956e286be28a3fbe27a5be87bffbafa0
     {
-      "label": "Season 1 & 2",
+      "title": "Season 1 & 2",
+      "hero": "",
       "video": "",
-      "poster": ""
+      "description": "",
+      "gallery": []
     }
-  ],
-  "storyboards": []
+  ]
 }

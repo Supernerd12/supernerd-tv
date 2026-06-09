@@ -12,63 +12,90 @@
     "Live Experience",
     "Branding"
   ],
+<<<<<<< HEAD
+  "hero": "/work/projects/hua/hero.webp",
+  "description": "",
+  "pieces": [
+=======
   "hero": "/work/uploads/Jenjphoto_hollywood_unlocked-6989.webp",
   "clips": [
+>>>>>>> f4ba6730956e286be28a3fbe27a5be87bffbafa0
     {
-      "label": "Jason Lee Show",
+      "title": "Jason Lee Show",
+      "hero": "",
       "video": "",
-      "poster": ""
+      "description": "",
+      "gallery": []
     },
     {
-      "label": "Jason Lee Experience",
+      "title": "Jason Lee Experience",
+      "hero": "",
       "video": "",
-      "poster": ""
+      "description": "",
+      "gallery": []
     },
     {
-      "label": "Impact Award Creation",
+      "title": "Impact Award Creation",
+      "hero": "",
       "video": "",
-      "poster": ""
+      "description": "",
+      "gallery": []
     },
     {
-      "label": "Impact Awards 2019",
+      "title": "Impact Awards 2019",
+      "hero": "",
       "video": "",
-      "poster": ""
+      "description": "",
+      "gallery": []
     },
     {
-      "label": "Impact Awards 2022",
+      "title": "Impact Awards 2022",
+      "hero": "",
       "video": "",
-      "poster": ""
+      "description": "",
+      "gallery": []
     },
     {
-      "label": "Impact Awards 2023",
+      "title": "Impact Awards 2023",
+      "hero": "",
       "video": "",
-      "poster": ""
+      "description": "",
+      "gallery": []
     },
     {
-      "label": "Impact Awards 2024",
+      "title": "Impact Awards 2024",
+      "hero": "",
       "video": "",
-      "poster": ""
+      "description": "",
+      "gallery": []
     },
     {
-      "label": "Impact Awards 2025",
+      "title": "Impact Awards 2025",
+      "hero": "",
       "video": "",
-      "poster": ""
+      "description": "",
+      "gallery": []
     },
     {
-      "label": "Gagging w/ Jason Lee",
+      "title": "Gagging w/ Jason Lee",
+      "hero": "",
       "video": "",
-      "poster": ""
+      "description": "",
+      "gallery": []
     },
     {
-      "label": "Grammy Booth",
+      "title": "Grammy Booth",
+      "hero": "",
       "video": "",
-      "poster": ""
+      "description": "",
+      "gallery": []
     },
     {
-      "label": "Hollywood Cares Foundation Dinner",
+      "title": "Hollywood Cares Foundation Dinner",
+      "hero": "",
       "video": "",
-      "poster": ""
+      "description": "",
+      "gallery": []
     }
-  ],
-  "storyboards": []
+  ]
 }

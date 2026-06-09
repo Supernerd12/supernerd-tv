@@ -9,38 +9,57 @@
     "Fashion Design",
     "Live Experience"
   ],
+<<<<<<< HEAD
+  "hero": "",
+  "description": "",
+  "pieces": [
+=======
   "hero": "/work/uploads/MAB_7329.webp",
   "clips": [
+>>>>>>> f4ba6730956e286be28a3fbe27a5be87bffbafa0
     {
-      "label": "WAP Website",
+      "title": "WAP Website",
+      "hero": "",
       "video": "",
-      "poster": ""
+      "description": "",
+      "gallery": []
     },
     {
-      "label": "WAP Clothing Line",
+      "title": "WAP Clothing Line",
+      "hero": "",
       "video": "",
-      "poster": ""
+      "description": "",
+      "gallery": []
     },
     {
-      "label": "Cardi B Birthday",
+      "title": "Cardi B Birthday",
+      "hero": "",
       "video": "",
-      "poster": ""
+      "description": "",
+      "gallery": []
     },
     {
-      "label": "UP Clothing Line",
+      "title": "UP Clothing Line",
+      "hero": "",
       "video": "",
-      "poster": ""
+      "description": "",
+      "gallery": []
     },
     {
-      "label": "Summer Jam",
+      "title": "Summer Jam",
+      "hero": "",
       "video": "",
+<<<<<<< HEAD
+      "description": "",
+      "gallery": []
+=======
       "poster": ""
     },
     {
       "label": "Miami New Years",
       "video": "",
       "poster": ""
+>>>>>>> f4ba6730956e286be28a3fbe27a5be87bffbafa0
     }
-  ],
-  "storyboards": []
+  ]
 }
