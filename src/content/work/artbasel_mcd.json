@@ -6,14 +6,9 @@
     "Creative Production",
     "Live Experience"
   ],
-<<<<<<< HEAD
   "hero": "",
   "description": "",
   "pieces": [
-=======
-  "hero": "/work/uploads/DSC01346.jpg",
-  "clips": [
->>>>>>> f4ba6730956e286be28a3fbe27a5be87bffbafa0
     {
       "title": "Unc's House",
       "hero": "",
@@ -21,15 +16,5 @@
       "description": "",
       "gallery": []
     }
-<<<<<<< HEAD
   ]
-=======
-  ],
-  "storyboards": [
-    "/work/uploads/DSC01119.jpg",
-    "/work/uploads/DSC00770.jpg",
-    "/work/uploads/DSC02598.jpg",
-    "/work/uploads/DSC02491.jpg"
-  ]
->>>>>>> f4ba6730956e286be28a3fbe27a5be87bffbafa0
 }

@@ -8,46 +8,29 @@
     "Live Experience",
     "Touring"
   ],
-<<<<<<< HEAD
   "hero": "",
   "description": "",
   "pieces": [
-=======
-  "hero": "/work/uploads/GettyImages-165203550.jpg",
-  "clips": [
->>>>>>> f4ba6730956e286be28a3fbe27a5be87bffbafa0
     {
       "title": "Billboard Music Awards 2012",
       "hero": "",
       "video": "",
-<<<<<<< HEAD
       "description": "",
       "gallery": []
-=======
-      "poster": "/work/uploads/GettyImages-144919594.jpg"
->>>>>>> f4ba6730956e286be28a3fbe27a5be87bffbafa0
     },
     {
       "title": "Grammy Music Awards 2012",
       "hero": "",
       "video": "",
-<<<<<<< HEAD
       "description": "",
       "gallery": []
-=======
-      "poster": "/work/uploads/GettyImages-138866360.jpg"
->>>>>>> f4ba6730956e286be28a3fbe27a5be87bffbafa0
     },
     {
       "title": "Dancing w/ The Stars 2012",
       "hero": "",
       "video": "",
-<<<<<<< HEAD
       "description": "",
       "gallery": []
-=======
-      "poster": "/work/uploads/GettyImages-144063537.jpg"
->>>>>>> f4ba6730956e286be28a3fbe27a5be87bffbafa0
     },
     {
       "title": "Carpe Diem Tour",

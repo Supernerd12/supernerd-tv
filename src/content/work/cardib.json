@@ -9,14 +9,9 @@
     "Fashion Design",
     "Live Experience"
   ],
-<<<<<<< HEAD
   "hero": "",
   "description": "",
   "pieces": [
-=======
-  "hero": "/work/uploads/MAB_7329.webp",
-  "clips": [
->>>>>>> f4ba6730956e286be28a3fbe27a5be87bffbafa0
     {
       "title": "WAP Website",
       "hero": "",
@@ -49,17 +44,8 @@
       "title": "Summer Jam",
       "hero": "",
       "video": "",
-<<<<<<< HEAD
       "description": "",
       "gallery": []
-=======
-      "poster": ""
-    },
-    {
-      "label": "Miami New Years",
-      "video": "",
-      "poster": ""
->>>>>>> f4ba6730956e286be28a3fbe27a5be87bffbafa0
     }
   ]
 }
