@@ -893,7 +893,7 @@ const WORK_JSON = JSON.stringify({ ORDER, PROJECTS });
     var grid=document.getElementById('wgrid'), filterBar=document.getElementById('wfilter');
     var curPlayer=null, curProj=null;
     var elLB=document.getElementById('pmLightbox'), lbImg=document.getElementById('lbImg'), lbCount=document.getElementById('lbCount'), lbList=[], lbI=0, gDragged=false, aboutLock=false, galRAF=null, galPaused=false, galHalf=0, galTimer=null;
-    function bg(src){ return src?('background-image:url('+src+')'):''; }
+    function bg(src){ return src?("background-image:url('"+src+"')"):''; }
     var GAL_SPEED=0.035; /* px per ms (~35px/s) — auto-scroll like the logo marquee */
     function makeImg(imgs,idx){ var im=document.createElement('img'); im.src=imgs[idx]; im.alt=''; im.draggable=false; im.setAttribute('data-i',idx);
       im.addEventListener('click',function(){ if(gDragged){gDragged=false;return;} lbOpen(imgs,idx); }); return im; }
