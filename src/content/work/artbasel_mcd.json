@@ -6,7 +6,7 @@
     "Creative Production",
     "Live Experience"
   ],
-  "hero": "",
+  "hero": "/work/uploads/DSC01346.jpg",
   "clips": [
     {
       "label": "Unc's House",
@@ -14,5 +14,10 @@
       "poster": ""
     }
   ],
-  "storyboards": []
+  "storyboards": [
+    "/work/uploads/DSC01119.jpg",
+    "/work/uploads/DSC00770.jpg",
+    "/work/uploads/DSC02598.jpg",
+    "/work/uploads/DSC02491.jpg"
+  ]
 }
