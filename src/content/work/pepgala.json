@@ -7,12 +7,14 @@
     "Live Experience"
   ],
   "hero": "",
-  "clips": [
+  "description": "",
+  "pieces": [
     {
-      "label": "PEP Gala",
+      "title": "PEP Gala",
+      "hero": "",
       "video": "",
-      "poster": ""
+      "description": "",
+      "gallery": []
     }
-  ],
-  "storyboards": []
+  ]
 }

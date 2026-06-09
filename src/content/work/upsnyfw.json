@@ -6,12 +6,14 @@
     "Storyboarding"
   ],
   "hero": "",
-  "clips": [
+  "description": "",
+  "pieces": [
     {
-      "label": "Commercial",
+      "title": "Commercial",
+      "hero": "",
       "video": "",
-      "poster": ""
+      "description": "",
+      "gallery": []
     }
-  ],
-  "storyboards": []
+  ]
 }

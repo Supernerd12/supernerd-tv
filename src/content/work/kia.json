@@ -6,12 +6,14 @@
     "Fashion Design"
   ],
   "hero": "",
-  "clips": [
+  "description": "",
+  "pieces": [
     {
-      "label": "Fashion",
+      "title": "Fashion",
+      "hero": "",
       "video": "",
-      "poster": ""
+      "description": "",
+      "gallery": []
     }
-  ],
-  "storyboards": []
+  ]
 }

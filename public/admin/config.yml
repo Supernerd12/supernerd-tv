@@ -2,8 +2,8 @@ backend:
   name: github
   repo: Supernerd12/supernerd-tv
   branch: main
-  # OPTIONAL — for a "Login with GitHub" button, deploy the Sveltia auth Worker
-  # (see ADMIN-SETUP.md) and uncomment + set your Worker URL below:
+  # OPTIONAL "Login with GitHub" button — deploy the Sveltia auth Worker (see ADMIN-SETUP.md)
+  # and uncomment + set your Worker URL:
   # base_url: https://YOUR-WORKER.YOUR-SUBDOMAIN.workers.dev
 
 media_folder: "public/work/uploads"
@@ -43,18 +43,20 @@ collections:
           - Website
           - Fashion Design
           - Storyboarding
-      - { name: hero, label: "Header image (optional)", widget: image, required: false }
-      - name: clips
-        label: Clips
-        label_singular: Clip
+      - { name: hero, label: "Project header image (shown on the card)", widget: image, required: false }
+      - { name: description, label: "Project description (optional)", widget: text, required: false }
+      - name: pieces
+        label: "Pieces (each is a button inside the project)"
+        label_singular: "Piece"
         widget: list
-        summary: "{{fields.label}}"
+        summary: "{{fields.title}}"
         fields:
-          - { name: label, label: "Clip label", widget: string }
+          - { name: title, label: "Piece title", widget: string }
+          - { name: hero, label: "Piece image / thumbnail", widget: image, required: false }
           - { name: video, label: "Video link — Cloudflare Stream URL (optional)", widget: string, required: false }
-          - { name: poster, label: "Poster image (optional)", widget: image, required: false }
-      - name: storyboards
-        label: "Storyboards / stills (optional)"
-        widget: list
-        required: false
-        field: { name: image, label: Image, widget: image }
+          - { name: description, label: "Description", widget: text, required: false }
+          - name: gallery
+            label: "Image gallery (scrolling carousel)"
+            widget: list
+            required: false
+            field: { name: image, label: Image, widget: image }

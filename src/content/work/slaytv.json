@@ -6,12 +6,14 @@
     "Live Experience"
   ],
   "hero": "",
-  "clips": [
+  "description": "",
+  "pieces": [
     {
-      "label": "SLAY FEST 2019",
+      "title": "SLAY FEST 2019",
+      "hero": "",
       "video": "",
-      "poster": ""
+      "description": "",
+      "gallery": []
     }
-  ],
-  "storyboards": []
+  ]
 }

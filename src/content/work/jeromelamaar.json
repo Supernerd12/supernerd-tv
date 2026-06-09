@@ -7,12 +7,14 @@
     "Invite"
   ],
   "hero": "",
-  "clips": [
+  "description": "",
+  "pieces": [
     {
-      "label": "5:31",
+      "title": "5:31",
+      "hero": "",
       "video": "",
-      "poster": ""
+      "description": "",
+      "gallery": []
     }
-  ],
-  "storyboards": []
+  ]
 }

@@ -7,57 +7,77 @@
     "TV Show"
   ],
   "hero": "",
-  "clips": [
+  "description": "",
+  "pieces": [
     {
-      "label": "mtvU Woodie Awards 2009",
+      "title": "mtvU Woodie Awards 2009",
+      "hero": "",
       "video": "",
-      "poster": ""
+      "description": "",
+      "gallery": []
     },
     {
-      "label": "MTV Movie Awards 2009",
+      "title": "MTV Movie Awards 2009",
+      "hero": "",
       "video": "",
-      "poster": ""
+      "description": "",
+      "gallery": []
     },
     {
-      "label": "VMA Awards 2009",
+      "title": "VMA Awards 2009",
+      "hero": "",
       "video": "",
-      "poster": ""
+      "description": "",
+      "gallery": []
     },
     {
-      "label": "When I Was 17",
+      "title": "When I Was 17",
+      "hero": "",
       "video": "",
-      "poster": ""
+      "description": "",
+      "gallery": []
     },
     {
-      "label": "The Seven",
+      "title": "The Seven",
+      "hero": "",
       "video": "",
-      "poster": ""
+      "description": "",
+      "gallery": []
     },
     {
-      "label": "mtvU IDs",
+      "title": "mtvU IDs",
+      "hero": "",
       "video": "",
-      "poster": ""
+      "description": "",
+      "gallery": []
     },
     {
-      "label": "mtvU Up All Night",
+      "title": "mtvU Up All Night",
+      "hero": "",
       "video": "",
-      "poster": ""
+      "description": "",
+      "gallery": []
     },
     {
-      "label": "ESL w/ Carlos Santos",
+      "title": "ESL w/ Carlos Santos",
+      "hero": "",
       "video": "",
-      "poster": ""
+      "description": "",
+      "gallery": []
     },
     {
-      "label": "10 on Top",
+      "title": "10 on Top",
+      "hero": "",
       "video": "",
-      "poster": ""
+      "description": "",
+      "gallery": []
     },
     {
-      "label": "Retromania",
+      "title": "Retromania",
+      "hero": "",
       "video": "",
-      "poster": ""
+      "description": "",
+      "gallery": []
     }
-  ],
-  "storyboards": []
+  ]
 }

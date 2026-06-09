@@ -7,12 +7,14 @@ const work = defineCollection({
     order: z.number().default(100),
     categories: z.array(z.string()).default([]),
     hero: z.string().optional().default(''),
-    clips: z.array(z.object({
-      label: z.string(),
+    description: z.string().optional().default(''),
+    pieces: z.array(z.object({
+      title: z.string(),
+      hero: z.string().optional().default(''),
       video: z.string().optional().default(''),
-      poster: z.string().optional().default(''),
+      description: z.string().optional().default(''),
+      gallery: z.array(z.string()).default([]),
     })).default([]),
-    storyboards: z.array(z.string()).default([]),
   }),
 });
 

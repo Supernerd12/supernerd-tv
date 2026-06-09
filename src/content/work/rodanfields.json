@@ -7,22 +7,28 @@
     "Storyboarding"
   ],
   "hero": "",
-  "clips": [
+  "description": "",
+  "pieces": [
     {
-      "label": "Launch 1",
+      "title": "Launch 1",
+      "hero": "",
       "video": "",
-      "poster": ""
+      "description": "",
+      "gallery": []
     },
     {
-      "label": "Launch Alt",
+      "title": "Launch Alt",
+      "hero": "",
       "video": "",
-      "poster": ""
+      "description": "",
+      "gallery": []
     },
     {
-      "label": "How To",
+      "title": "How To",
+      "hero": "",
       "video": "",
-      "poster": ""
+      "description": "",
+      "gallery": []
     }
-  ],
-  "storyboards": []
+  ]
 }

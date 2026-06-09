@@ -6,12 +6,14 @@
     "Podcast"
   ],
   "hero": "",
-  "clips": [
+  "description": "",
+  "pieces": [
     {
-      "label": "Kim Burrell — Can't You Tell",
+      "title": "Kim Burrell — Can't You Tell",
+      "hero": "",
       "video": "",
-      "poster": ""
+      "description": "",
+      "gallery": []
     }
-  ],
-  "storyboards": []
+  ]
 }

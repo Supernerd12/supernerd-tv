@@ -10,9 +10,15 @@ for (const e of entries) {
   PROJECTS[id] = {
     title: e.data.title,
     tags: e.data.categories || [],
-    items: e.data.clips || [],
     hero: e.data.hero || '',
-    storyboards: e.data.storyboards || [],
+    description: e.data.description || '',
+    pieces: (e.data.pieces || []).map((pc) => ({
+      title: pc.title,
+      hero: pc.hero || '',
+      video: pc.video || '',
+      description: pc.description || '',
+      gallery: pc.gallery || [],
+    })),
   };
 }
 const WORK_JSON = JSON.stringify({ ORDER, PROJECTS });
@@ -433,6 +439,48 @@ const WORK_JSON = JSON.stringify({ ORDER, PROJECTS });
   .pm-shotlabel{font-family:var(--mono); font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--dim); margin:0 0 10px}
   .pm-shotrow{display:flex; gap:10px; overflow-x:auto; padding-bottom:6px}
   .pm-shotrow img{height:120px; width:auto; border-radius:6px; border:1px solid rgba(236,236,234,.12); flex:0 0 auto}
+
+  /* ---- WORK CARDS: hero image ---- */
+  .wcard .wc-bg{position:absolute; inset:0; background:center/cover no-repeat; opacity:.24; transform:scale(1.02); transition:opacity .3s, transform .5s; z-index:0}
+  .wcard:hover .wc-bg{opacity:.42; transform:scale(1.07)}
+  .wcard.noimg .wc-bg{display:none}
+  .wcard .wc-top, .wcard .wc-tags{position:relative; z-index:1}
+  /* ---- MODAL: two screens ---- */
+  .pm .pm-detail{display:none}
+  .pm.show-detail .pm-overview{display:none}
+  .pm.show-detail .pm-detail{display:block}
+  .pm-pdesc{color:var(--bone); opacity:.8; font-size:14.5px; line-height:1.6; margin:10px 0 0; max-width:70ch; white-space:pre-wrap}
+  .pm-pdesc:empty{display:none}
+  .pm-piecegrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:14px; margin-top:20px; max-height:62vh; overflow:auto; padding-right:4px}
+  .pm-piece{display:flex; flex-direction:column; gap:9px; text-align:left; background:none; border:0; padding:0; cursor:pointer}
+  .pm-piece-img{position:relative; aspect-ratio:16/10; border-radius:9px; background:#101010 center/cover no-repeat; border:1px solid rgba(236,236,234,.12); overflow:hidden; transition:border-color .2s, transform .25s}
+  .pm-piece.noimg .pm-piece-img{background:linear-gradient(135deg, rgba(186,192,30,.20), rgba(5,5,5,.65))}
+  .pm-piece:hover .pm-piece-img{border-color:var(--green-hi); transform:translateY(-3px)}
+  .pm-piece-play{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:24px; color:#fff; opacity:0; transition:opacity .2s; text-shadow:0 2px 12px rgba(0,0,0,.7)}
+  .pm-piece:hover .pm-piece-play{opacity:1}
+  .pm-piece-lab{font-family:var(--disp); font-weight:600; font-size:13.5px; color:var(--bone); line-height:1.25}
+  /* detail screen */
+  .pm-detailbar{display:flex; align-items:center; gap:14px; margin-bottom:16px}
+  .pm-backbtn{font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--green-hi); background:none; border:1px solid rgba(186,192,30,.4); border-radius:30px; padding:7px 14px; cursor:pointer; flex:0 0 auto}
+  .pm-backbtn:hover{background:rgba(186,192,30,.1)}
+  .pm-siblings{display:flex; gap:6px; overflow-x:auto; flex:1; padding-bottom:2px}
+  .pm-siblings::-webkit-scrollbar{height:5px} .pm-siblings::-webkit-scrollbar-thumb{background:rgba(186,192,30,.4); border-radius:3px}
+  .pm-sib{font-family:var(--mono); font-size:10px; letter-spacing:.04em; color:var(--dim); background:rgba(236,236,234,.04); border:1px solid rgba(236,236,234,.12); border-radius:30px; padding:6px 12px; cursor:pointer; white-space:nowrap; transition:.2s}
+  .pm-sib:hover{color:var(--bone); border-color:rgba(236,236,234,.4)}
+  .pm-sib.on{color:var(--ink); background:var(--green-hi); border-color:var(--green-hi)}
+  .pm-eyebrow{font-family:var(--mono); font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--dim); margin-bottom:4px}
+  .pm-eyebrow:empty{display:none}
+  .pm-dtitle{font-family:var(--disp); font-weight:700; font-size:clamp(21px,2.8vw,32px); letter-spacing:-.01em; margin:0 0 14px}
+  .pm-gallery{position:relative; margin-top:16px}
+  .pm-gallery[hidden]{display:none}
+  .pm-gtrack{display:flex; gap:10px; overflow-x:auto; scroll-snap-type:x mandatory; scroll-behavior:smooth; padding-bottom:6px}
+  .pm-gtrack::-webkit-scrollbar{height:6px} .pm-gtrack::-webkit-scrollbar-thumb{background:rgba(186,192,30,.4); border-radius:3px}
+  .pm-gtrack img{height:clamp(150px,22vh,240px); width:auto; border-radius:8px; border:1px solid rgba(236,236,234,.12); flex:0 0 auto; scroll-snap-align:start}
+  .pm-gnav{position:absolute; top:50%; transform:translateY(-50%); z-index:3; width:38px; height:38px; border-radius:50%; border:1px solid rgba(236,236,234,.25); background:rgba(5,5,5,.7); color:var(--bone); font-size:20px; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px)}
+  .pm-gnav:hover{border-color:var(--green-hi); color:var(--green-hi)}
+  .pm-gprev{left:-6px} .pm-gnext{right:-6px}
+  .pm-ddesc{color:var(--bone); opacity:.82; font-size:15px; line-height:1.6; margin-top:18px; max-width:70ch; white-space:pre-wrap}
+  .pm-ddesc:empty{display:none}
 </style>
 </head>
 <body>
@@ -550,13 +598,29 @@ const WORK_JSON = JSON.stringify({ ORDER, PROJECTS });
   <div class="pm-back" data-pmclose></div>
   <div class="pm-box">
     <button class="pm-x" data-pmclose aria-label="Close">&#215;</button>
-    <h3 class="pm-title" id="pmTitle"></h3>
-    <div class="pm-tags" id="pmTags"></div>
-    <div class="pm-body">
+
+    <section class="pm-screen pm-overview">
+      <h3 class="pm-title" id="pmTitle"></h3>
+      <div class="pm-tags" id="pmTags"></div>
+      <p class="pm-pdesc" id="pmProjDesc"></p>
+      <div class="pm-piecegrid" id="pmPieceGrid"></div>
+    </section>
+
+    <section class="pm-screen pm-detail">
+      <div class="pm-detailbar">
+        <button class="pm-backbtn" id="pmBack">&#8592; <span id="pmBackLabel">All pieces</span></button>
+        <div class="pm-siblings" id="pmSiblings"></div>
+      </div>
+      <div class="pm-eyebrow" id="pmEyebrow"></div>
+      <h3 class="pm-dtitle" id="pmPieceTitle"></h3>
       <div class="pm-stage"><div class="pm-vid" id="pmVid"></div></div>
-      <div class="pm-clips"><div class="pm-clabel" id="pmCount"></div><div class="pm-cliplist" id="pmClips"></div></div>
-    </div>
-    <div class="pm-shots" id="pmShots"></div>
+      <div class="pm-gallery" id="pmGallery" hidden>
+        <button class="pm-gnav pm-gprev" aria-label="Previous">&#8249;</button>
+        <div class="pm-gtrack" id="pmGTrack"></div>
+        <button class="pm-gnav pm-gnext" aria-label="Next">&#8250;</button>
+      </div>
+      <p class="pm-ddesc" id="pmPieceDesc"></p>
+    </section>
   </div>
 </div>
 
@@ -776,27 +840,52 @@ const WORK_JSON = JSON.stringify({ ORDER, PROJECTS });
     }
 
     var modal=document.getElementById('projModal'); if(!modal) return;
-    var elTitle=document.getElementById('pmTitle'),elTags=document.getElementById('pmTags'),elCount=document.getElementById('pmCount'),elVid=document.getElementById('pmVid'),elClips=document.getElementById('pmClips');
-    var grid=document.getElementById('wgrid'),filterBar=document.getElementById('wfilter');
-    var curPlayer=null;
-    function playItem(d,it){ if(curPlayer)curPlayer.destroy(); curPlayer=makePlayer(elVid, (it&&it.video)||REEL, (it&&it.poster)||d.hero||''); }
-    function open(pid){ var d=PROJECTS[pid]; if(!d) return;
+    var elTitle=document.getElementById('pmTitle'), elTags=document.getElementById('pmTags'), elProjDesc=document.getElementById('pmProjDesc'),
+        elPieceGrid=document.getElementById('pmPieceGrid'),
+        elBack=document.getElementById('pmBack'), elBackLabel=document.getElementById('pmBackLabel'), elSiblings=document.getElementById('pmSiblings'),
+        elEyebrow=document.getElementById('pmEyebrow'), elPieceTitle=document.getElementById('pmPieceTitle'), elVid=document.getElementById('pmVid'),
+        elGallery=document.getElementById('pmGallery'), elGTrack=document.getElementById('pmGTrack'), elPieceDesc=document.getElementById('pmPieceDesc');
+    var grid=document.getElementById('wgrid'), filterBar=document.getElementById('wfilter');
+    var curPlayer=null, curProj=null;
+    function bg(src){ return src?('background-image:url('+src+')'):''; }
+    function renderGallery(imgs){ elGTrack.innerHTML='';
+      if(!imgs||!imgs.length){ elGallery.hidden=true; return; }
+      elGallery.hidden=false;
+      imgs.forEach(function(u){ var im=document.createElement('img'); im.src=u; im.loading='lazy'; im.alt=''; elGTrack.appendChild(im); }); }
+    function galScroll(dir){ elGTrack.scrollBy({left:dir*elGTrack.clientWidth*0.8, behavior:'smooth'}); }
+    function openPiece(i){ var d=curProj; if(!d||!d.pieces[i]) return; var p=d.pieces[i];
+      elEyebrow.textContent=d.title; elPieceTitle.textContent=p.title||'';
+      if(curPlayer)curPlayer.destroy(); curPlayer=makePlayer(elVid, p.video||REEL, p.hero||d.hero||'');
+      renderGallery(p.gallery||[]);
+      elPieceDesc.textContent=p.description||''; elPieceDesc.style.display=(p.description?'':'none');
+      elSiblings.innerHTML='';
+      if(d.pieces.length>1){ d.pieces.forEach(function(pp,j){ var b=document.createElement('button'); b.className='pm-sib'+(j===i?' on':''); b.textContent=pp.title||('Piece '+(j+1)); b.onclick=function(){ openPiece(j); }; elSiblings.appendChild(b); }); }
+      elBack.style.display=(d.pieces.length>1?'':'none');
+      modal.classList.add('show-detail'); elGTrack.scrollLeft=0; }
+    function open(pid){ var d=PROJECTS[pid]; if(!d) return; curProj=d;
       elTitle.textContent=d.title;
       elTags.innerHTML=(d.tags||[]).filter(function(t){return t!=='Art Direction';}).map(function(t){return '<span>'+t+'</span>';}).join('');
-      elCount.textContent=d.items.length+(d.items.length===1?' clip':' clips');
-      elClips.innerHTML='';
-      d.items.forEach(function(it,i){ var b=document.createElement('button'); b.className='pm-clip'+(i===0?' on':'');
-        b.innerHTML='<span class="pm-cdot"></span><span class="pm-clab"></span><span class="pm-cplay">&#9654;</span>';
-        b.querySelector('.pm-clab').textContent=(it&&it.label)||'';
-        b.onclick=function(){ [].forEach.call(elClips.children,function(c){c.classList.remove('on');}); b.classList.add('on'); playItem(d,it); };
-        elClips.appendChild(b); });
-      playItem(d,d.items[0]);
-      var sb=d.storyboards||[]; var shots=document.getElementById('pmShots'); if(shots){ shots.innerHTML=sb.length?('<div class="pm-shotlabel">Storyboards &amp; stills</div><div class="pm-shotrow">'+sb.map(function(u){return '<img src="'+u+'" alt="" loading="lazy">';}).join('')+'</div>'):''; }
-      modal.classList.add('open'); modal.setAttribute('aria-hidden','false'); document.body.classList.add('pm-lock'); }
-    function close(){ modal.classList.remove('open'); modal.setAttribute('aria-hidden','true'); document.body.classList.remove('pm-lock'); if(curPlayer){curPlayer.destroy();curPlayer=null;} }
-    var tags=[]; ORDER.forEach(function(pid){ PROJECTS[pid].tags.forEach(function(t){ if(t!=='Art Direction' && tags.indexOf(t)<0) tags.push(t); }); });
+      elProjDesc.textContent=d.description||''; elProjDesc.style.display=(d.description?'':'none');
+      elPieceGrid.innerHTML='';
+      (d.pieces||[]).forEach(function(p,i){ var b=document.createElement('button'); b.className='pm-piece'+(p.hero?'':' noimg'); b.setAttribute('data-i',i);
+        b.innerHTML='<span class="pm-piece-img" style="'+bg(p.hero)+'"><span class="pm-piece-play">&#9654;</span></span><span class="pm-piece-lab"></span>';
+        b.querySelector('.pm-piece-lab').textContent=p.title||('Piece '+(i+1));
+        b.onclick=function(){ openPiece(i); }; elPieceGrid.appendChild(b); });
+      modal.classList.remove('show-detail');
+      modal.classList.add('open'); modal.setAttribute('aria-hidden','false'); document.body.classList.add('pm-lock');
+      if((d.pieces||[]).length===1){ openPiece(0); } }
+    function backToOverview(){ if(curProj && curProj.pieces.length>1){ modal.classList.remove('show-detail'); if(curPlayer){curPlayer.destroy();curPlayer=null;} } else { close(); } }
+    function close(){ modal.classList.remove('open','show-detail'); modal.setAttribute('aria-hidden','true'); document.body.classList.remove('pm-lock'); if(curPlayer){curPlayer.destroy();curPlayer=null;} }
+    elBack.addEventListener('click',backToOverview);
+    elGallery.querySelector('.pm-gprev').addEventListener('click',function(){ galScroll(-1); });
+    elGallery.querySelector('.pm-gnext').addEventListener('click',function(){ galScroll(1); });
+    var tags=[]; ORDER.forEach(function(pid){ (PROJECTS[pid].tags||[]).forEach(function(t){ if(t!=='Art Direction' && tags.indexOf(t)<0) tags.push(t); }); });
     filterBar.innerHTML='<button class="wf on" data-tag="">All</button>'+tags.map(function(t){return '<button class="wf" data-tag="'+t+'">'+t+'</button>';}).join('');
-    grid.innerHTML=ORDER.map(function(pid){ var d=PROJECTS[pid]; return '<button class="wcard" data-proj="'+pid+'" data-tags="|'+d.tags.join('|')+'|"><span class="wc-top"><span class="wc-title">'+d.title+'</span><span class="wc-count">'+d.items.length+'</span></span><span class="wc-tags">'+d.tags.filter(function(t){return t!=='Art Direction';}).join(' &middot; ')+'</span></button>'; }).join('');
+    grid.innerHTML=ORDER.map(function(pid){ var d=PROJECTS[pid]; var n=(d.pieces||[]).length;
+      return '<button class="wcard'+(d.hero?'':' noimg')+'" data-proj="'+pid+'" data-tags="|'+(d.tags||[]).join('|')+'|">'
+        +'<span class="wc-bg" style="'+bg(d.hero)+'"></span>'
+        +'<span class="wc-top"><span class="wc-title">'+d.title+'</span><span class="wc-count">'+n+'</span></span>'
+        +'<span class="wc-tags">'+(d.tags||[]).filter(function(t){return t!=='Art Direction';}).join(' &middot; ')+'</span></button>'; }).join('');
     [].forEach.call(grid.querySelectorAll('.wcard'),function(c){ c.addEventListener('click',function(){ open(c.getAttribute('data-proj')); }); });
     filterBar.addEventListener('click',function(e){ var b=e.target.closest('.wf'); if(!b) return; [].forEach.call(filterBar.children,function(x){x.classList.remove('on');}); b.classList.add('on'); var tag=b.getAttribute('data-tag');
       [].forEach.call(grid.querySelectorAll('.wcard'),function(c){ var show=(!tag)||c.getAttribute('data-tags').indexOf('|'+tag+'|')>=0; c.classList.toggle('hide',!show); }); });
