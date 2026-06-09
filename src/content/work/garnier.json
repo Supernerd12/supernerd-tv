@@ -1,0 +1,18 @@
+{
+  "title": "Garnier",
+  "order": 100,
+  "categories": [
+    "Motion Design"
+  ],
+  "hero": "/work/uploads/Screen Shot 2026-06-09 at 7.51.28 AM.png",
+  "description": "",
+  "pieces": [
+    {
+      "title": "Garnier Full & Plush",
+      "hero": "/work/uploads/Screen Shot 2026-06-09 at 7.48.12 AM.png",
+      "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/152ece12583867d5c302cdf9a7b552a0/manifest/video.m3u8",
+      "description": "",
+      "gallery": []
+    }
+  ]
+}
