@@ -1,0 +1,20 @@
+{
+  "title": "L'Oreal Paris",
+  "order": 100,
+  "categories": [
+    "Art Direction",
+    "Motion Design",
+    "Storyboarding"
+  ],
+  "hero": "/work/uploads/Screen Shot 2026-06-09 at 7.45.39 AM.png",
+  "description": "",
+  "pieces": [
+    {
+      "title": "L'Oreal Paris Elseve",
+      "hero": "/work/uploads/Screen Shot 2026-06-09 at 7.44.41 AM.png",
+      "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/9c3d26a93e41c29fc841c9db5d8a1fe8/manifest/video.m3u8",
+      "description": "",
+      "gallery": []
+    }
+  ]
+}
