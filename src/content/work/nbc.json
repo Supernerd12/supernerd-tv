@@ -11,8 +11,8 @@
   "clips": [
     {
       "label": "Open House",
-      "video": "",
-      "poster": ""
+      "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/b6c6dda8edecfaafa67ee6a344cfaf96/manifest/video.m3u8",
+      "poster": "/work/uploads/Screen Shot 2026-06-09 at 3.16.38 AM.png"
     },
     {
       "label": "LXTV",
@@ -21,8 +21,8 @@
     },
     {
       "label": "Mastercard",
-      "video": "",
-      "poster": ""
+      "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/54fdc1a561c5aa70075b94c454f5c593/manifest/video.m3u8",
+      "poster": "/work/uploads/Screen Shot 2026-06-09 at 3.17.28 AM.png"
     },
     {
       "label": "BYOD",
