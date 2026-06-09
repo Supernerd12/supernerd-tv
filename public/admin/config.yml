@@ -54,6 +54,7 @@ collections:
           - { name: title, label: "Piece title", widget: string }
           - { name: hero, label: "Piece image / thumbnail", widget: image, required: false }
           - { name: video, label: "Video link — Cloudflare Stream URL (optional)", widget: string, required: false }
+          - { name: no_video, label: "No video — static piece (show gallery only, no Coming Soon)", widget: boolean, default: false, required: false }
           - { name: description, label: "Description", widget: text, required: false }
           - name: gallery
             label: "Image gallery (scrolling carousel)"
