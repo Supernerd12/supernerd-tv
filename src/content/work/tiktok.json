@@ -4,17 +4,30 @@
   "categories": [
     "Art Direction",
     "Branding",
-    "Website"
+    "Website",
+    "Live Experience"
   ],
-  "hero": "",
+  "hero": "/work/uploads/Screen Shot 2026-06-09 at 11.53.42 AM.png",
   "description": "",
   "pieces": [
     {
-      "title": "Black TikTok",
-      "hero": "",
+      "title": "Black History Month Event",
+      "hero": "/work/uploads/brownstone_Block3.jpg",
       "video": "",
       "description": "",
-      "gallery": []
+      "gallery": [
+        "/work/uploads/Tik Tok Virtual v.2(1).png",
+        "/work/uploads/Tik Tok Virtual v.2.png",
+        "/work/uploads/Tik Tok Virtual v.2(10).png",
+        "/work/uploads/Tik Tok Virtual v.2(2).png",
+        "/work/uploads/Tik Tok Virtual v.2(3).png",
+        "/work/uploads/Tik Tok Virtual v.2(4).png",
+        "/work/uploads/Tik Tok Virtual v.2(5).png",
+        "/work/uploads/Tik Tok Virtual v.2(6).png",
+        "/work/uploads/Tik Tok Virtual v.2(7).png",
+        "/work/uploads/Tik Tok Virtual v.2(8).png",
+        "/work/uploads/Tik Tok Virtual v.2(9).png"
+      ]
     }
   ]
 }
