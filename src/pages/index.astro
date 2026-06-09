@@ -1,4 +1,21 @@
 ---
+import { getCollection } from 'astro:content';
+const entries = (await getCollection('work')).sort(
+  (a, b) => (a.data.order - b.data.order) || a.data.title.localeCompare(b.data.title)
+);
+const ORDER = entries.map((e) => e.id.replace(/\.[^.]+$/, ''));
+const PROJECTS = {};
+for (const e of entries) {
+  const id = e.id.replace(/\.[^.]+$/, '');
+  PROJECTS[id] = {
+    title: e.data.title,
+    tags: e.data.categories || [],
+    items: e.data.clips || [],
+    hero: e.data.hero || '',
+    storyboards: e.data.storyboards || [],
+  };
+}
+const WORK_JSON = JSON.stringify({ ORDER, PROJECTS });
 ---
 <!doctype html>
 <html lang="en">
@@ -378,6 +395,44 @@
   .cl-robot.glow-on .cl-glow{opacity:1; animation:cl-glowpulse 2.8s ease-in-out infinite}
   @keyframes cl-glowpulse{0%,100%{opacity:.42} 50%{opacity:1}}
   @media (prefers-reduced-motion:reduce){ .cl-robot.glow-on .cl-glow{animation:none; opacity:.7} }
+
+  /* ---------- WORK GRID (filter + 2 columns) ---------- */
+  .wfilter{display:flex; flex-wrap:wrap; gap:8px; margin:clamp(18px,2.6vh,30px) 0 clamp(20px,3vh,36px)}
+  .wf{font-family:var(--mono); font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--dim); background:transparent; border:1px solid rgba(236,236,234,.16); border-radius:30px; padding:7px 14px; cursor:pointer; transition:color .2s, background .2s, border-color .2s}
+  .wf:hover{color:var(--bone); border-color:rgba(236,236,234,.42)}
+  .wf.on{color:var(--ink); background:var(--green-hi); border-color:var(--green-hi)}
+  .wgrid{display:grid; grid-template-columns:repeat(2,1fr); gap:12px}
+  .wcard{position:relative; overflow:hidden; text-align:left; background:rgba(236,236,234,.025); border:1px solid rgba(236,236,234,.1); border-radius:10px; padding:clamp(15px,1.9vw,22px) clamp(17px,2.1vw,26px); cursor:pointer; transition:border-color .25s, background .25s, transform .25s}
+  .wcard:hover{border-color:rgba(186,192,30,.55); background:rgba(186,192,30,.05); transform:translateY(-2px)}
+  .wcard:focus-visible{outline:2px solid var(--green-hi); outline-offset:2px}
+  .wc-top{display:flex; align-items:baseline; justify-content:space-between; gap:12px}
+  .wc-title{font-family:var(--disp); font-weight:700; font-size:clamp(17px,1.7vw,23px); letter-spacing:-.01em; color:var(--bone); line-height:1.12}
+  .wc-count{font-family:var(--mono); font-size:10px; letter-spacing:.08em; color:var(--green-hi); border:1px solid rgba(186,192,30,.4); border-radius:20px; padding:2px 9px; flex:0 0 auto}
+  .wc-tags{display:block; font-family:var(--mono); font-size:10px; letter-spacing:.07em; text-transform:uppercase; color:var(--dim); margin-top:10px; line-height:1.7}
+  .wcard.hide{display:none}
+  @media (max-width:760px){ .wgrid{grid-template-columns:1fr} }
+  /* ---------- MODAL: clip list ---------- */
+  .pm-body{display:flex; gap:22px; margin-top:4px}
+  .pm-stage{flex:1 1 60%; min-width:0}
+  .pm-clips{flex:1 1 38%; min-width:0; display:flex; flex-direction:column}
+  .pm-clabel{font-family:var(--mono); font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--dim); margin:0 0 10px}
+  .pm-cliplist{display:flex; flex-direction:column; gap:6px; overflow-y:auto; max-height:clamp(220px,46vh,520px); padding-right:6px}
+  .pm-cliplist::-webkit-scrollbar{width:6px} .pm-cliplist::-webkit-scrollbar-thumb{background:rgba(186,192,30,.4); border-radius:3px}
+  .pm-clip{display:flex; align-items:center; gap:10px; text-align:left; width:100%; font-family:var(--disp); font-weight:600; font-size:14px; color:var(--bone); background:rgba(236,236,234,.03); border:1px solid rgba(236,236,234,.1); border-radius:7px; padding:11px 13px; cursor:pointer; transition:border-color .2s, background .2s}
+  .pm-clip:hover{border-color:rgba(186,192,30,.5); background:rgba(186,192,30,.06)}
+  .pm-clip.on{border-color:var(--green-hi); background:rgba(186,192,30,.12)}
+  .pm-cdot{width:7px; height:7px; border-radius:50%; background:rgba(236,236,234,.3); flex:0 0 auto; transition:background .2s, box-shadow .2s}
+  .pm-clip.on .pm-cdot{background:var(--green-hi); box-shadow:0 0 6px rgba(186,192,30,.85)}
+  .pm-clab{flex:1; min-width:0}
+  .pm-cplay{font-size:10px; color:var(--green-hi); opacity:0; transition:opacity .2s}
+  .pm-clip:hover .pm-cplay,.pm-clip.on .pm-cplay{opacity:1}
+  @media (max-width:760px){ .pm-body{flex-direction:column} .pm-cliplist{max-height:none} }
+
+  .pm-shots:empty{display:none}
+  .pm-shots{margin-top:18px}
+  .pm-shotlabel{font-family:var(--mono); font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--dim); margin:0 0 10px}
+  .pm-shotrow{display:flex; gap:10px; overflow-x:auto; padding-bottom:6px}
+  .pm-shotrow img{height:120px; width:auto; border-radius:6px; border:1px solid rgba(236,236,234,.12); flex:0 0 auto}
 </style>
 </head>
 <body>
@@ -484,99 +539,10 @@
     <h2>Work</h2>
     <div class="meta">Productions · tours · activations<br>across <b>16+ years</b></div>
   </div>
-  <!-- EDIT: clients, years and order are a first pass from the bio — confirm/reorder freely.
-       Each .wrow is reel-ready: drop a Cloudflare Stream embed or still into a media well later. -->
-  <div class="wlist">
+  <div class="wfilter" id="wfilter"></div>
+  <div class="wgrid" id="wgrid"></div>
+  <script type="application/json" id="work-data" set:html={WORK_JSON}></script>
 
-    <div class="wrow" data-proj="hua" role="button" tabindex="0" aria-label="Open Hollywood Unlocked Impact Awards">
-      <div class="whero" style="background-image:url(/work/projects/hua/hero.webp)"></div>
-      <div class="wnum">01</div>
-      <div>
-        <div class="wclient">Hollywood Unlocked Impact Awards</div>
-        <div class="wdesc">Five consecutive years of stage design, motion graphics and show flow — earned media reaching into the billions, with headline talent year after year.</div>
-        <div class="wtags"><span class="wtag">Art Direction</span><span class="wtag">Creative Production</span><span class="wtag">Broadcast</span></div>
-      </div>
-      <div class="wright"><div class="wyear">Recurring</div><div class="wsoon"><span class="pl"></span> View project &#8599;</div></div>
-    </div>
-
-    <div class="wrow" data-proj="wsm" role="button" tabindex="0" aria-label="Open World's Strongest Man">
-      <div class="whero" style="background-image:url(/work/projects/wsm/hero.webp)"></div>
-      <div class="wnum">02</div>
-      <div>
-        <div class="wclient">World's Strongest Man</div>
-        <div class="wdesc">Broadcast art direction for the competition's premiere on CBS — translating raw spectacle into a designed, televised show.</div>
-        <div class="wtags"><span class="wtag">Art Direction</span><span class="wtag">Broadcast</span></div>
-      </div>
-      <div class="wright"><div class="wyear">CBS</div><div class="wsoon"><span class="pl"></span> View project &#8599;</div></div>
-    </div>
-
-    <div class="wrow" data-proj="chrisbrown" role="button" tabindex="0" aria-label="Open Chris Brown">
-      <div class="whero" style="background-image:url(/work/projects/chrisbrown/hero.webp)"></div>
-      <div class="wnum">03</div>
-      <div>
-        <div class="wclient">Chris Brown</div>
-        <div class="wdesc">Creative direction and production design for live tour staging.</div>
-        <div class="wtags"><span class="wtag">Touring</span><span class="wtag">Live Production</span></div>
-      </div>
-      <div class="wright"><div class="wyear">Tour</div><div class="wsoon"><span class="pl"></span> View project &#8599;</div></div>
-    </div>
-
-    <div class="wrow" data-proj="cardib" role="button" tabindex="0" aria-label="Open Cardi B">
-      <div class="whero" style="background-image:url(/work/projects/cardib/hero.webp)"></div>
-      <div class="wnum">04</div>
-      <div>
-        <div class="wclient">Cardi B</div>
-        <div class="wdesc">Creative direction and production design for live tour staging.</div>
-        <div class="wtags"><span class="wtag">Touring</span><span class="wtag">Live Production</span></div>
-      </div>
-      <div class="wright"><div class="wyear">Tour</div><div class="wsoon"><span class="pl"></span> View project &#8599;</div></div>
-    </div>
-
-    <div class="wrow" data-proj="apollo" role="button" tabindex="0" aria-label="Open Apollo Theater — Young Patrons Sessions">
-      <div class="whero" style="background-image:url(/work/projects/apollo/hero.webp)"></div>
-      <div class="wnum">05</div>
-      <div>
-        <div class="wclient">Apollo Theater — Young Patrons Sessions</div>
-        <div class="wdesc">A branded Harlem rooftop celebration drawing nearly 300 tastemakers, media and Grammy-nominated performers.</div>
-        <div class="wtags"><span class="wtag">Live Experience</span><span class="wtag">Activation</span></div>
-      </div>
-      <div class="wright"><div class="wyear">Harlem</div><div class="wsoon"><span class="pl"></span> View project &#8599;</div></div>
-    </div>
-
-    <div class="wrow" data-proj="mcdonalds" role="button" tabindex="0" aria-label="Open McDonald's × Art Basel">
-      <div class="whero" style="background-image:url(/work/projects/mcdonalds/hero.webp)"></div>
-      <div class="wnum">06</div>
-      <div>
-        <div class="wclient">McDonald's × Art Basel</div>
-        <div class="wdesc">A weekend activation built for an African-American audience of influencers and creators — bringing a global brand into the culture.</div>
-        <div class="wtags"><span class="wtag">Brand Activation</span><span class="wtag">Experiential</span></div>
-      </div>
-      <div class="wright"><div class="wyear">Miami</div><div class="wsoon"><span class="pl"></span> View project &#8599;</div></div>
-    </div>
-
-    <div class="wrow" data-proj="grammys" role="button" tabindex="0" aria-label="Open The Grammys — Red Carpet">
-      <div class="whero" style="background-image:url(/work/projects/grammys/hero.webp)"></div>
-      <div class="wnum">07</div>
-      <div>
-        <div class="wclient">The Grammys — Red Carpet</div>
-        <div class="wdesc">Red carpet staging and design for music's biggest night.</div>
-        <div class="wtags"><span class="wtag">Staging</span><span class="wtag">Art Direction</span></div>
-      </div>
-      <div class="wright"><div class="wyear">Staging</div><div class="wsoon"><span class="pl"></span> View project &#8599;</div></div>
-    </div>
-
-    <div class="wrow" data-proj="reddoor" role="button" tabindex="0" aria-label="Open Red Door Harlem">
-      <div class="whero" style="background-image:url(/work/projects/reddoor/hero.webp)"></div>
-      <div class="wnum">08</div>
-      <div>
-        <div class="wclient">Red Door Harlem</div>
-        <div class="wdesc">An original Supernerd nightlife concept — venue identity and experience design for a Harlem room of its own.</div>
-        <div class="wtags"><span class="wtag">Experience Design</span><span class="wtag">Venue</span></div>
-      </div>
-      <div class="wright"><div class="wyear">Harlem</div><div class="wsoon"><span class="pl"></span> View project &#8599;</div></div>
-    </div>
-
-  </div>
   </div>
 </section>
 
@@ -584,17 +550,13 @@
   <div class="pm-back" data-pmclose></div>
   <div class="pm-box">
     <button class="pm-x" data-pmclose aria-label="Close">&#215;</button>
-    <div class="pm-num" id="pmNum"></div>
     <h3 class="pm-title" id="pmTitle"></h3>
     <div class="pm-tags" id="pmTags"></div>
-    <div class="pm-tabs" id="pmTabs"></div>
-    <div class="pm-vid" id="pmVid"></div>
-    <div class="pm-gtitle">Behind the scenes &middot; storyboards</div>
-    <div class="pm-gallery">
-      <button class="pm-arrow pm-prev" id="pmPrev" aria-label="Previous">&#8249;</button>
-      <div class="pm-strip" id="pmStrip"></div>
-      <button class="pm-arrow pm-next" id="pmNext" aria-label="Next">&#8250;</button>
+    <div class="pm-body">
+      <div class="pm-stage"><div class="pm-vid" id="pmVid"></div></div>
+      <div class="pm-clips"><div class="pm-clabel" id="pmCount"></div><div class="pm-cliplist" id="pmClips"></div></div>
     </div>
+    <div class="pm-shots" id="pmShots"></div>
   </div>
 </div>
 
@@ -762,27 +724,12 @@
     if('IntersectionObserver' in window){ new IntersectionObserver(es=>es.forEach(e=>{ e.isIntersecting?(rv.play&&rv.play().catch(()=>{})):(rv.pause&&rv.pause()); }),{threshold:.05}).observe(rv); }
   })();
 
-  /* ===== PROJECT DETAIL MODAL =====
-     EDIT LATER: for each project set videos:[{hls:'<cloudflare .m3u8>',poster:'<img>',label:'...'}] and gallery:['<img>',...]
-     Multiple entries in videos[] automatically become tabs at the top of the pop-up. */
+  /* ===== WORK GRID + PROJECT MODAL =====
+     EDIT LATER: items can become objects with their own Cloudflare HLS; for now each plays the placeholder reel. */
   (function(){
     var REEL='https://customer-jo6j16htmygzl1y3.cloudflarestream.com/d0dc8c487a18d04d83410e52b3677535/manifest/video.m3u8';
-    var G=['/work/projects/_gallery/g1.webp','/work/projects/_gallery/g2.webp','/work/projects/_gallery/g3.webp','/work/projects/_gallery/g4.webp','/work/projects/_gallery/g5.webp','/work/projects/_gallery/g6.webp'];
-    function H(pid,label){return {hls:REEL,poster:'/work/projects/'+pid+'/hero.webp',label:label};}
-    var PROJECTS={
-      hua:{num:'01',title:'Hollywood Unlocked Impact Awards',tags:['Art Direction','Creative Production','Broadcast'],videos:[H('hua','Main Film'),H('hua','Sizzle')],gallery:G},
-      wsm:{num:'02',title:"World's Strongest Man",tags:['Art Direction','Broadcast'],videos:[H('wsm','Broadcast')],gallery:G},
-      chrisbrown:{num:'03',title:'Chris Brown \u2014 Tour',tags:['Touring','Live Production'],videos:[H('chrisbrown','Tour Reel')],gallery:G},
-      cardib:{num:'04',title:'Cardi B \u2014 Tour',tags:['Touring','Live Production'],videos:[H('cardib','Tour Reel')],gallery:G},
-      apollo:{num:'05',title:'Apollo Theater \u2014 Young Patrons Sessions',tags:['Live Experience','Activation'],videos:[H('apollo','Recap')],gallery:G},
-      mcdonalds:{num:'06',title:"McDonald's \u00d7 Art Basel",tags:['Brand Activation','Experiential'],videos:[H('mcdonalds','Activation')],gallery:G},
-      grammys:{num:'07',title:'The Grammys \u2014 Red Carpet',tags:['Staging','Art Direction'],videos:[H('grammys','Red Carpet')],gallery:G},
-      reddoor:{num:'08',title:'Red Door Harlem',tags:['Experience Design','Venue'],videos:[H('reddoor','Venue Film')],gallery:G}
-    };
-    var modal=document.getElementById('projModal'); if(!modal) return;
-    var elNum=document.getElementById('pmNum'),elTitle=document.getElementById('pmTitle'),elTags=document.getElementById('pmTags'),
-        elTabs=document.getElementById('pmTabs'),elVid=document.getElementById('pmVid'),elStrip=document.getElementById('pmStrip');
-
+    var _wd={}; try{ _wd=JSON.parse((document.getElementById('work-data')||{}).textContent||'{}'); }catch(e){}
+    var ORDER=_wd.ORDER||[], PROJECTS=_wd.PROJECTS||{};
     function fmt(t){ if(!isFinite(t))return '0:00'; t=Math.max(0,t|0); var m=(t/60)|0,sec=t%60; return m+':'+(sec<10?'0':'')+sec; }
     function makePlayer(mount,src,poster){
       mount.innerHTML='';
@@ -828,50 +775,35 @@
       return { destroy:function(){ try{v.pause();}catch(e){} if(hls){try{hls.destroy();}catch(e){}} v.removeAttribute('src'); try{v.load();}catch(e){} } };
     }
 
-    function autoGallery(strip){
-      var raf,paused=false,resumeT,down=false,sx,sl,pos=0;
-      function half(){ return strip.scrollWidth/2; }
-      function frame(){
-        if(!paused && !down){ var h=half(); if(h>1){ pos+=0.6; if(pos>=h) pos-=h; strip.scrollLeft=Math.round(pos); } }
-        raf=requestAnimationFrame(frame);
-      }
-      function sync(){ pos=strip.scrollLeft; }
-      function pause(){ paused=true; clearTimeout(resumeT); }
-      function resumeSoon(){ clearTimeout(resumeT); resumeT=setTimeout(function(){ sync(); paused=false; },1500); }
-      strip.addEventListener('pointerdown',function(e){ if(e.pointerType==='mouse'){ down=true; sx=e.clientX; sl=strip.scrollLeft; strip.style.cursor='grabbing'; } });
-      strip.addEventListener('pointermove',function(e){ if(down) strip.scrollLeft=sl-(e.clientX-sx); });
-      window.addEventListener('pointerup',function(){ if(down){ down=false; strip.style.cursor='grab'; sync(); } });
-      strip.addEventListener('touchstart',function(){ pause(); },{passive:true});
-      strip.addEventListener('touchend',function(){ resumeSoon(); },{passive:true});
-      strip.addEventListener('wheel',function(){ pause(); resumeSoon(); },{passive:true});
-      strip.addEventListener('scroll',function(){ var h=half(); if(h>0){ if(strip.scrollLeft>=h){ strip.scrollLeft-=h; if(pos>=h)pos-=h; } else if(strip.scrollLeft<0){ strip.scrollLeft+=h; pos+=h; } } });
-      raf=requestAnimationFrame(frame);
-      return { stop:function(){ cancelAnimationFrame(raf); }, pause:pause, resumeSoon:resumeSoon };
-    }
-    var curPlayer=null,curGallery=null;
-    function playVideo(v){ if(curPlayer)curPlayer.destroy(); curPlayer=makePlayer(elVid,v.hls,v.poster); }
+    var modal=document.getElementById('projModal'); if(!modal) return;
+    var elTitle=document.getElementById('pmTitle'),elTags=document.getElementById('pmTags'),elCount=document.getElementById('pmCount'),elVid=document.getElementById('pmVid'),elClips=document.getElementById('pmClips');
+    var grid=document.getElementById('wgrid'),filterBar=document.getElementById('wfilter');
+    var curPlayer=null;
+    function playItem(d,it){ if(curPlayer)curPlayer.destroy(); curPlayer=makePlayer(elVid, (it&&it.video)||REEL, (it&&it.poster)||d.hero||''); }
     function open(pid){ var d=PROJECTS[pid]; if(!d) return;
-      elNum.textContent=d.num; elTitle.textContent=d.title;
-      elTags.innerHTML=d.tags.map(function(t){return '<span>'+t+'</span>';}).join('');
-      elTabs.innerHTML='';
-      if(d.videos.length>1){ d.videos.forEach(function(v,i){ var b=document.createElement('button'); b.className='pm-tab'+(i===0?' on':''); b.textContent=v.label||('Video '+(i+1));
-        b.onclick=function(){ [].forEach.call(elTabs.children,function(c){c.classList.remove('on');}); b.classList.add('on'); playVideo(v); }; elTabs.appendChild(b); }); }
-      playVideo(d.videos[0]);
-      var imgs=d.gallery.concat(d.gallery); /* duplicate for seamless loop */
-      elStrip.innerHTML=imgs.map(function(g){return '<img src="'+g+'" alt="" draggable="false">';}).join(''); elStrip.scrollLeft=0;
-      if(curGallery)curGallery.stop(); curGallery=autoGallery(elStrip);
+      elTitle.textContent=d.title;
+      elTags.innerHTML=(d.tags||[]).filter(function(t){return t!=='Art Direction';}).map(function(t){return '<span>'+t+'</span>';}).join('');
+      elCount.textContent=d.items.length+(d.items.length===1?' clip':' clips');
+      elClips.innerHTML='';
+      d.items.forEach(function(it,i){ var b=document.createElement('button'); b.className='pm-clip'+(i===0?' on':'');
+        b.innerHTML='<span class="pm-cdot"></span><span class="pm-clab"></span><span class="pm-cplay">&#9654;</span>';
+        b.querySelector('.pm-clab').textContent=(it&&it.label)||'';
+        b.onclick=function(){ [].forEach.call(elClips.children,function(c){c.classList.remove('on');}); b.classList.add('on'); playItem(d,it); };
+        elClips.appendChild(b); });
+      playItem(d,d.items[0]);
+      var sb=d.storyboards||[]; var shots=document.getElementById('pmShots'); if(shots){ shots.innerHTML=sb.length?('<div class="pm-shotlabel">Storyboards &amp; stills</div><div class="pm-shotrow">'+sb.map(function(u){return '<img src="'+u+'" alt="" loading="lazy">';}).join('')+'</div>'):''; }
       modal.classList.add('open'); modal.setAttribute('aria-hidden','false'); document.body.classList.add('pm-lock'); }
-    function close(){ modal.classList.remove('open'); modal.setAttribute('aria-hidden','true'); document.body.classList.remove('pm-lock');
-      if(curPlayer){curPlayer.destroy();curPlayer=null;} if(curGallery){curGallery.stop();curGallery=null;} }
-    [].forEach.call(document.querySelectorAll('.wrow[data-proj]'),function(row){
-      row.addEventListener('click',function(){ open(row.getAttribute('data-proj')); });
-      row.addEventListener('keydown',function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); open(row.getAttribute('data-proj')); } }); });
+    function close(){ modal.classList.remove('open'); modal.setAttribute('aria-hidden','true'); document.body.classList.remove('pm-lock'); if(curPlayer){curPlayer.destroy();curPlayer=null;} }
+    var tags=[]; ORDER.forEach(function(pid){ PROJECTS[pid].tags.forEach(function(t){ if(t!=='Art Direction' && tags.indexOf(t)<0) tags.push(t); }); });
+    filterBar.innerHTML='<button class="wf on" data-tag="">All</button>'+tags.map(function(t){return '<button class="wf" data-tag="'+t+'">'+t+'</button>';}).join('');
+    grid.innerHTML=ORDER.map(function(pid){ var d=PROJECTS[pid]; return '<button class="wcard" data-proj="'+pid+'" data-tags="|'+d.tags.join('|')+'|"><span class="wc-top"><span class="wc-title">'+d.title+'</span><span class="wc-count">'+d.items.length+'</span></span><span class="wc-tags">'+d.tags.filter(function(t){return t!=='Art Direction';}).join(' &middot; ')+'</span></button>'; }).join('');
+    [].forEach.call(grid.querySelectorAll('.wcard'),function(c){ c.addEventListener('click',function(){ open(c.getAttribute('data-proj')); }); });
+    filterBar.addEventListener('click',function(e){ var b=e.target.closest('.wf'); if(!b) return; [].forEach.call(filterBar.children,function(x){x.classList.remove('on');}); b.classList.add('on'); var tag=b.getAttribute('data-tag');
+      [].forEach.call(grid.querySelectorAll('.wcard'),function(c){ var show=(!tag)||c.getAttribute('data-tags').indexOf('|'+tag+'|')>=0; c.classList.toggle('hide',!show); }); });
     [].forEach.call(modal.querySelectorAll('[data-pmclose]'),function(b){ b.addEventListener('click',close); });
     document.addEventListener('keydown',function(e){ if(e.key==='Escape'&&modal.classList.contains('open')) close(); });
-    function step(){ var img=elStrip.querySelector('img'); return img?img.getBoundingClientRect().width+12:300; }
-    document.getElementById('pmPrev').addEventListener('click',function(){ if(curGallery)curGallery.pause(); elStrip.scrollBy({left:-step(),behavior:'smooth'}); if(curGallery)curGallery.resumeSoon(); });
-    document.getElementById('pmNext').addEventListener('click',function(){ if(curGallery)curGallery.pause(); elStrip.scrollBy({left:step(),behavior:'smooth'}); if(curGallery)curGallery.resumeSoon(); });
   })();
+
 
   (function(){
     var sec=document.querySelector('.collab'); if(!sec) return;

@@ -1,0 +1,34 @@
+{
+  "title": "NBC",
+  "order": 240,
+  "categories": [
+    "Art Direction",
+    "Branding",
+    "Motion Design",
+    "Live Experience"
+  ],
+  "hero": "",
+  "clips": [
+    {
+      "label": "Open House",
+      "video": "",
+      "poster": ""
+    },
+    {
+      "label": "LXTV",
+      "video": "",
+      "poster": ""
+    },
+    {
+      "label": "Mastercard",
+      "video": "",
+      "poster": ""
+    },
+    {
+      "label": "BYOD",
+      "video": "",
+      "poster": ""
+    }
+  ],
+  "storyboards": []
+}

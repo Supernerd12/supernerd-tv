@@ -1,0 +1,17 @@
+{
+  "title": "KIA",
+  "order": 150,
+  "categories": [
+    "Art Direction",
+    "Fashion Design"
+  ],
+  "hero": "",
+  "clips": [
+    {
+      "label": "Fashion",
+      "video": "",
+      "poster": ""
+    }
+  ],
+  "storyboards": []
+}

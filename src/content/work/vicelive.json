@@ -1,0 +1,19 @@
+{
+  "title": "Vice Live",
+  "order": 50,
+  "categories": [
+    "Art Direction",
+    "Branding",
+    "Motion Design",
+    "TV Show"
+  ],
+  "hero": "",
+  "clips": [
+    {
+      "label": "Season 1 & 2",
+      "video": "",
+      "poster": ""
+    }
+  ],
+  "storyboards": []
+}

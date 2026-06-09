@@ -1,0 +1,35 @@
+{
+  "title": "Urban Decay",
+  "order": 230,
+  "categories": [
+    "Art Direction",
+    "Branding",
+    "Motion Design",
+    "Live Experience",
+    "Storyboarding"
+  ],
+  "hero": "",
+  "clips": [
+    {
+      "label": "DJ Visuals",
+      "video": "",
+      "poster": ""
+    },
+    {
+      "label": "Brand",
+      "video": "",
+      "poster": ""
+    },
+    {
+      "label": "Trend Pack",
+      "video": "",
+      "poster": ""
+    },
+    {
+      "label": "Global",
+      "video": "",
+      "poster": ""
+    }
+  ],
+  "storyboards": []
+}

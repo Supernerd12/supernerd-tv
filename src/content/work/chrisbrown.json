@@ -1,0 +1,40 @@
+{
+  "title": "Chris Brown",
+  "order": 30,
+  "categories": [
+    "Art Direction",
+    "Branding",
+    "Motion Design",
+    "Live Experience",
+    "Touring"
+  ],
+  "hero": "",
+  "clips": [
+    {
+      "label": "Billboard Music Awards 2012",
+      "video": "",
+      "poster": ""
+    },
+    {
+      "label": "Grammy Music Awards 2012",
+      "video": "",
+      "poster": ""
+    },
+    {
+      "label": "Dancing w/ The Stars 2012",
+      "video": "",
+      "poster": ""
+    },
+    {
+      "label": "Carpe Diem Tour",
+      "video": "",
+      "poster": ""
+    },
+    {
+      "label": "BET 106 & Park",
+      "video": "",
+      "poster": ""
+    }
+  ],
+  "storyboards": []
+}

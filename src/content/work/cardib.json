@@ -1,0 +1,41 @@
+{
+  "title": "Cardi B",
+  "order": 100,
+  "categories": [
+    "Art Direction",
+    "Branding",
+    "Motion Design",
+    "Website",
+    "Fashion Design",
+    "Live Experience"
+  ],
+  "hero": "",
+  "clips": [
+    {
+      "label": "WAP Website",
+      "video": "",
+      "poster": ""
+    },
+    {
+      "label": "WAP Clothing Line",
+      "video": "",
+      "poster": ""
+    },
+    {
+      "label": "Cardi B Birthday",
+      "video": "",
+      "poster": ""
+    },
+    {
+      "label": "UP Clothing Line",
+      "video": "",
+      "poster": ""
+    },
+    {
+      "label": "Summer Jam",
+      "video": "",
+      "poster": ""
+    }
+  ],
+  "storyboards": []
+}

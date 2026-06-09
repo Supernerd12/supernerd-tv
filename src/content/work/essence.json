@@ -1,0 +1,28 @@
+{
+  "title": "ESSENCE",
+  "order": 130,
+  "categories": [
+    "Art Direction",
+    "Motion Design",
+    "Live Experience"
+  ],
+  "hero": "",
+  "clips": [
+    {
+      "label": "Essence Festival 2022",
+      "video": "",
+      "poster": ""
+    },
+    {
+      "label": "Essence Festival 2023",
+      "video": "",
+      "poster": ""
+    },
+    {
+      "label": "Essence Holiday",
+      "video": "",
+      "poster": ""
+    }
+  ],
+  "storyboards": []
+}

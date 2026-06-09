@@ -1,0 +1,74 @@
+{
+  "title": "Hollywood Unlocked",
+  "order": 80,
+  "categories": [
+    "Art Direction",
+    "Print",
+    "Creative Production",
+    "Podcast",
+    "Motion Design",
+    "Award Design",
+    "TV Show",
+    "Live Experience",
+    "Branding"
+  ],
+  "hero": "/work/projects/hua/hero.webp",
+  "clips": [
+    {
+      "label": "Jason Lee Show",
+      "video": "",
+      "poster": ""
+    },
+    {
+      "label": "Jason Lee Experience",
+      "video": "",
+      "poster": ""
+    },
+    {
+      "label": "Impact Award Creation",
+      "video": "",
+      "poster": ""
+    },
+    {
+      "label": "Impact Awards 2019",
+      "video": "",
+      "poster": ""
+    },
+    {
+      "label": "Impact Awards 2022",
+      "video": "",
+      "poster": ""
+    },
+    {
+      "label": "Impact Awards 2023",
+      "video": "",
+      "poster": ""
+    },
+    {
+      "label": "Impact Awards 2024",
+      "video": "",
+      "poster": ""
+    },
+    {
+      "label": "Impact Awards 2025",
+      "video": "",
+      "poster": ""
+    },
+    {
+      "label": "Gagging w/ Jason Lee",
+      "video": "",
+      "poster": ""
+    },
+    {
+      "label": "Grammy Booth",
+      "video": "",
+      "poster": ""
+    },
+    {
+      "label": "Hollywood Cares Foundation Dinner",
+      "video": "",
+      "poster": ""
+    }
+  ],
+  "storyboards": []
+}

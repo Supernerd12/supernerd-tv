@@ -1,0 +1,28 @@
+{
+  "title": "Rodan + Fields",
+  "order": 250,
+  "categories": [
+    "Art Direction",
+    "Motion Design",
+    "Storyboarding"
+  ],
+  "hero": "",
+  "clips": [
+    {
+      "label": "Launch 1",
+      "video": "",
+      "poster": ""
+    },
+    {
+      "label": "Launch Alt",
+      "video": "",
+      "poster": ""
+    },
+    {
+      "label": "How To",
+      "video": "",
+      "poster": ""
+    }
+  ],
+  "storyboards": []
+}

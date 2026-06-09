@@ -1,0 +1,60 @@
+backend:
+  name: github
+  repo: Supernerd12/supernerd-tv
+  branch: main
+  # OPTIONAL — for a "Login with GitHub" button, deploy the Sveltia auth Worker
+  # (see ADMIN-SETUP.md) and uncomment + set your Worker URL below:
+  # base_url: https://YOUR-WORKER.YOUR-SUBDOMAIN.workers.dev
+
+media_folder: "public/work/uploads"
+public_folder: "/work/uploads"
+
+collections:
+  - name: work
+    label: "Work — Projects"
+    label_singular: "Project"
+    identifier_field: title
+    folder: "src/content/work"
+    extension: json
+    format: json
+    create: true
+    slug: "{{slug}}"
+    summary: "{{title}}  ·  order {{order}}"
+    sortable_fields: [order, title]
+    fields:
+      - { name: title, label: "Project name", widget: string }
+      - { name: order, label: "Sort order (lower shows first)", widget: number, value_type: int, default: 100 }
+      - name: categories
+        label: Categories
+        widget: select
+        multiple: true
+        options:
+          - Art Direction
+          - Motion Design
+          - TV Show
+          - Branding
+          - Live Experience
+          - Touring
+          - Invite
+          - Print
+          - Creative Production
+          - Podcast
+          - Award Design
+          - Website
+          - Fashion Design
+          - Storyboarding
+      - { name: hero, label: "Header image (optional)", widget: image, required: false }
+      - name: clips
+        label: Clips
+        label_singular: Clip
+        widget: list
+        summary: "{{fields.label}}"
+        fields:
+          - { name: label, label: "Clip label", widget: string }
+          - { name: video, label: "Video link — Cloudflare Stream URL (optional)", widget: string, required: false }
+          - { name: poster, label: "Poster image (optional)", widget: image, required: false }
+      - name: storyboards
+        label: "Storyboards / stills (optional)"
+        widget: list
+        required: false
+        field: { name: image, label: Image, widget: image }
