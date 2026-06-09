@@ -7,14 +7,20 @@
     "Live Experience"
   ],
   "hero": "/work/uploads/DSC00770.jpg",
-  "description": "",
+  "description": "Supernerd was contacted to help shape the creative vision and experiential programming for McDonald’s Art Basel activation, Unc’s Arte Haus. The assignment focused on developing culturally resonant concepts that could bring McDonald’s into the Art Basel space through Black storytelling, nostalgia, food, music, art, comedy, and community.\n\nSupernerd helped ideate immersive event concepts, talent-driven moments, branded environments, and programming that expanded the world of “Unc” into a full cultural experience. The work included developing ideas such as roast-style dinners, artist-led rooms, HBCU-inspired performances, culinary collaborations, and interactive spaces designed to celebrate Black creativity while connecting McDonald’s to the warmth, humor, and legacy of community gathering.",
   "pieces": [
     {
       "title": "Unc's House",
-      "hero": "",
+      "hero": "/work/uploads/DSC01662.jpg",
       "video": "",
       "description": "",
-      "gallery": []
+      "gallery": [
+        "/work/uploads/DSC02598-1.jpg",
+        "/work/uploads/DSC02491.jpg",
+        "/work/uploads/DSC01346.jpg",
+        "/work/uploads/DSC00681-Unc-Arte-Haus-in-Miami-1200x800.jpg",
+        "/work/uploads/DSC00466-Uncs-Arte-Haus-2-1536x1024.jpg"
+      ]
     }
   ]
 }
