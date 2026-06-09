@@ -1,0 +1,25 @@
+{
+  "title": "WWE",
+  "order": 100,
+  "categories": [
+    "Art Direction",
+    "Motion Design",
+    "Creative Production",
+    "Live Experience"
+  ],
+  "hero": "/work/uploads/Screen Shot 2026-06-09 at 12.38.16 PM.png",
+  "description": "",
+  "pieces": [
+    {
+      "title": "WWE - Become a Superstar",
+      "hero": "/work/uploads/Screen Shot 2026-06-09 at 12.39.21 PM.png",
+      "video": "",
+      "no_video": false,
+      "description": "",
+      "gallery": [
+        "/work/uploads/Screen Shot 2026-06-09 at 12.40.50 PM.png",
+        "/work/uploads/Screen Shot 2026-06-09 at 12.40.35 PM.png"
+      ]
+    }
+  ]
+}
