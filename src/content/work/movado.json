@@ -1,0 +1,21 @@
+{
+  "title": "Movado",
+  "order": 100,
+  "categories": [
+    "Motion Design",
+    "Storyboarding",
+    "Live Experience"
+  ],
+  "hero": "/work/uploads/screen-shot-2026-06-10-at-6.25.42-am.png",
+  "description": "",
+  "pieces": [
+    {
+      "title": "Macys Movado Wall",
+      "hero": "",
+      "video": "",
+      "no_video": false,
+      "description": "",
+      "gallery": []
+    }
+  ]
+}
