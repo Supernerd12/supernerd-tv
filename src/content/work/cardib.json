@@ -14,14 +14,14 @@
   "pieces": [
     {
       "title": "WAP Website",
-      "hero": "",
+      "hero": "/work/uploads/page2_sm.jpg",
       "video": "",
       "description": "",
       "gallery": []
     },
     {
       "title": "WAP Clothing Line",
-      "hero": "",
+      "hero": "/work/uploads/screen-shot-2026-06-11-at-1.21.39-am.png",
       "video": "",
       "description": "",
       "gallery": []
@@ -42,8 +42,24 @@
     },
     {
       "title": "Summer Jam",
-      "hero": "",
+      "hero": "/work/uploads/gettyimages-1496150987.jpg",
       "video": "",
+      "description": "",
+      "gallery": []
+    },
+    {
+      "title": "Cardi B Miami NYE Countdown",
+      "hero": "/work/uploads/media_1c091e97fa8bd8f577814854b1bd42b7dc59ee374.jpg",
+      "video": "",
+      "no_video": false,
+      "description": "",
+      "gallery": []
+    },
+    {
+      "title": "Cardi B Vegas",
+      "hero": "/work/uploads/cardi-b.jpg",
+      "video": "",
+      "no_video": false,
       "description": "",
       "gallery": []
     }
