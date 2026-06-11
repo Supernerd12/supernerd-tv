@@ -1,0 +1,21 @@
+{
+  "title": "Apollo Theater",
+  "order": 100,
+  "categories": [
+    "Motion Design",
+    "Invite",
+    "Live Experience"
+  ],
+  "hero": "/work/uploads/screen-shot-2026-06-11-at-12.58.28-am.png",
+  "description": "",
+  "pieces": [
+    {
+      "title": "Apollo Young Patrons",
+      "hero": "/work/uploads/screen-shot-2026-06-11-at-12.59.02-am.png",
+      "video": "",
+      "no_video": false,
+      "description": "",
+      "gallery": []
+    }
+  ]
+}
