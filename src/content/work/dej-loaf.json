@@ -1,0 +1,23 @@
+{
+  "title": "Dej Loaf",
+  "order": 100,
+  "categories": [
+    "Art Direction",
+    "Motion Design",
+    "Live Experience",
+    "Touring",
+    "Creative Production"
+  ],
+  "hero": "/work/uploads/screen-shot-2026-06-11-at-1.01.31-am.png",
+  "description": "",
+  "pieces": [
+    {
+      "title": "Nicki Minaj Tour",
+      "hero": "/work/uploads/screen-shot-2026-06-11-at-1.02.37-am.png",
+      "video": "",
+      "no_video": false,
+      "description": "",
+      "gallery": []
+    }
+  ]
+}
