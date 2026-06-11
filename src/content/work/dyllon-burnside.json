@@ -1,0 +1,21 @@
+{
+  "title": "Dyllon Burnside",
+  "order": 100,
+  "categories": [
+    "Motion Design",
+    "Branding",
+    "Storyboarding"
+  ],
+  "hero": "/work/uploads/screen-shot-2026-06-10-at-10.55.03-pm.png",
+  "description": "",
+  "pieces": [
+    {
+      "title": "Silence Video",
+      "hero": "/work/uploads/screen-shot-2026-06-10-at-10.56.25-pm.png",
+      "video": "",
+      "no_video": false,
+      "description": "",
+      "gallery": []
+    }
+  ]
+}
