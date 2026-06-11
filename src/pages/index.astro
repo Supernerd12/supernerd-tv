@@ -926,21 +926,20 @@ const WORK_JSON = JSON.stringify({ ORDER, PROJECTS });
       renderGallery(p.gallery||[]);
       elSiblings.innerHTML='';
       if(d.pieces.length>1){ d.pieces.forEach(function(pp,j){ var b=document.createElement('button'); b.className='pm-sib'+(j===i?' on':''); b.textContent=pp.title||('Piece '+(j+1)); b.onclick=function(){ openPiece(j); }; elSiblings.appendChild(b); }); }
-      elBack.style.display=(d.pieces.length>1?'':'none');
+      elBack.style.display='';
       modal.classList.add('show-detail'); elGTrack.scrollLeft=0; }
     function open(pid){ var d=PROJECTS[pid]; if(!d) return; curProj=d;
       elTitle.textContent=d.title;
       elTags.innerHTML=(d.tags||[]).filter(function(t){return t!=='Art Direction';}).map(function(t){return '<span>'+t+'</span>';}).join('');
       elProjDesc.textContent=d.description||''; elProjDesc.style.display=(d.description?'':'none');
       elPieceGrid.innerHTML='';
-      (d.pieces||[]).forEach(function(p,i){ var b=document.createElement('button'); b.className='pm-piece'+(p.hero?'':' noimg'); b.setAttribute('data-i',i);
-        b.innerHTML='<span class="pm-piece-img" style="'+bg(p.hero)+'"><span class="pm-piece-play">&#9654;</span></span><span class="pm-piece-lab"></span>';
+      (d.pieces||[]).forEach(function(p,i){ var ph=p.hero||d.hero||''; var b=document.createElement('button'); b.className='pm-piece'+(ph?'':' noimg'); b.setAttribute('data-i',i);
+        b.innerHTML='<span class="pm-piece-img" style="'+bg(ph)+'">'+(p.video?'<span class="pm-piece-play">&#9654;</span>':'')+'</span><span class="pm-piece-lab"></span>';
         b.querySelector('.pm-piece-lab').textContent=p.title||('Piece '+(i+1));
         b.onclick=function(){ openPiece(i); }; elPieceGrid.appendChild(b); });
       modal.classList.remove('show-detail');
-      modal.classList.add('open'); modal.setAttribute('aria-hidden','false'); document.body.classList.add('pm-lock');
-      if((d.pieces||[]).length===1){ openPiece(0); } }
-    function backToOverview(){ if(curProj && curProj.pieces.length>1){ stopGal(); modal.classList.remove('show-detail'); if(curPlayer){curPlayer.destroy();curPlayer=null;} } else { close(); } }
+      modal.classList.add('open'); modal.setAttribute('aria-hidden','false'); document.body.classList.add('pm-lock'); }
+    function backToOverview(){ stopGal(); modal.classList.remove('show-detail'); if(curPlayer){curPlayer.destroy();curPlayer=null;} }
     function close(){ stopGal(); modal.classList.remove('open','show-detail'); modal.setAttribute('aria-hidden','true'); document.body.classList.remove('pm-lock'); if(curPlayer){curPlayer.destroy();curPlayer=null;} }
     elBack.addEventListener('click',backToOverview);
     elGallery.querySelector('.pm-gprev').addEventListener('click',function(){ galScroll(-1); });
