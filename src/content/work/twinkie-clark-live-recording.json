@@ -1,0 +1,23 @@
+{
+  "title": "Twinkie Clark Live Recording",
+  "order": 100,
+  "categories": [
+    "Art Direction",
+    "Motion Design",
+    "Live Experience",
+    "Creative Production",
+    "Invite"
+  ],
+  "hero": "/work/uploads/cover.png",
+  "description": "",
+  "pieces": [
+    {
+      "title": "The Iconic Twinkie Clark Live Recording",
+      "hero": "/work/uploads/screen-shot-2026-06-10-at-8.24.29-pm.png",
+      "video": "",
+      "no_video": false,
+      "description": "",
+      "gallery": []
+    }
+  ]
+}
