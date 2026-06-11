@@ -18,13 +18,6 @@
       "gallery": []
     },
     {
-      "title": "LXTV",
-      "hero": "",
-      "video": "",
-      "description": "",
-      "gallery": []
-    },
-    {
       "title": "Mastercard",
       "hero": "/work/uploads/Screen Shot 2026-06-09 at 3.17.28 AM.png",
       "video": "",
@@ -34,7 +27,7 @@
     {
       "title": "BYOD",
       "hero": "",
-      "video": "",
+      "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/11f6cd8685baefa8ec1eaec2c65f7913/manifest/video.m3u8",
       "description": "",
       "gallery": []
     }
