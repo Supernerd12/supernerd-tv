@@ -10,9 +10,17 @@
   "description": "",
   "pieces": [
     {
-      "title": "5:31",
+      "title": "5:31 Invite",
       "hero": "/work/uploads/Screen Shot 2026-06-09 at 11.16.19 AM.png",
       "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/e06c963ca437637e73220894054e1de6/manifest/video.m3u8",
+      "description": "",
+      "gallery": []
+    },
+    {
+      "title": "Jerome Lamaar Dubai Fashion Show",
+      "hero": "/work/uploads/screen-shot-2026-06-11-at-6.08.36-am.png",
+      "video": "",
+      "no_video": false,
       "description": "",
       "gallery": []
     }
