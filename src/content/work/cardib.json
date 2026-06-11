@@ -13,7 +13,7 @@
   "description": "",
   "pieces": [
     {
-      "title": "WAP Website",
+      "title": "Bardi Gang Website",
       "hero": "/work/uploads/page2_sm.jpg",
       "video": "",
       "description": "",
@@ -62,6 +62,17 @@
       "no_video": false,
       "description": "",
       "gallery": []
+    },
+    {
+      "title": "Cardi & Kulture Billboards",
+      "hero": "/work/uploads/screen-shot-2026-06-11-at-2.56.49-am.png",
+      "video": "",
+      "no_video": true,
+      "description": "",
+      "gallery": [
+        "/work/uploads/kulture-sunset-strip-1.jpg",
+        "/work/uploads/cardi-b-sunset-strip.jpg"
+      ]
     }
   ]
 }
