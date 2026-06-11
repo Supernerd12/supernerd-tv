@@ -31,8 +31,9 @@
     },
     {
       "title": "Impact Award Creation",
-      "hero": "",
+      "hero": "/work/uploads/screen-shot-2026-06-10-at-7.11.27-pm.png",
       "video": "",
+      "no_video": true,
       "description": "",
       "gallery": []
     },
@@ -89,6 +90,14 @@
       "title": "Hollywood Cares Foundation Dinner",
       "hero": "/work/uploads/DreamsUnlocked_JorgeMeza-470-scaled.jpeg",
       "video": "",
+      "description": "",
+      "gallery": []
+    },
+    {
+      "title": "Jason Lee Book Release Afterparty",
+      "hero": "/work/uploads/screen-shot-2026-06-10-at-10.59.47-pm.png",
+      "video": "",
+      "no_video": false,
       "description": "",
       "gallery": []
     }
