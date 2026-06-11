@@ -1,0 +1,20 @@
+{
+  "title": "Carol's Daugher",
+  "order": 100,
+  "categories": [
+    "Motion Design",
+    "Storyboarding"
+  ],
+  "hero": "/work/uploads/screen-shot-2026-06-11-at-12.53.43-am.png",
+  "description": "",
+  "pieces": [
+    {
+      "title": "CD Brooklyn",
+      "hero": "/work/uploads/screen-shot-2026-06-11-at-12.54.12-am.png",
+      "video": "",
+      "no_video": false,
+      "description": "",
+      "gallery": []
+    }
+  ]
+}
