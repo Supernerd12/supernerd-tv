@@ -22,6 +22,14 @@
       "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/ef3adc2115b47f56bfed46a87d55331a/manifest/video.m3u8",
       "description": "",
       "gallery": []
+    },
+    {
+      "title": "Beauty Shaker Awards",
+      "hero": "/work/uploads/screen-shot-2026-06-10-at-11.14.35-pm.png",
+      "video": "",
+      "no_video": false,
+      "description": "",
+      "gallery": []
     }
   ]
 }
