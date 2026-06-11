@@ -1,0 +1,45 @@
+{
+  "title": "Dark & Lovely",
+  "order": 100,
+  "categories": [
+    "Art Direction",
+    "Motion Design",
+    "Storyboarding"
+  ],
+  "hero": "",
+  "description": "",
+  "pieces": [
+    {
+      "title": "Color Gloss",
+      "hero": "/work/uploads/screen-shot-2026-06-11-at-5.19.38-am.png",
+      "video": "",
+      "no_video": false,
+      "description": "",
+      "gallery": []
+    },
+    {
+      "title": "Go Intense",
+      "hero": "/work/uploads/screen-shot-2026-06-11-at-5.20.56-am.png",
+      "video": "",
+      "no_video": false,
+      "description": "",
+      "gallery": []
+    },
+    {
+      "title": "That's My Curl",
+      "hero": "/work/uploads/screen-shot-2026-06-11-at-5.20.13-am.png",
+      "video": "",
+      "no_video": false,
+      "description": "",
+      "gallery": []
+    },
+    {
+      "title": "Youtube Teaser",
+      "hero": "/work/uploads/screen-shot-2026-06-11-at-5.21.42-am.png",
+      "video": "",
+      "no_video": false,
+      "description": "",
+      "gallery": []
+    }
+  ]
+}
