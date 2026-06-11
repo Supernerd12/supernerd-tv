@@ -32,7 +32,7 @@
     },
     {
       "title": "Masterlash",
-      "hero": "",
+      "hero": "/work/uploads/screen-shot-2026-06-11-at-4.57.19-am.png",
       "video": "",
       "description": "",
       "gallery": []
@@ -40,6 +40,14 @@
     {
       "title": "Real Impact Commercial",
       "hero": "/work/uploads/screen-shot-2026-06-11-at-12.36.08-am.png",
+      "video": "",
+      "no_video": false,
+      "description": "",
+      "gallery": []
+    },
+    {
+      "title": "Paris show opener",
+      "hero": "/work/uploads/screen-shot-2026-06-11-at-5.04.29-am.png",
       "video": "",
       "no_video": false,
       "description": "",
