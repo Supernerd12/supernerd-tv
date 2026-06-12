@@ -16,16 +16,10 @@
   "description": "",
   "pieces": [
     {
-      "title": "Jason Lee Show",
-      "hero": "/work/uploads/5ba19fde-53b3-4088-b65d-0e929730ee41.avif",
+      "title": "Hollywood Unlocked Brand Creation",
+      "hero": "/work/uploads/screen-shot-2026-06-12-at-4.19.45-am.png",
       "video": "",
-      "description": "",
-      "gallery": []
-    },
-    {
-      "title": "Jason Lee Experience",
-      "hero": "/work/uploads/JasonLeeHollywoodUnlocked.webp",
-      "video": "",
+      "no_video": true,
       "description": "",
       "gallery": []
     },
@@ -75,6 +69,20 @@
     {
       "title": "Gagging w/ Jason Lee",
       "hero": "/work/uploads/hq720-1.jpg",
+      "video": "",
+      "description": "",
+      "gallery": []
+    },
+    {
+      "title": "Jason Lee Experience",
+      "hero": "/work/uploads/JasonLeeHollywoodUnlocked.webp",
+      "video": "",
+      "description": "",
+      "gallery": []
+    },
+    {
+      "title": "Jason Lee Show",
+      "hero": "/work/uploads/5ba19fde-53b3-4088-b65d-0e929730ee41.avif",
       "video": "",
       "description": "",
       "gallery": []
