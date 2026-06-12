@@ -74,15 +74,23 @@
       "gallery": []
     },
     {
-      "title": "Jason Lee Experience",
-      "hero": "/work/uploads/JasonLeeHollywoodUnlocked.webp",
+      "title": "Jason Lee Show",
+      "hero": "/work/uploads/5ba19fde-53b3-4088-b65d-0e929730ee41.avif",
       "video": "",
       "description": "",
       "gallery": []
     },
     {
-      "title": "Jason Lee Show",
-      "hero": "/work/uploads/5ba19fde-53b3-4088-b65d-0e929730ee41.avif",
+      "title": "The Jason Lee Podcast",
+      "hero": "/work/uploads/screen-shot-2026-06-11-at-2.54.32-pm.png",
+      "video": "",
+      "no_video": false,
+      "description": "",
+      "gallery": []
+    },
+    {
+      "title": "Jason Lee Experience",
+      "hero": "/work/uploads/JasonLeeHollywoodUnlocked.webp",
       "video": "",
       "description": "",
       "gallery": []
@@ -128,14 +136,6 @@
     {
       "title": "Hollywood Unlocked Streetwear Collection",
       "hero": "/work/uploads/screen-shot-2026-06-11-at-1.46.19-am.png",
-      "video": "",
-      "no_video": false,
-      "description": "",
-      "gallery": []
-    },
-    {
-      "title": "The Jason Lee Podcast",
-      "hero": "/work/uploads/screen-shot-2026-06-11-at-2.54.32-pm.png",
       "video": "",
       "no_video": false,
       "description": "",
