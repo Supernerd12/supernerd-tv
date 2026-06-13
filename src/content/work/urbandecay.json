@@ -22,25 +22,41 @@
       ]
     },
     {
-      "title": "Brand",
+      "title": "UD Anthem Video",
+      "hero": "/work/uploads/screen-shot-2026-06-13-at-3.22.46-am.png",
+      "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/d1a663e57b595f46a77b8f697a50b2f8/manifest/video.m3u8",
+      "description": "",
+      "gallery": []
+    },
+    {
+      "title": "Instore Video",
+      "hero": "/work/uploads/screen-shot-2026-06-13-at-3.25.10-am.png",
+      "video": "",
+      "description": "",
+      "gallery": []
+    },
+    {
+      "title": "UD Moodboard",
       "hero": "",
       "video": "",
       "description": "",
       "gallery": []
     },
     {
-      "title": "Trend Pack",
-      "hero": "",
+      "title": "UD Logo Branding",
+      "hero": "/work/uploads/screen-shot-2026-06-13-at-3.35.53-am.png",
       "video": "",
+      "no_video": true,
       "description": "",
-      "gallery": []
-    },
-    {
-      "title": "Global",
-      "hero": "",
-      "video": "",
-      "description": "",
-      "gallery": []
+      "gallery": [
+        "/work/uploads/screen-shot-2026-06-13-at-3.36.54-am.png",
+        "/work/uploads/screen-shot-2026-06-13-at-3.37.12-am.png",
+        "/work/uploads/screen-shot-2026-06-13-at-3.37.24-am.png",
+        "/work/uploads/screen-shot-2026-06-13-at-3.37.43-am.png",
+        "/work/uploads/screen-shot-2026-06-13-at-3.38.23-am.png",
+        "/work/uploads/screen-shot-2026-06-13-at-3.38.00-am.png",
+        "/work/uploads/screen-shot-2026-06-13-at-3.38.11-am.png"
+      ]
     }
   ]
 }
