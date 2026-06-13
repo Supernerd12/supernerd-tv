@@ -350,8 +350,8 @@ const WORK_JSON = JSON.stringify({ ORDER, PROJECTS });
   .pm-tabs{display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap}
   .pm-tab{font-family:var(--mono); font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:var(--dim); background:transparent; border:1px solid rgba(236,236,234,.16); border-radius:4px; padding:7px 13px; cursor:pointer; transition:.2s}
   .pm-tab.on{color:var(--ink); background:var(--green-hi); border-color:var(--green-hi)}
-  .pm-vid{position:relative; width:100%; aspect-ratio:16/9; background:#000; border-radius:6px; overflow:hidden}
-  .pm-vid video{width:100%; height:100%; object-fit:cover; display:block; background:#000}
+  .pm-vid{position:relative; width:100%; aspect-ratio:16/9; max-height:60vh; background:#000; border-radius:6px; overflow:hidden; margin:0 auto}
+  .pm-vid video{width:100%; height:100%; object-fit:contain; display:block; background:#000}
   .pm-gtitle{font-family:var(--mono); font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--dim); margin:22px 0 10px}
   .pm-gallery{position:relative}
   .pm-strip{display:flex; gap:12px; overflow-x:auto; scroll-behavior:auto; padding-bottom:6px; -webkit-overflow-scrolling:touch; cursor:grab;
@@ -366,7 +366,7 @@ const WORK_JSON = JSON.stringify({ ORDER, PROJECTS });
 
   /* ---- custom video player (acid green, flask scrubber) ---- */
   .vp{position:relative; width:100%; height:100%; background:#000; overflow:hidden}
-  .vp-v{width:100%; height:100%; object-fit:cover; display:block; accent-color:var(--green); cursor:pointer}
+  .vp-v{width:100%; height:100%; object-fit:contain; display:block; accent-color:var(--green); cursor:pointer}
   .vp-big{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:74px; height:74px; border-radius:50%;
     border:1.5px solid var(--green); background:rgba(5,5,5,.5); color:var(--green-hi); font-size:22px; cursor:pointer;
     display:grid; place-items:center; -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px); transition:opacity .25s, transform .25s, background .2s}
@@ -484,7 +484,7 @@ const WORK_JSON = JSON.stringify({ ORDER, PROJECTS });
   .pm-ddesc:empty{display:none}
 
   /* video sized so player + about bar + gallery are visible together; no autoplay */
-  .pm-vid{height:44vh; width:auto; max-width:100%; margin:0 auto}
+  .pm-vid{max-width:100%; max-height:60vh; margin:0 auto}
   .pm-soon{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; background:radial-gradient(circle at 50% 42%, rgba(186,192,30,.12), #050505 72%)}
   .pm-soon img{height:46%; max-height:180px; width:auto; mix-blend-mode:screen}
   .pm-soon span{font-family:var(--mono); font-size:12px; letter-spacing:.3em; text-transform:uppercase; color:var(--green-hi)}
@@ -510,7 +510,7 @@ const WORK_JSON = JSON.stringify({ ORDER, PROJECTS });
   .lb-count{position:absolute; bottom:20px; left:50%; transform:translateX(-50%); font-family:var(--mono); font-size:11px; letter-spacing:.2em; color:var(--dim)}
 
   @media (max-width:760px){
-    .pm-vid{height:auto; width:100%}
+    .pm-vid{height:auto; width:100%; max-height:78vh}
     .pm-gtrack img{height:clamp(140px,38vw,200px)}
     .pm-gnav{display:none}
     .pm-piecegrid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
@@ -842,7 +842,7 @@ const WORK_JSON = JSON.stringify({ ORDER, PROJECTS });
     var ORDER=_wd.ORDER||[], PROJECTS=_wd.PROJECTS||{};
     function fmt(t){ if(!isFinite(t))return '0:00'; t=Math.max(0,t|0); var m=(t/60)|0,sec=t%60; return m+':'+(sec<10?'0':'')+sec; }
     function makePlayer(mount,src,poster){
-      mount.innerHTML='';
+      mount.innerHTML=''; mount.style.aspectRatio='';
       var vp=document.createElement('div'); vp.className='vp';
       vp.innerHTML='<video class="vp-v" playsinline preload="auto"></video>'
         +'<button class="vp-big" aria-label="Play">&#9654;</button>'
@@ -866,7 +866,7 @@ const WORK_JSON = JSON.stringify({ ORDER, PROJECTS });
       big.onclick=toggle; play.onclick=toggle; v.addEventListener('click',toggle);
       v.addEventListener('play',function(){ vp.classList.add('playing'); play.innerHTML='&#10073;&#10073;'; });
       v.addEventListener('pause',function(){ vp.classList.remove('playing'); play.innerHTML='&#9654;'; });
-      v.addEventListener('loadedmetadata',function(){ dEl.textContent=fmt(v.duration); });
+      v.addEventListener('loadedmetadata',function(){ dEl.textContent=fmt(v.duration); if(v.videoWidth&&v.videoHeight) mount.style.aspectRatio=v.videoWidth+'/'+v.videoHeight; });
       v.addEventListener('timeupdate',function(){ var pct=v.duration?(v.currentTime/v.duration*100):0; fill.style.width=pct+'%'; thumb.style.left=pct+'%'; tEl.textContent=fmt(v.currentTime); });
       v.addEventListener('progress',function(){ try{ if(v.buffered.length&&v.duration) buf.style.width=(v.buffered.end(v.buffered.length-1)/v.duration*100)+'%'; }catch(e){} });
       function seekAt(x){ var r=track.getBoundingClientRect(); var px=Math.min(Math.max(0,x-r.left),r.width); if(v.duration) v.currentTime=(px/r.width)*v.duration; }
@@ -916,6 +916,7 @@ const WORK_JSON = JSON.stringify({ ORDER, PROJECTS });
     function openPiece(i){ var d=curProj; if(!d||!d.pieces[i]) return; var p=d.pieces[i];
       elEyebrow.textContent=d.title; elPieceTitle.textContent=p.title||'';
       if(curPlayer){curPlayer.destroy();curPlayer=null;}
+      elVid.style.aspectRatio='';
       var stage=document.getElementById('pmStage');
       if(p.video){ stage.style.display=''; curPlayer=makePlayer(elVid, p.video, p.hero||d.hero||''); }
       else if(p.novideo){ stage.style.display='none'; elVid.innerHTML=''; }
