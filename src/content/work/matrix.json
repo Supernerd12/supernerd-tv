@@ -11,7 +11,7 @@
     {
       "title": "Graffiti Nation",
       "hero": "/work/uploads/screen-shot-2026-06-10-at-8.17.56-pm.png",
-      "video": "",
+      "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/59baea3fc0150e97f505a390dd1cc77b/manifest/video.m3u8",
       "no_video": false,
       "description": "",
       "gallery": []
@@ -19,10 +19,12 @@
     {
       "title": "Matrix Biolage Commercial",
       "hero": "/work/uploads/screen-shot-2026-06-10-at-8.19.24-pm.png",
-      "video": "",
+      "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/b676fe4d66fc5e0eeafd18cea4b196c4/manifest/video.m3u8",
       "no_video": false,
       "description": "",
-      "gallery": []
+      "gallery": [
+        "/work/uploads/4-mood-props.png"
+      ]
     }
   ]
 }
