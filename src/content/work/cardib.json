@@ -21,14 +21,14 @@
     },
     {
       "title": "WAP Clothing Line",
-      "hero": "/work/uploads/screen-shot-2026-06-11-at-1.21.39-am.png",
+      "hero": "/work/uploads/screen-shot-2026-06-12-at-11.01.42-pm.png",
       "video": "",
       "description": "",
       "gallery": []
     },
     {
       "title": "Cardi B Birthday",
-      "hero": "",
+      "hero": "/work/uploads/screen-shot-2026-06-12-at-10.48.06-pm.png",
       "video": "",
       "description": "",
       "gallery": []
@@ -73,6 +73,14 @@
         "/work/uploads/kulture-sunset-strip-1.jpg",
         "/work/uploads/cardi-b-sunset-strip.jpg"
       ]
+    },
+    {
+      "title": "BET Experience",
+      "hero": "/work/uploads/screen-shot-2026-06-12-at-10.49.32-pm.png",
+      "video": "",
+      "no_video": false,
+      "description": "",
+      "gallery": []
     }
   ]
 }
