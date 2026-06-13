@@ -1,0 +1,20 @@
+{
+  "title": "Essie",
+  "order": 100,
+  "categories": [
+    "Art Direction",
+    "Motion Design"
+  ],
+  "hero": "/work/uploads/screen-shot-2026-06-13-at-4.34.15-am.png",
+  "description": "",
+  "pieces": [
+    {
+      "title": "Essie Cashmere Collection",
+      "hero": "/work/uploads/screen-shot-2026-06-13-at-4.41.19-am.png",
+      "video": "",
+      "no_video": false,
+      "description": "",
+      "gallery": []
+    }
+  ]
+}
