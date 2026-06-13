@@ -1,0 +1,28 @@
+{
+  "title": "BET 106 & Park",
+  "order": 100,
+  "categories": [
+    "Art Direction",
+    "Motion Design",
+    "Branding",
+    "Storyboarding"
+  ],
+  "hero": "/work/uploads/screen-shot-2026-06-13-at-4.06.11-am.png",
+  "description": "",
+  "pieces": [
+    {
+      "title": "106 & Party - BET NYE",
+      "hero": "/work/uploads/logo_hires.jpg",
+      "video": "",
+      "no_video": false,
+      "description": "",
+      "gallery": [
+        "/work/uploads/screen-shot-2026-06-13-at-4.07.37-am.png",
+        "/work/uploads/screen-shot-2026-06-13-at-4.07.52-am.png",
+        "/work/uploads/screen-shot-2026-06-13-at-4.08.01-am.png",
+        "/work/uploads/screen-shot-2026-06-13-at-4.08.10-am.png",
+        "/work/uploads/screen-shot-2026-06-13-at-4.08.20-am.png"
+      ]
+    }
+  ]
+}
