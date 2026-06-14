@@ -30,7 +30,7 @@
     {
       "title": "Museum Classic SS",
       "hero": "/work/uploads/screen-shot-2026-06-11-at-5.52.50-am.png",
-      "video": "",
+      "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/5347dc2ccd3c68d3976bf75544a7f7f3/manifest/video.m3u8",
       "no_video": false,
       "description": "",
       "gallery": []
@@ -38,7 +38,7 @@
     {
       "title": "Musem Classic Gold",
       "hero": "/work/uploads/screen-shot-2026-06-11-at-5.53.24-am.png",
-      "video": "",
+      "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/27f04aa661d193d29b1ffc9723f5c9c6/manifest/video.m3u8",
       "no_video": false,
       "description": "",
       "gallery": []
@@ -46,7 +46,7 @@
     {
       "title": "Movado Bold",
       "hero": "/work/uploads/screen-shot-2026-06-11-at-5.55.10-am.png",
-      "video": "",
+      "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/0cb481cf0a41e1ede40142614215ca35/manifest/video.m3u8",
       "no_video": false,
       "description": "",
       "gallery": [
