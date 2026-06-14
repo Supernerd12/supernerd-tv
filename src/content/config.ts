@@ -14,6 +14,7 @@ const work = defineCollection({
       video: z.string().optional().default(''),
       description: z.string().optional().default(''),
       gallery: z.array(z.string()).default([]),
+      no_video: z.boolean().optional().default(false),
     })).default([]),
   }),
 });
