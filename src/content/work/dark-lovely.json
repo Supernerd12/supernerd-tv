@@ -1,6 +1,6 @@
 {
   "title": "Dark & Lovely",
-  "order": 100,
+  "order": 88,
   "categories": [
     "Art Direction",
     "Motion Design",
@@ -10,6 +10,24 @@
   "description": "Supernerd worked on different commercials for Dark & Lovely brand that had been acquired into the multi-cultural beauty department of L'Oreal. Jump in to see some of our favorite ones highlighted.",
   "pieces": [
     {
+      "title": "Fade Resist",
+      "hero": "/work/uploads/screen-shot-2026-06-14-at-9.02.04-am.png",
+      "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/a88653fc1b70c0310494469e1bfff274/manifest/video.m3u8",
+      "no_video": false,
+      "description": "",
+      "gallery": [
+        "/work/uploads/screen-shot-2026-06-14-at-8.58.53-am.png"
+      ]
+    },
+    {
+      "title": "Go Intense",
+      "hero": "/work/uploads/screen-shot-2026-06-11-at-5.20.56-am.png",
+      "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/630162b3bbca6a51d3c3263b9ec3d969/manifest/video.m3u8",
+      "no_video": false,
+      "description": "",
+      "gallery": []
+    },
+    {
       "title": "Color Gloss",
       "hero": "/work/uploads/screen-shot-2026-06-11-at-5.19.38-am.png",
       "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/86187d7c6ac80724776ad22fc8e4c2ea/manifest/video.m3u8",
@@ -18,9 +36,9 @@
       "gallery": []
     },
     {
-      "title": "Go Intense",
-      "hero": "/work/uploads/screen-shot-2026-06-11-at-5.20.56-am.png",
-      "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/630162b3bbca6a51d3c3263b9ec3d969/manifest/video.m3u8",
+      "title": "Damage Slayer",
+      "hero": "/work/uploads/screen-shot-2026-06-14-at-4.45.04-am.png",
+      "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/92df0bf70edee6ceb181c969ea432172/manifest/video.m3u8",
       "no_video": false,
       "description": "",
       "gallery": []
@@ -40,24 +58,6 @@
       "no_video": false,
       "description": "",
       "gallery": []
-    },
-    {
-      "title": "Damage Slayer",
-      "hero": "/work/uploads/screen-shot-2026-06-14-at-4.45.04-am.png",
-      "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/92df0bf70edee6ceb181c969ea432172/manifest/video.m3u8",
-      "no_video": false,
-      "description": "",
-      "gallery": []
-    },
-    {
-      "title": "Fade Resist",
-      "hero": "/work/uploads/screen-shot-2026-06-14-at-9.02.04-am.png",
-      "video": "",
-      "no_video": false,
-      "description": "",
-      "gallery": [
-        "/work/uploads/screen-shot-2026-06-14-at-8.58.53-am.png"
-      ]
     }
   ]
 }
