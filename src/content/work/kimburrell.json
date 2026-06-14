@@ -10,10 +10,23 @@
   "pieces": [
     {
       "title": "Kim Burrell — Can't You Tell",
-      "hero": "",
+      "hero": "/work/uploads/1-1.png",
       "video": "",
       "description": "",
-      "gallery": []
+      "gallery": [
+        "/work/uploads/2-1.png",
+        "/work/uploads/3-1.png",
+        "/work/uploads/4-1.png",
+        "/work/uploads/5-1.png",
+        "/work/uploads/6-1.png",
+        "/work/uploads/7-1.png",
+        "/work/uploads/8-1.png",
+        "/work/uploads/9-1.png",
+        "/work/uploads/10-1.png",
+        "/work/uploads/11.png",
+        "/work/uploads/12.png",
+        "/work/uploads/13.png"
+      ]
     }
   ]
 }
