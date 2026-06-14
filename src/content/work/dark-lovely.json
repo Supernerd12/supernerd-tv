@@ -40,6 +40,14 @@
       "no_video": false,
       "description": "",
       "gallery": []
+    },
+    {
+      "title": "Damage Slayer",
+      "hero": "/work/uploads/screen-shot-2026-06-14-at-4.45.04-am.png",
+      "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/92df0bf70edee6ceb181c969ea432172/manifest/video.m3u8",
+      "no_video": false,
+      "description": "",
+      "gallery": []
     }
   ]
 }
