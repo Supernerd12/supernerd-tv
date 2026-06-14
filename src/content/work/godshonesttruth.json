@@ -13,10 +13,18 @@
   "pieces": [
     {
       "title": "Launch 1",
-      "hero": "",
+      "hero": "/work/uploads/tght_105_010142021_ias_000-65.jpg",
       "video": "",
       "description": "",
-      "gallery": []
+      "gallery": [
+        "/work/uploads/test.png",
+        "/work/uploads/test2.png",
+        "/work/uploads/test3.png",
+        "/work/uploads/test4.png",
+        "/work/uploads/test5.png",
+        "/work/uploads/test6.png",
+        "/work/uploads/test7.png"
+      ]
     }
   ]
 }
