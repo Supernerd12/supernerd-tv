@@ -10,25 +10,15 @@
   "description": "",
   "pieces": [
     {
-      "title": "Launch 1",
-      "hero": "",
-      "video": "",
+      "title": "R+F Launch Video",
+      "hero": "/work/uploads/unnamed-1.png",
+      "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/455c225efe5be05d570e989ddaa7bd39/manifest/video.m3u8",
       "description": "",
-      "gallery": []
-    },
-    {
-      "title": "Launch Alt",
-      "hero": "",
-      "video": "",
-      "description": "",
-      "gallery": []
-    },
-    {
-      "title": "How To",
-      "hero": "",
-      "video": "",
-      "description": "",
-      "gallery": []
+      "gallery": [
+        "/work/uploads/screen-shot-2026-06-14-at-4.14.23-am.png",
+        "/work/uploads/screen-shot-2026-06-14-at-5.07.45-am.png",
+        "/work/uploads/unnamed.png"
+      ]
     }
   ]
 }
