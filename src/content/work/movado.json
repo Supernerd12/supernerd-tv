@@ -20,10 +20,12 @@
     {
       "title": "Movado Edge",
       "hero": "/work/uploads/screen-shot-2026-06-11-at-12.56.56-am.png",
-      "video": "",
+      "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/8b450338075a685b2355ebef1cb30fb0/manifest/video.m3u8",
       "no_video": false,
       "description": "",
-      "gallery": []
+      "gallery": [
+        "/work/uploads/screen-shot-2026-06-13-at-11.45.03-pm.png"
+      ]
     },
     {
       "title": "Museum Classic SS",
