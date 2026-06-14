@@ -9,11 +9,16 @@
   "description": "",
   "pieces": [
     {
-      "title": "Brand Design",
-      "hero": "",
+      "title": "Logo Design",
+      "hero": "/work/uploads/logo-1.png",
       "video": "",
       "description": "",
-      "gallery": []
+      "gallery": [
+        "/work/uploads/logo-2.png",
+        "/work/uploads/screen-shot-2026-06-14-at-5.10.03-am.png",
+        "/work/uploads/screen-shot-2026-06-14-at-5.10.14-am.png",
+        "/work/uploads/screen-shot-2026-06-14-at-5.10.24-am.png"
+      ]
     }
   ]
 }
