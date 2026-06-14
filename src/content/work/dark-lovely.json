@@ -48,6 +48,16 @@
       "no_video": false,
       "description": "",
       "gallery": []
+    },
+    {
+      "title": "Fade Resist",
+      "hero": "/work/uploads/screen-shot-2026-06-14-at-9.02.04-am.png",
+      "video": "",
+      "no_video": false,
+      "description": "",
+      "gallery": [
+        "/work/uploads/screen-shot-2026-06-14-at-8.58.53-am.png"
+      ]
     }
   ]
 }
