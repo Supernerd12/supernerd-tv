@@ -12,10 +12,23 @@
   "pieces": [
     {
       "title": "Season 1 & 2",
-      "hero": "",
-      "video": "",
+      "hero": "/work/uploads/screen-shot-2026-06-13-at-9.06.53-pm.png",
+      "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/a379bdcd4963cf8d3197633c7b7d7d90/manifest/video.m3u8",
       "description": "",
-      "gallery": []
+      "gallery": [
+        "/work/uploads/untitled-project_vl_edit_ec_v04_2026-06-13_20.50.12.png",
+        "/work/uploads/untitled-project_vl_bumpin_2026-06-13_20.50.25.png",
+        "/work/uploads/untitled-project_vl_edit_ec_v04_2026-06-13_20.50.08.png",
+        "/work/uploads/untitled-project_vl_bumpin_2026-06-13_20.50.33.png",
+        "/work/uploads/untitled-project_vl_bumpin_2026-06-13_20.50.39.png",
+        "/work/uploads/untitled-project_vl_bumpout2_2026-06-13_20.51.00.png",
+        "/work/uploads/untitled-project_vl_bumpin_2026-06-13_20.50.45.png",
+        "/work/uploads/untitled-project_vl_edit_ec_v04_2026-06-13_20.49.55.png",
+        "/work/uploads/untitled-project_vl_edit_ec_v04_2026-06-13_20.49.42.png",
+        "/work/uploads/untitled-project_vl_edit_ec_v04_2026-06-13_20.49.33.png",
+        "/work/uploads/untitled-project_vl_edit_ec_v04_2026-06-13_20.50.02.png",
+        "/work/uploads/untitled-project_vl_edit_ec_v04_2026-06-13_20.50.08.png"
+      ]
     }
   ]
 }
