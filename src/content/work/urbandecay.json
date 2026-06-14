@@ -14,7 +14,7 @@
     {
       "title": "Ruby Rose Vice",
       "hero": "/work/uploads/screen-shot-2026-06-11-at-5.28.15-am.png",
-      "video": "",
+      "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/a73a3ec2068016900e3110a30411c64f/manifest/video.m3u8",
       "description": "",
       "gallery": [
         "/work/uploads/screen-shot-2026-06-13-at-3.17.29-am.png",
@@ -31,7 +31,7 @@
     {
       "title": "Instore Video",
       "hero": "/work/uploads/screen-shot-2026-06-13-at-3.25.10-am.png",
-      "video": "",
+      "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/6294fb4458d38fbce2fe38ebbb604915/manifest/video.m3u8",
       "description": "",
       "gallery": []
     },
@@ -63,7 +63,7 @@
     {
       "title": "Makeup Prep",
       "hero": "/work/uploads/screen-shot-2026-06-13-at-10.07.52-pm.png",
-      "video": "",
+      "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/38f7e6acb8f87d2653951b033d6f4820/manifest/video.m3u8",
       "no_video": false,
       "description": "",
       "gallery": []
