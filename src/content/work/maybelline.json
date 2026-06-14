@@ -21,7 +21,10 @@
       "hero": "/work/uploads/screen-shot-2026-06-11-at-4.50.22-am.png",
       "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/b8813f21e14bb903c6442b30d89a98bc/manifest/video.m3u8",
       "description": "",
-      "gallery": []
+      "gallery": [
+        "/work/uploads/9-mood-post-treatment.png",
+        "/work/uploads/10-mood-convey.png"
+      ]
     },
     {
       "title": "Masterlash",
@@ -44,7 +47,9 @@
       "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/64c53560d0a8906638cea3c478de3108/manifest/video.m3u8",
       "no_video": false,
       "description": "",
-      "gallery": []
+      "gallery": [
+        "/work/uploads/screen-shot-2026-06-14-at-8.09.56-am.png"
+      ]
     },
     {
       "title": "Paris Opener - 2015",
