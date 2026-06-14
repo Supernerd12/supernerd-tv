@@ -1,6 +1,6 @@
 {
   "title": "Maybelline New York",
-  "order": 220,
+  "order": 120,
   "categories": [
     "Art Direction",
     "Motion Design",
@@ -49,7 +49,7 @@
     {
       "title": "Paris Opener - 2015",
       "hero": "/work/uploads/screen-shot-2026-06-11-at-5.26.08-am.png",
-      "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/3f06b833b128b9a0c3562096f4e4c7c4/manifest/video.m3u8",
+      "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/5f95941d5bf5a820012ffc2358cb3a6a/manifest/video.m3u8",
       "no_video": false,
       "description": "",
       "gallery": []
