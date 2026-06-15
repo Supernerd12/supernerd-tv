@@ -14,7 +14,11 @@
       "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/d0bf061719d00534868fc084959c0fcd/manifest/video.m3u8",
       "no_video": false,
       "description": "",
-      "gallery": []
+      "gallery": [
+        "/work/uploads/unnamed-2.png",
+        "/work/uploads/unnamed-3.png",
+        "/work/uploads/screen-shot-2026-06-14-at-7.59.59-pm.png"
+      ]
     }
   ]
 }
