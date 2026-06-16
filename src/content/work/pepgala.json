@@ -11,10 +11,19 @@
   "pieces": [
     {
       "title": "PEP Gala",
-      "hero": "",
-      "video": "",
+      "hero": "/work/uploads/screen-shot-2026-06-16-at-3.35.20-am.png",
+      "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/1b2a361bc0a45b133b4225f2e03cba37/manifest/video.m3u8",
       "description": "",
-      "gallery": []
+      "gallery": [
+        "/work/uploads/screen-shot-2026-06-16-at-3.35.53-am.png",
+        "/work/uploads/screen-shot-2026-06-16-at-3.36.14-am.png",
+        "/work/uploads/screen-shot-2026-06-16-at-3.36.30-am.png",
+        "/work/uploads/screen-shot-2026-06-16-at-3.36.57-am.png",
+        "/work/uploads/screen-shot-2026-06-16-at-3.37.18-am.png",
+        "/work/uploads/screen-shot-2026-06-16-at-3.37.47-am.png",
+        "/work/uploads/screen-shot-2026-06-16-at-3.38.04-am.png",
+        "/work/uploads/screen-shot-2026-06-16-at-3.38.25-am.png"
+      ]
     }
   ]
 }
