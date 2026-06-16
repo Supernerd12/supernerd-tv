@@ -11,9 +11,13 @@
     {
       "title": "Commercial",
       "hero": "/work/uploads/screen-shot-2026-06-11-at-7.11.50-am.png",
-      "video": "",
+      "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/ae3ac2a4760669149e690b924dc9c3a5/manifest/video.m3u8",
       "description": "",
-      "gallery": []
+      "gallery": [
+        "/work/uploads/screen-shot-2026-06-16-at-5.43.33-am.png",
+        "/work/uploads/screen-shot-2026-06-16-at-5.43.49-am.png",
+        "/work/uploads/screen-shot-2026-06-16-at-5.44.01-am.png"
+      ]
     }
   ]
 }
