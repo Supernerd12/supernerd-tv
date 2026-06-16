@@ -11,6 +11,14 @@
   "description": "We have collaborated with NBC on several projects from branding TV shows, to creating commercials that live inside NYC taxi cab screens. Jump inside to check out some of them.",
   "pieces": [
     {
+      "title": "NBC Rio Olympics",
+      "hero": "/work/uploads/screen-shot-2026-06-16-at-2.10.13-am.png",
+      "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/6ab748ff59f89dcab6bf5521e7e03152/manifest/video.m3u8",
+      "no_video": false,
+      "description": "",
+      "gallery": []
+    },
+    {
       "title": "Open House",
       "hero": "/work/uploads/Screen Shot 2026-06-09 at 3.16.38 AM.png",
       "video": "",
