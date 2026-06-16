@@ -147,10 +147,16 @@
     {
       "title": "The Jason Lee Podcast",
       "hero": "/work/uploads/screen-shot-2026-06-11-at-2.54.32-pm.png",
-      "video": "",
+      "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/b6cbd39550916ef4dd3492ae81312040/manifest/video.m3u8",
       "no_video": false,
       "description": "",
-      "gallery": []
+      "gallery": [
+        "/work/uploads/screen-shot-2026-06-15-at-9.33.42-pm.png",
+        "/work/uploads/screen-shot-2026-06-15-at-9.33.55-pm.png",
+        "/work/uploads/screen-shot-2026-06-15-at-9.34.12-pm.png",
+        "/work/uploads/screen-shot-2026-06-15-at-9.34.39-pm.png",
+        "/work/uploads/screen-shot-2026-06-15-at-9.34.58-pm.png"
+      ]
     },
     {
       "title": "Jason Lee Experience",
