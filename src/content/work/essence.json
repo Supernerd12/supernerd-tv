@@ -35,10 +35,16 @@
     {
       "title": "Essence Festival 2022",
       "hero": "/work/uploads/images-18.jpg",
-      "video": "",
+      "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/fd8ff0b53bf3c6ba416329353545275d/manifest/video.m3u8",
       "no_video": false,
       "description": "",
-      "gallery": []
+      "gallery": [
+        "/work/uploads/screen-shot-2026-06-18-at-2.07.44-am.png",
+        "/work/uploads/screen-shot-2026-06-18-at-2.08.04-am.png",
+        "/work/uploads/screen-shot-2026-06-18-at-2.08.27-am.png",
+        "/work/uploads/screen-shot-2026-06-18-at-2.08.48-am.png",
+        "/work/uploads/screen-shot-2022-01-19-at-6.16.47-pm.png"
+      ]
     },
     {
       "title": "Essence Holiday",
