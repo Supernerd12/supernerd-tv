@@ -30,6 +30,7 @@ collections:
     fields:
       - { name: title, label: "Project name", widget: string }
       - { name: order, label: "Sort order (lower shows first)", widget: number, value_type: int, default: 100 }
+      - { name: published, label: "Published — show on the site (uncheck to hide the whole project while you build it)", widget: boolean, default: true, required: false }
       - name: categories
         label: Categories
         widget: select
@@ -49,6 +50,7 @@ collections:
           - Website
           - Fashion Design
           - Storyboarding
+          - Commercials
       - { name: hero, label: "Project header image (shown on the card)", widget: image, required: false }
       - { name: description, label: "Project description (optional)", widget: text, required: false }
       - name: pieces
@@ -58,6 +60,7 @@ collections:
         summary: "{{fields.title}}"
         fields:
           - { name: title, label: "Piece title", widget: string }
+          - { name: published, label: "Published — show this piece (uncheck to hide just this one)", widget: boolean, default: true, required: false }
           - { name: hero, label: "Piece image / thumbnail", widget: image, required: false }
           - { name: video, label: "Video link — Cloudflare Stream URL (optional)", widget: string, required: false }
           - { name: no_video, label: "No video — static piece (show gallery only, no Coming Soon)", widget: boolean, default: false, required: false }

@@ -1,8 +1,10 @@
 ---
 import { getCollection } from 'astro:content';
-const entries = (await getCollection('work')).sort(
-  (a, b) => (a.data.order - b.data.order) || a.data.title.localeCompare(b.data.title)
-);
+const entries = (await getCollection('work'))
+  .filter((e) => e.data.published !== false)
+  .sort(
+    (a, b) => (a.data.order - b.data.order) || a.data.title.localeCompare(b.data.title)
+  );
 const ORDER = entries.map((e) => e.id.replace(/\.[^.]+$/, ''));
 const PROJECTS = {};
 for (const e of entries) {
@@ -12,7 +14,9 @@ for (const e of entries) {
     tags: e.data.categories || [],
     hero: e.data.hero || '',
     description: e.data.description || '',
-    pieces: (e.data.pieces || []).map((pc) => ({
+    pieces: (e.data.pieces || [])
+      .filter((pc) => pc.published !== false)
+      .map((pc) => ({
       title: pc.title,
       hero: pc.hero || '',
       video: pc.video || '',
