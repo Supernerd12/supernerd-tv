@@ -42,9 +42,14 @@
     {
       "title": "Essence Holiday",
       "hero": "/work/uploads/screen-shot-2026-06-12-at-11.46.29-pm.png",
-      "video": "",
-      "description": "",
-      "gallery": []
+      "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/63fc32ba77330efd4a70ec3248b14d10/manifest/video.m3u8",
+      "description": "We were hired to art direct Essence annual Holiday Special in 2022. We used the 12 days of christmas gift boxes as an inspiration to craft the design.",
+      "gallery": [
+        "/work/uploads/screen-shot-2026-06-18-at-12.30.20-am.png",
+        "/work/uploads/screen-shot-2026-06-18-at-12.30.31-am.png",
+        "/work/uploads/screen-shot-2026-06-18-at-12.30.41-am.png",
+        "/work/uploads/screen-shot-2026-06-18-at-12.30.54-am.png"
+      ]
     }
   ]
 }
