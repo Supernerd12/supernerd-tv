@@ -11,10 +11,13 @@
   "pieces": [
     {
       "title": "2023",
-      "hero": "",
+      "hero": "/work/uploads/screen-shot-2026-06-18-at-3.00.28-am.png",
       "video": "",
       "description": "",
-      "gallery": []
+      "gallery": [
+        "/work/uploads/screen-shot-2026-06-18-at-3.00.52-am.png",
+        "/work/uploads/screen-shot-2026-06-18-at-3.00.28-am.png"
+      ]
     }
   ]
 }
