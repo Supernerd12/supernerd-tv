@@ -10,13 +10,34 @@
   "description": "",
   "pieces": [
     {
-      "title": "2023",
+      "title": "The Brunch",
+      "published": true,
       "hero": "/work/uploads/screen-shot-2026-06-18-at-3.00.28-am.png",
       "video": "",
+      "no_video": true,
       "description": "",
       "gallery": [
+        "/work/uploads/screen-shot-2026-06-18-at-3.00.28-am.png",
         "/work/uploads/screen-shot-2026-06-18-at-3.00.52-am.png",
-        "/work/uploads/screen-shot-2026-06-18-at-3.00.28-am.png"
+        "/work/uploads/screen-shot-2026-06-18-at-3.02.02-am.png",
+        "/work/uploads/screen-shot-2026-06-18-at-3.02.27-am.png",
+        "/work/uploads/screen-shot-2026-06-18-at-3.03.19-am.png",
+        "/work/uploads/screen-shot-2026-06-18-at-3.03.58-am.png"
+      ]
+    },
+    {
+      "title": "Pride Rally",
+      "published": true,
+      "hero": "/work/uploads/screen-shot-2026-06-18-at-3.06.55-am.png",
+      "video": "",
+      "no_video": true,
+      "description": "",
+      "gallery": [
+        "/work/uploads/screen-shot-2026-06-18-at-3.04.52-am.png",
+        "/work/uploads/screen-shot-2026-06-18-at-3.05.07-am.png",
+        "/work/uploads/screen-shot-2026-06-18-at-3.05.25-am.png",
+        "/work/uploads/screen-shot-2026-06-18-at-3.05.37-am.png",
+        "/work/uploads/screen-shot-2026-06-18-at-3.07.18-am.png"
       ]
     }
   ]
