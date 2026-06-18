@@ -132,10 +132,15 @@
     {
       "title": "BET Experience",
       "hero": "/work/uploads/screen-shot-2026-06-12-at-10.49.32-pm.png",
-      "video": "",
+      "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/48a87e440698c643da126b5efe8338f3/manifest/video.m3u8",
       "no_video": false,
       "description": "We were created to redo our visuals for Summer Jam and create simple animations around them for her BET experience performance.",
-      "gallery": []
+      "gallery": [
+        "/work/uploads/screen-shot-2026-06-17-at-10.49.21-pm.png",
+        "/work/uploads/screen-shot-2026-06-17-at-10.49.50-pm.png",
+        "/work/uploads/screen-shot-2026-06-17-at-10.52.15-pm.png",
+        "/work/uploads/screen-shot-2026-06-17-at-10.52.47-pm.png"
+      ]
     }
   ]
 }
