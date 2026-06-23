@@ -325,6 +325,14 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
   .ob-input:focus{outline:none; border-color:rgba(186,192,30,.55)}
   .ob-area{min-height:84px; resize:vertical}
   .ob-foot{display:flex; align-items:center; gap:12px; margin-top:8px; flex-wrap:wrap}
+  .notify-box{margin:6px 0 2px; padding:12px 14px; border:1px solid rgba(186,192,30,.22); border-radius:10px; background:rgba(186,192,30,.04)}
+  .notify-empty{font-family:var(--mono); font-size:11px; color:var(--dim); line-height:1.5}
+  .notify-head{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px}
+  .notify-title{font-family:var(--mono); font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--dim)}
+  .notify-all{font-family:var(--mono); font-size:11px; color:var(--green); background:none; border:none; cursor:pointer; text-decoration:underline}
+  .notify-list{display:flex; flex-wrap:wrap; gap:7px}
+  .notify-chip{display:inline-flex; align-items:center; gap:6px; font-family:var(--mono); font-size:12px; color:var(--bone); background:#0c0c0c; border:1px solid var(--line); border-radius:7px; padding:6px 10px; cursor:pointer}
+  .notify-chip input{accent-color:var(--green); cursor:pointer}
 </style>
 </head>
 <body>
@@ -353,6 +361,7 @@ let recorders = {};      // itemId -> MediaRecorder
 let pendingAudio = {};   // itemId -> Blob
 let pendingPin = {};     // itemId -> {x,y}
 let pinMode = {};        // itemId -> bool
+let INVITES = [];        // onboarded people (admin only)
 const NAME_KEY = 'sn_review_name';
 const getName = () => { try { return localStorage.getItem(NAME_KEY) || ''; } catch (e) { return ''; } };
 const setName = (n) => { try { localStorage.setItem(NAME_KEY, n); } catch (e) {} };
@@ -387,13 +396,14 @@ function findItem(itemId){ for(const p of CONFIG.PROJECTS){ for(const s of p.sec
 
 /* ---------- routing ---------- */
 function route(){
-  const h=new URLSearchParams(location.hash.replace(/^#/,'')); const p=h.get('p'), s=h.get('s');
+  const h=new URLSearchParams(location.hash.replace(/^#/,'')); const p=h.get('p'), s=h.get('s'), i=h.get('i');
   players={}; closeOverlay();
   if(!p){ renderLanding(); return; }
   const proj=CONFIG.PROJECTS.find(x=>x.id===p); if(!proj){ renderLanding(); return; }
   const sec=proj.sections.find(x=>x.id===s) || proj.sections[0];
   if(!sec){ renderLanding(); return; }
   renderProject(proj, sec);
+  if(i){ const st=sec.stacks.find(x=>x.versions.some(v=>v.id===i)); if(st){ const el=document.getElementById('stack-'+st.id); if(el) setTimeout(()=>{ try{ el.scrollIntoView({behavior:'smooth',block:'start'}); }catch(e){} }, 90); } }
 }
 
 /* ---------- landing ---------- */
@@ -479,6 +489,7 @@ function versionBodyHTML(proj, sec, it){
     + '<div class="field"><label>Note</label><textarea id="body-'+it.id+'" placeholder="What should change, or what is working? (or just leave a voice note)"></textarea></div>'
     + '<div class="composer-tools"><button class="tool-btn" id="rec-'+it.id+'" type="button">🎤 Record voice note</button>'+pinTool+'</div>'
     + '<div class="rec-prev" id="rec-prev-'+it.id+'"></div>'
+    + (ADMIN ? '<div class="notify-box" id="notify-'+it.id+'"></div>' : '')
     + '<div class="composer-foot"><button class="post" id="post-'+it.id+'" disabled>Post note</button><span class="msg" id="msg-'+it.id+'"></span></div></div></div>';
 }
 
@@ -534,6 +545,7 @@ function wireVersion(proj, sec, it){
   if(nEl) nEl.addEventListener('input', ()=>gateFor(it));
   if(bEl) bEl.addEventListener('input', ()=>gateFor(it));
   gateFor(it);
+  if(ADMIN){ const nb=document.getElementById('notify-'+it.id); if(nb) fillNotifyBox(nb); }
   loadNotes(proj,sec,it);
 }
 
@@ -628,6 +640,7 @@ async function postNote(proj, sec, it){
     if(audio_url) row.audio_url=audio_url;
     if(pin){ row.pos_x=pin.x; row.pos_y=pin.y; }
     if(preview) row.preview_url=preview;
+    if(ADMIN){ const nb=document.getElementById('notify-'+it.id); row.notify_emails = nb ? [...nb.querySelectorAll('.notify-pick:checked')].map(c=>c.value) : []; }
     const { data:ins, error } = await sb.from('comments').insert(row).select();
     if(error) throw error;
     if(ins && ins[0] && ins[0].id) addMine(ins[0].id);
@@ -676,6 +689,23 @@ async function announce(projId, secId){
   finally{ btn.disabled=false; btn.textContent=orig; }
 }
 
+async function loadInvites(){
+  if(!ADMIN) return;
+  try{
+    const { data, error } = await sb.from('invites').select('email,name,created_at').eq('review_slug', CONFIG.REVIEW_SLUG).order('created_at',{ascending:true});
+    if(error) throw error;
+    const seen=new Set(); INVITES=(data||[]).filter(r=>{ if(!r.email||seen.has(r.email)) return false; seen.add(r.email); return true; });
+    document.querySelectorAll('.notify-box').forEach(fillNotifyBox);
+  }catch(e){ console.error('invites load failed', e); }
+}
+function fillNotifyBox(box){
+  if(!box) return;
+  if(!INVITES.length){ box.innerHTML='<div class="notify-empty">Email this note to — nobody onboarded yet. Use “Onboard a client” on the home screen, then your notes can be directed to them.</div>'; return; }
+  box.innerHTML='<div class="notify-head"><span class="notify-title">Email this note to:</span><button type="button" class="notify-all">select all</button></div><div class="notify-list">'+INVITES.map(r=>'<label class="notify-chip"><input type="checkbox" class="notify-pick" value="'+esc(r.email)+'"> '+esc(r.name||r.email)+'</label>').join('')+'</div>';
+  const all=box.querySelector('.notify-all');
+  if(all) all.addEventListener('click', ()=>{ const picks=box.querySelectorAll('.notify-pick'); const anyOff=[...picks].some(c=>!c.checked); picks.forEach(c=>c.checked=anyOff); all.textContent=anyOff?'clear all':'select all'; });
+}
+
 function parseRecipient(entry, defName){
   entry=(entry||'').trim(); if(!entry) return null;
   let m=entry.match(/^(.*?)[<(]\s*([^<>()\s]+@[^<>()\s]+\.[^<>()\s]+)\s*[>)]?$/);
@@ -708,6 +738,7 @@ document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeOverlay();
 chrome();
 window.addEventListener('hashchange', route);
 route();
+loadInvites();
 
 </script>
 </body>
