@@ -115,12 +115,11 @@ collections:
         search_fields: [title]
         display_fields: [title]
       - { name: section, label: "Section — just TYPE it (Style Frames, Assets, Storyboards, Videos, Audio, Client Files...). Same spelling = same section.", widget: string }
-      - { name: title, label: "Title / name (e.g. Style Frame 01, Animatic)", widget: string }
-      - { name: version, label: "Version (optional, e.g. v2)", widget: string, required: false }
+      - { name: title, label: "Title / name — KEEP IT THE SAME across versions (e.g. Dr.Patel). Same title = same item, new version.", widget: string }
+      - { name: version, label: "Version (e.g. v2) — items with the SAME Title stack as versions; newest shows on top", widget: string, required: false }
       - { name: image, label: "Image — upload (for images / boards / frames)", widget: image, required: false }
       - { name: stream_uid, label: "Cloudflare Stream video ID (for videos)", widget: string, required: false }
       - { name: src_url, label: "File / image / audio URL (for anything hosted elsewhere; Dropbox: end with ?raw=1)", widget: string, required: false }
       - { name: download_url, label: "Download link (optional) — leave blank to auto-use the media above", widget: string, required: false }
-      - { name: archived, label: "Archived — move this version into the section's Archive row (kept, just out of the main view)", widget: boolean, default: false, required: false }
       - { name: order, label: "Sort order within the section (lower first)", widget: number, value_type: int, default: 100, required: false }
       - { name: published, label: "Published — show this item (uncheck to fully hide)", widget: boolean, default: true, required: false }
