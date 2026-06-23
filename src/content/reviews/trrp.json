@@ -1,1 +1,7 @@
-{ "key": "trrp", "name": "TRRP", "logo": "", "url_slug": "trrp-9f3kx2", "published": true }
+{
+  "name": "The Reproductive Reality Project",
+  "key": "trrp",
+  "url_slug": "trrp-9f3kx2",
+  "logo": "/work/uploads/screen-shot-2026-06-22-at-9.26.14-pm.png",
+  "published": true
+}
