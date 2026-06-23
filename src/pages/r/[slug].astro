@@ -345,6 +345,9 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
   .ob-person-email{color:var(--dim); font-family:var(--mono); font-size:12px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
   .ob-rm{flex:0 0 auto; width:26px; height:26px; border-radius:6px; border:1px solid var(--line); background:none; color:var(--dim); cursor:pointer; font-size:15px; line-height:1}
   .ob-rm:hover{color:#ff6b6b; border-color:rgba(255,107,107,.5)}
+  .notify-chip{cursor:pointer}
+  .notify-chip .chip-name{border-bottom:1px dotted rgba(236,236,234,.35)}
+  .notify-chip .chip-email{margin-left:7px; padding-left:7px; border-left:1px solid var(--line); font-size:11px; color:var(--dim)}
 </style>
 </head>
 <body>
@@ -400,7 +403,8 @@ function fillNameSelect(it){
   const sel = document.getElementById('name-'+it.id); if(!sel) return;
   let opts = '<option value="">— pick your name —</option>';
   if(ADMIN) opts += '<option value="__you__">You ('+esc(OWNER_NAME)+')</option>';
-  opts += INVITES.map(p => '<option value="'+esc(p.email)+'">'+esc(p.name||p.email)+'</option>').join('');
+  const counts={}; INVITES.forEach(p=>{ const k=(p.name||p.email).toLowerCase(); counts[k]=(counts[k]||0)+1; });
+  opts += INVITES.map(p=>{ const nm=p.name||p.email; const lbl=(counts[nm.toLowerCase()]>1 && p.name) ? nm+' ('+p.email+')' : nm; return '<option value="'+esc(p.email)+'">'+esc(lbl)+'</option>'; }).join('');
   opts += '<option value="__other__">Someone else…</option>';
   sel.innerHTML = opts;
   const saved = getSavedAuthor();
@@ -746,7 +750,8 @@ function fillNotifyBox(it){
   const author=getAuthor(it);
   const people=INVITES.filter(p=>p.email && p.email!==author.email);
   if(!people.length){ box.innerHTML='<div class="notify-empty">Also email this note to — no one else is on the project yet.</div>'; return; }
-  box.innerHTML='<div class="notify-head"><span class="notify-title">Also email this note to:</span><button type="button" class="notify-all">select all</button></div><div class="notify-list">'+people.map(p=>'<label class="notify-chip"><input type="checkbox" class="notify-pick" value="'+esc(p.email)+'"> '+esc(p.name||p.email)+'</label>').join('')+'</div>';
+  const counts={}; people.forEach(p=>{ const k=(p.name||p.email).toLowerCase(); counts[k]=(counts[k]||0)+1; });
+  box.innerHTML='<div class="notify-head"><span class="notify-title">Also email this note to:</span><button type="button" class="notify-all">select all</button></div><div class="notify-list">'+people.map(p=>{ const nm=p.name||p.email; const dup=counts[nm.toLowerCase()]>1; return '<label class="notify-chip" title="'+esc(p.email)+'"><input type="checkbox" class="notify-pick" value="'+esc(p.email)+'"> <span class="chip-name">'+esc(nm)+'</span>'+(dup?'<span class="chip-email">'+esc(p.email)+'</span>':'')+'</label>'; }).join('')+'</div>';
   const all=box.querySelector('.notify-all');
   if(all) all.addEventListener('click', ()=>{ const picks=box.querySelectorAll('.notify-pick'); const anyOff=[...picks].some(c=>!c.checked); picks.forEach(c=>c.checked=anyOff); all.textContent=anyOff?'clear all':'select all'; });
 }
