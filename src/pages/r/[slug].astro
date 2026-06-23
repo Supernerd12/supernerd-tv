@@ -403,7 +403,7 @@ function renderLanding(){
     const items=p.sections.reduce((n,sec)=>n+sec.stacks.reduce((m,st)=>m+st.versions.length,0),0);
     return '<a class="card" href="#p='+encodeURIComponent(p.id)+'" tabindex="0"><div class="c-eye">Project</div><h3>'+esc(p.title)+'</h3><div class="c-tag">'+esc(p.tagline||'')+'</div><div class="c-foot"><span class="c-count">'+p.sections.length+' sections · '+items+' item'+(items===1?'':'s')+'</span><span class="c-go">Open →</span></div></a>';
   }).join('');
-  const onboard = ADMIN ? '<section class="onboard"><div class="ob-head"><span class="admin-tag">Admin</span><h3>Onboard a client</h3></div><p class="ob-sub">Sends the branded welcome email that explains how the portal works.</p><div class="ob-row"><input id="ob-name" class="ob-input" placeholder="Their name (optional) — personalizes the greeting"></div><div class="ob-row"><textarea id="ob-emails" class="ob-input ob-area" placeholder="Email addresses — one per line, or comma-separated"></textarea></div><div class="ob-foot"><button class="post" id="ob-send">Send welcome email</button><span class="msg" id="ob-msg"></span></div></section>' : '';
+  const onboard = ADMIN ? '<section class="onboard"><div class="ob-head"><span class="admin-tag">Admin</span><h3>Onboard a client</h3></div><p class="ob-sub">Sends the branded welcome email that explains how the portal works.</p><div class="ob-row"><input id="ob-name" class="ob-input" placeholder="Default name (optional) — used for any line that has no name of its own"></div><div class="ob-row"><textarea id="ob-emails" class="ob-input ob-area" placeholder="One recipient per line. Just an email, or personalize:&#10;margot@email.com&#10;Winnie <winnie@email.com>"></textarea></div><div class="ob-foot"><button class="post" id="ob-send">Send welcome email</button><span class="msg" id="ob-msg"></span></div></section>' : '';
   app.innerHTML='<section class="landing"><div class="eyebrow">Client review</div><h1 class="co-name">'+esc(CONFIG.COMPANY.name)+'</h1><p class="lead">Open a project to review its work. Leave a note, a voice note, or pin a comment right onto an image.</p>'+onboard+'<div class="grid">'+(cards||'<p class="sec-empty">No projects yet.</p>')+'</div></section>';
   if(ADMIN){ const b=document.getElementById('ob-send'); if(b) b.addEventListener('click', sendOnboarding); }
 }
@@ -676,20 +676,28 @@ async function announce(projId, secId){
   finally{ btn.disabled=false; btn.textContent=orig; }
 }
 
+function parseRecipient(entry, defName){
+  entry=(entry||'').trim(); if(!entry) return null;
+  let m=entry.match(/^(.*?)[<(]\s*([^<>()\s]+@[^<>()\s]+\.[^<>()\s]+)\s*[>)]?$/);
+  if(m && m[2]){ const nm=m[1].replace(/["']/g,'').trim(); return { email:m[2].trim(), name: nm||defName||null }; }
+  m=entry.match(/([^\s,;<>]+@[^\s,;<>]+\.[^\s,;<>]+)/);
+  if(m){ const nm=entry.replace(m[1],'').replace(/[<>"']/g,'').trim(); return { email:m[1], name: nm||defName||null }; }
+  return null;
+}
 async function sendOnboarding(){
   const nameEl=document.getElementById('ob-name'), emEl=document.getElementById('ob-emails'), msg=document.getElementById('ob-msg'), btn=document.getElementById('ob-send');
-  const name=(nameEl&&nameEl.value||'').trim();
-  const emails=((emEl&&emEl.value)||'').split(/[\s,;]+/).map(s=>s.trim()).filter(Boolean);
-  const valid=emails.filter(e=>/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e));
+  const defName=(nameEl&&nameEl.value||'').trim();
+  const entries=((emEl&&emEl.value)||'').split(/[\n;,]+/).map(s=>s.trim()).filter(Boolean);
+  const parsed=entries.map(e=>parseRecipient(e, defName)).filter(r=>r && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(r.email));
   msg.className='msg'; msg.textContent='';
-  if(!valid.length){ msg.className='msg err'; msg.textContent='Add at least one valid email address.'; return; }
+  if(!parsed.length){ msg.className='msg err'; msg.textContent='Add at least one valid email address.'; return; }
   btn.disabled=true; btn.textContent='Sending…';
   try{
-    const rows=valid.map(e=>({ email:e, name:name||null, review_slug:CONFIG.REVIEW_SLUG }));
+    const rows=parsed.map(r=>({ email:r.email, name:r.name||null, review_slug:CONFIG.REVIEW_SLUG }));
     const { error } = await sb.from('invites').insert(rows);
     if(error) throw error;
     if(emEl) emEl.value=''; if(nameEl) nameEl.value='';
-    msg.className='msg'; msg.textContent='Welcome email sent to '+valid.length+' '+(valid.length===1?'address':'addresses')+'.';
+    msg.className='msg'; msg.textContent='Welcome email sent to '+parsed.length+' '+(parsed.length===1?'person':'people')+'.';
     setTimeout(()=>{ if(msg) msg.textContent=''; },4000);
   }catch(e){ console.error('onboard failed', e); msg.className='msg err'; msg.textContent='Could not send — run onboarding.sql in Supabase first.'; }
   finally{ btn.disabled=false; btn.textContent='Send welcome email'; }
