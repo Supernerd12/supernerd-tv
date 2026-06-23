@@ -333,6 +333,18 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
   .notify-list{display:flex; flex-wrap:wrap; gap:7px}
   .notify-chip{display:inline-flex; align-items:center; gap:6px; font-family:var(--mono); font-size:12px; color:var(--bone); background:#0c0c0c; border:1px solid var(--line); border-radius:7px; padding:6px 10px; cursor:pointer}
   .notify-chip input{accent-color:var(--green); cursor:pointer}
+  .name-select, .name-other{width:100%; box-sizing:border-box; background:#0c0c0c; border:1px solid var(--line); border-radius:8px; color:var(--bone); font-family:var(--mono); font-size:13px; padding:10px 12px}
+  .name-select:focus, .name-other:focus{outline:none; border-color:rgba(186,192,30,.55)}
+  .name-other{margin-top:8px}
+  .note-name.has-email{text-decoration:underline dotted rgba(236,236,234,.4); text-underline-offset:3px; cursor:help}
+  .ob-list{margin-top:16px}
+  .ob-listhead{font-family:var(--mono); font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--dim); margin-bottom:6px}
+  .ob-empty{font-family:var(--mono); font-size:12px; color:var(--dim)}
+  .ob-person{display:flex; align-items:center; gap:12px; padding:9px 0; border-top:1px solid var(--line)}
+  .ob-person-name{color:var(--bone); font-size:13px; min-width:110px}
+  .ob-person-email{color:var(--dim); font-family:var(--mono); font-size:12px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .ob-rm{flex:0 0 auto; width:26px; height:26px; border-radius:6px; border:1px solid var(--line); background:none; color:var(--dim); cursor:pointer; font-size:15px; line-height:1}
+  .ob-rm:hover{color:#ff6b6b; border-color:rgba(255,107,107,.5)}
 </style>
 </head>
 <body>
@@ -361,10 +373,40 @@ let recorders = {};      // itemId -> MediaRecorder
 let pendingAudio = {};   // itemId -> Blob
 let pendingPin = {};     // itemId -> {x,y}
 let pinMode = {};        // itemId -> bool
-let INVITES = [];        // onboarded people (admin only)
-const NAME_KEY = 'sn_review_name';
-const getName = () => { try { return localStorage.getItem(NAME_KEY) || ''; } catch (e) { return ''; } };
-const setName = (n) => { try { localStorage.setItem(NAME_KEY, n); } catch (e) {} };
+let INVITES = [];        // people on the project (onboarded)
+const OWNER_NAME = 'Supernerd';            // how you appear when you comment
+const OWNER_EMAIL = 'hello@supernerd.tv';  // must match EDIT 3 (owner) in the SQL
+const AUTHOR_KEY = 'sn_author';
+function getSavedAuthor(){ try { return JSON.parse(localStorage.getItem(AUTHOR_KEY) || 'null'); } catch (e) { return null; } }
+function setSavedAuthor(v, other){ try { localStorage.setItem(AUTHOR_KEY, JSON.stringify({ v: v||'', other: other||'' })); } catch (e) {} }
+function personName(email){ const p = INVITES.find(x => x.email === email); return p ? (p.name || p.email) : email; }
+function getAuthor(it){
+  const sel = document.getElementById('name-'+it.id);
+  if(!sel) return { name:'', email:'' };
+  const v = sel.value;
+  if(v === '__you__') return { name: OWNER_NAME, email: OWNER_EMAIL };
+  if(v === '__other__' || v === ''){ const o = document.getElementById('nameother-'+it.id); return { name:(o&&o.value||'').trim(), email:'' }; }
+  return { name: personName(v), email: v };
+}
+function onNameChange(it){
+  const sel = document.getElementById('name-'+it.id), o = document.getElementById('nameother-'+it.id);
+  const isOther = sel && sel.value === '__other__';
+  if(o) o.style.display = isOther ? '' : 'none';
+  setSavedAuthor(sel?sel.value:'', o?o.value:'');
+  fillNotifyBox(it);
+  gateFor(it);
+}
+function fillNameSelect(it){
+  const sel = document.getElementById('name-'+it.id); if(!sel) return;
+  let opts = '<option value="">— pick your name —</option>';
+  if(ADMIN) opts += '<option value="__you__">You ('+esc(OWNER_NAME)+')</option>';
+  opts += INVITES.map(p => '<option value="'+esc(p.email)+'">'+esc(p.name||p.email)+'</option>').join('');
+  opts += '<option value="__other__">Someone else…</option>';
+  sel.innerHTML = opts;
+  const saved = getSavedAuthor();
+  if(saved && saved.v && [...sel.options].some(o => o.value===saved.v)){ sel.value = saved.v; const o=document.getElementById('nameother-'+it.id); if(o && saved.v==='__other__') o.value = saved.other||''; }
+  onNameChange(it);
+}
 const MINE_KEY = 'sn_my_comments';
 function myComments(){ try { return JSON.parse(localStorage.getItem(MINE_KEY) || '[]'); } catch (e) { return []; } }
 function addMine(id){ try { const a = myComments(); a.push(id); localStorage.setItem(MINE_KEY, JSON.stringify(a)); } catch (e) {} }
@@ -413,9 +455,9 @@ function renderLanding(){
     const items=p.sections.reduce((n,sec)=>n+sec.stacks.reduce((m,st)=>m+st.versions.length,0),0);
     return '<a class="card" href="#p='+encodeURIComponent(p.id)+'" tabindex="0"><div class="c-eye">Project</div><h3>'+esc(p.title)+'</h3><div class="c-tag">'+esc(p.tagline||'')+'</div><div class="c-foot"><span class="c-count">'+p.sections.length+' sections · '+items+' item'+(items===1?'':'s')+'</span><span class="c-go">Open →</span></div></a>';
   }).join('');
-  const onboard = ADMIN ? '<section class="onboard"><div class="ob-head"><span class="admin-tag">Admin</span><h3>Onboard a client</h3></div><p class="ob-sub">Sends the branded welcome email that explains how the portal works.</p><div class="ob-row"><input id="ob-name" class="ob-input" placeholder="Default name (optional) — used for any line that has no name of its own"></div><div class="ob-row"><textarea id="ob-emails" class="ob-input ob-area" placeholder="One recipient per line. Just an email, or personalize:&#10;margot@email.com&#10;Winnie <winnie@email.com>"></textarea></div><div class="ob-foot"><button class="post" id="ob-send">Send welcome email</button><span class="msg" id="ob-msg"></span></div></section>' : '';
+  const onboard = ADMIN ? '<section class="onboard"><div class="ob-head"><span class="admin-tag">Admin</span><h3>Onboard a client</h3></div><p class="ob-sub">Sends the branded welcome email that explains how the portal works.</p><div class="ob-row"><input id="ob-name" class="ob-input" placeholder="Default name (optional) — used for any line that has no name of its own"></div><div class="ob-row"><textarea id="ob-emails" class="ob-input ob-area" placeholder="One recipient per line. Just an email, or personalize:&#10;margot@email.com&#10;Winnie <winnie@email.com>"></textarea></div><div class="ob-foot"><button class="post" id="ob-send">Send welcome email</button><span class="msg" id="ob-msg"></span></div><div class="ob-list" id="ob-list"></div></section>' : '';
   app.innerHTML='<section class="landing"><div class="eyebrow">Client review</div><h1 class="co-name">'+esc(CONFIG.COMPANY.name)+'</h1><p class="lead">Open a project to review its work. Leave a note, a voice note, or pin a comment right onto an image.</p>'+onboard+'<div class="grid">'+(cards||'<p class="sec-empty">No projects yet.</p>')+'</div></section>';
-  if(ADMIN){ const b=document.getElementById('ob-send'); if(b) b.addEventListener('click', sendOnboarding); }
+  if(ADMIN){ const b=document.getElementById('ob-send'); if(b) b.addEventListener('click', sendOnboarding); renderOnboardList(); }
 }
 
 /* ---------- project view ---------- */
@@ -485,19 +527,19 @@ function versionBodyHTML(proj, sec, it){
     + metaBar
     + '<div class="notes"><div class="notes-bar"><h3>Notes</h3><span class="count" id="count-'+it.id+'"></span></div>'
     + '<div id="notes-'+it.id+'"><div class="empty">Loading notes…</div></div>'
-    + '<div class="composer"><div class="row"><div class="field f-name"><label>Your name</label><input id="name-'+it.id+'" placeholder="e.g. Margot" value="'+esc(getName())+'"></div>'+tcField+'</div>'
+    + '<div class="composer"><div class="row"><div class="field f-name"><label>Your name</label><select id="name-'+it.id+'" class="name-select"><option value="">— pick your name —</option></select><input id="nameother-'+it.id+'" class="name-other" placeholder="Type your name" style="display:none"></div>'+tcField+'</div>'
     + '<div class="field"><label>Note</label><textarea id="body-'+it.id+'" placeholder="What should change, or what is working? (or just leave a voice note)"></textarea></div>'
     + '<div class="composer-tools"><button class="tool-btn" id="rec-'+it.id+'" type="button">🎤 Record voice note</button>'+pinTool+'</div>'
     + '<div class="rec-prev" id="rec-prev-'+it.id+'"></div>'
-    + (ADMIN ? '<div class="notify-box" id="notify-'+it.id+'"></div>' : '')
+    + '<div class="notify-box" id="notify-'+it.id+'"></div>'
     + '<div class="composer-foot"><button class="post" id="post-'+it.id+'" disabled>Post note</button><span class="msg" id="msg-'+it.id+'"></span></div></div></div>';
 }
 
 function gateFor(it){
   const btn=document.getElementById('post-'+it.id); if(!btn) return;
-  const nEl=document.getElementById('name-'+it.id), bEl=document.getElementById('body-'+it.id);
-  const n=(nEl&&nEl.value||'').trim(), b=(bEl&&bEl.value||'').trim();
-  btn.disabled = !(n && (b || pendingAudio[it.id]));
+  const a=getAuthor(it); const bEl=document.getElementById('body-'+it.id);
+  const b=(bEl&&bEl.value||'').trim();
+  btn.disabled = !(a.name && (b || pendingAudio[it.id]));
 }
 
 function wireVersion(proj, sec, it){
@@ -541,11 +583,11 @@ function wireVersion(proj, sec, it){
   // post
   const btn=document.getElementById('post-'+it.id);
   if(btn) btn.addEventListener('click', ()=>postNote(proj,sec,it));
-  const nEl=document.getElementById('name-'+it.id), bEl=document.getElementById('body-'+it.id);
-  if(nEl) nEl.addEventListener('input', ()=>gateFor(it));
+  const nEl=document.getElementById('name-'+it.id), oEl=document.getElementById('nameother-'+it.id), bEl=document.getElementById('body-'+it.id);
+  if(nEl) nEl.addEventListener('change', ()=>onNameChange(it));
+  if(oEl) oEl.addEventListener('input', ()=>{ setSavedAuthor(nEl?nEl.value:'', oEl.value); gateFor(it); });
   if(bEl) bEl.addEventListener('input', ()=>gateFor(it));
-  gateFor(it);
-  if(ADMIN){ const nb=document.getElementById('notify-'+it.id); if(nb) fillNotifyBox(nb); }
+  fillNameSelect(it);
   loadNotes(proj,sec,it);
 }
 
@@ -602,7 +644,7 @@ async function loadNotes(proj, sec, it){
       const pin=pinNum.has(c.id) ? '<button class="pin-badge" data-c="'+c.id+'" title="Show on image">'+pinNum.get(c.id)+'</button>' : '';
       const audio=c.audio_url ? '<audio controls preload="none" src="'+esc(c.audio_url)+'"></audio>' : '';
       const bodyHtml=c.body ? '<div class="note-body">'+esc(c.body)+'</div>' : '';
-      return '<div class="note" id="note-'+it.id+'-'+c.id+'"><div class="ava">'+esc((c.author_name||'?').trim().charAt(0)||'?')+'</div><div class="note-main"><div class="note-head">'+pin+'<span class="note-name">'+esc(c.author_name||'Anonymous')+'</span>'+tc+'<span class="note-time" title="'+esc(relTime(c.created_at))+'">'+esc(fmtTime(c.created_at))+'</span>'+del+'</div>'+bodyHtml+audio+'</div></div>';
+      return '<div class="note" id="note-'+it.id+'-'+c.id+'"><div class="ava">'+esc((c.author_name||'?').trim().charAt(0)||'?')+'</div><div class="note-main"><div class="note-head">'+pin+'<span class="note-name'+((ADMIN&&c.author_email)?' has-email':'')+'"'+((ADMIN&&c.author_email)?' title="'+esc(c.author_email)+'"':'')+'>'+esc(c.author_name||'Anonymous')+'</span>'+tc+'<span class="note-time" title="'+esc(relTime(c.created_at))+'">'+esc(fmtTime(c.created_at))+'</span>'+del+'</div>'+bodyHtml+audio+'</div></div>';
     }).join('');
     if(it.type==='image') renderPins(it, pinned, pinNum);
   }catch(e){
@@ -624,11 +666,11 @@ function renderPins(it, pinned, pinNum){
 }
 
 async function postNote(proj, sec, it){
-  const nameEl=document.getElementById('name-'+it.id), tcEl=document.getElementById('tc-'+it.id), bodyEl=document.getElementById('body-'+it.id);
+  const tcEl=document.getElementById('tc-'+it.id), bodyEl=document.getElementById('body-'+it.id);
   const msg=document.getElementById('msg-'+it.id), btn=document.getElementById('post-'+it.id);
-  const name=(nameEl.value||'').trim(), tc=(tcEl?tcEl.value:'').trim(), body=(bodyEl.value||'').trim();
+  const a=getAuthor(it); const tc=(tcEl?tcEl.value:'').trim(), body=(bodyEl.value||'').trim();
   msg.className='msg'; msg.textContent='';
-  if(!name){ msg.className='msg err'; msg.textContent='Add your name first.'; nameEl.focus(); return; }
+  if(!a.name){ msg.className='msg err'; msg.textContent='Pick your name first.'; return; }
   if(!body && !pendingAudio[it.id]){ msg.className='msg err'; msg.textContent='Write a note or record a voice note.'; bodyEl.focus(); return; }
   btn.disabled=true; btn.textContent='Posting…';
   try{
@@ -636,15 +678,18 @@ async function postNote(proj, sec, it){
     if(pendingAudio[it.id]){ audio_url=await uploadVoice(it); }
     const pin=pendingPin[it.id];
     const preview=previewFor(it, parseTimecode(tc));
-    const row={ review_slug:CONFIG.REVIEW_SLUG, asset_id:assetId(proj,sec,it), author_name:name, timecode:tc||null, body:body||null };
+    const row={ review_slug:CONFIG.REVIEW_SLUG, asset_id:assetId(proj,sec,it), author_name:a.name, timecode:tc||null, body:body||null };
+    if(a.email) row.author_email=a.email;
     if(audio_url) row.audio_url=audio_url;
     if(pin){ row.pos_x=pin.x; row.pos_y=pin.y; }
     if(preview) row.preview_url=preview;
-    if(ADMIN){ const nb=document.getElementById('notify-'+it.id); row.notify_emails = nb ? [...nb.querySelectorAll('.notify-pick:checked')].map(c=>c.value) : []; }
+    const nb=document.getElementById('notify-'+it.id);
+    let picks = nb ? [...nb.querySelectorAll('.notify-pick:checked')].map(c=>c.value) : [];
+    row.notify_emails = picks.filter(e => e && e !== a.email);
     const { data:ins, error } = await sb.from('comments').insert(row).select();
     if(error) throw error;
     if(ins && ins[0] && ins[0].id) addMine(ins[0].id);
-    setName(name); bodyEl.value=''; if(tcEl) tcEl.value='';
+    bodyEl.value=''; if(tcEl) tcEl.value='';
     pendingAudio[it.id]=null; pendingPin[it.id]=null; pinMode[it.id]=false;
     const prev=document.getElementById('rec-prev-'+it.id); if(prev) prev.innerHTML='';
     const pinBtn=document.getElementById('pin-'+it.id); if(pinBtn) pinBtn.classList.remove('active');
@@ -690,20 +735,34 @@ async function announce(projId, secId){
 }
 
 async function loadInvites(){
-  if(!ADMIN) return;
   try{
-    const { data, error } = await sb.from('invites').select('email,name,created_at').eq('review_slug', CONFIG.REVIEW_SLUG).order('created_at',{ascending:true});
+    const { data, error } = await sb.from('invites').select('id,email,name,created_at').eq('review_slug', CONFIG.REVIEW_SLUG).order('created_at',{ascending:true});
     if(error) throw error;
     const seen=new Set(); INVITES=(data||[]).filter(r=>{ if(!r.email||seen.has(r.email)) return false; seen.add(r.email); return true; });
-    document.querySelectorAll('.notify-box').forEach(fillNotifyBox);
-  }catch(e){ console.error('invites load failed', e); }
+  }catch(e){ console.error('invites load failed', e); INVITES=[]; }
 }
-function fillNotifyBox(box){
-  if(!box) return;
-  if(!INVITES.length){ box.innerHTML='<div class="notify-empty">Email this note to — nobody onboarded yet. Use “Onboard a client” on the home screen, then your notes can be directed to them.</div>'; return; }
-  box.innerHTML='<div class="notify-head"><span class="notify-title">Email this note to:</span><button type="button" class="notify-all">select all</button></div><div class="notify-list">'+INVITES.map(r=>'<label class="notify-chip"><input type="checkbox" class="notify-pick" value="'+esc(r.email)+'"> '+esc(r.name||r.email)+'</label>').join('')+'</div>';
+function fillNotifyBox(it){
+  const box=document.getElementById('notify-'+it.id); if(!box) return;
+  const author=getAuthor(it);
+  const people=INVITES.filter(p=>p.email && p.email!==author.email);
+  if(!people.length){ box.innerHTML='<div class="notify-empty">Also email this note to — no one else is on the project yet.</div>'; return; }
+  box.innerHTML='<div class="notify-head"><span class="notify-title">Also email this note to:</span><button type="button" class="notify-all">select all</button></div><div class="notify-list">'+people.map(p=>'<label class="notify-chip"><input type="checkbox" class="notify-pick" value="'+esc(p.email)+'"> '+esc(p.name||p.email)+'</label>').join('')+'</div>';
   const all=box.querySelector('.notify-all');
   if(all) all.addEventListener('click', ()=>{ const picks=box.querySelectorAll('.notify-pick'); const anyOff=[...picks].some(c=>!c.checked); picks.forEach(c=>c.checked=anyOff); all.textContent=anyOff?'clear all':'select all'; });
+}
+function renderOnboardList(){
+  const el=document.getElementById('ob-list'); if(!el) return;
+  if(!INVITES.length){ el.innerHTML='<div class="ob-empty">No one on this project yet.</div>'; return; }
+  el.innerHTML='<div class="ob-listhead">On this project ('+INVITES.length+')</div>'+INVITES.map(p=>'<div class="ob-person"><span class="ob-person-name">'+esc(p.name||'—')+'</span><span class="ob-person-email">'+esc(p.email)+'</span><button class="ob-rm" data-id="'+esc(p.id)+'" title="Remove from project">×</button></div>').join('');
+  el.querySelectorAll('.ob-rm').forEach(b=>b.addEventListener('click', ()=>removeInvite(b.dataset.id)));
+}
+async function removeInvite(id){
+  if(!confirm('Remove this person from the project? They stop getting alerts; you can re-onboard them (or a new email) anytime.')) return;
+  try{
+    const { error } = await sb.from('invites').delete().eq('id', id);
+    if(error) throw error;
+    await loadInvites(); renderOnboardList();
+  }catch(e){ console.error('remove failed', e); alert('Could not remove — run people-and-naming.sql in Supabase (it adds the delete permission).'); }
 }
 
 function parseRecipient(entry, defName){
@@ -727,6 +786,7 @@ async function sendOnboarding(){
     const { error } = await sb.from('invites').insert(rows);
     if(error) throw error;
     if(emEl) emEl.value=''; if(nameEl) nameEl.value='';
+    await loadInvites(); renderOnboardList();
     msg.className='msg'; msg.textContent='Welcome email sent to '+parsed.length+' '+(parsed.length===1?'person':'people')+'.';
     setTimeout(()=>{ if(msg) msg.textContent=''; },4000);
   }catch(e){ console.error('onboard failed', e); msg.className='msg err'; msg.textContent='Could not send — run onboarding.sql in Supabase first.'; }
@@ -737,8 +797,7 @@ document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeOverlay();
 (function(){ const o=document.getElementById('overlay'); if(o){ o.addEventListener('click', (e)=>{ if(e.target===o) closeOverlay(); }); const x=o.querySelector('.ov-close'); if(x) x.addEventListener('click', closeOverlay); } })();
 chrome();
 window.addEventListener('hashchange', route);
-route();
-loadInvites();
+loadInvites().finally(route);
 
 </script>
 </body>
