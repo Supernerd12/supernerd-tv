@@ -70,3 +70,93 @@ collections:
             widget: list
             required: false
             field: { name: image, label: Image, widget: image }
+
+  # ===================== CLIENT REVIEW PORTAL =====================
+  - name: reviews
+    label: "Reviews — Clients"
+    label_singular: "Review (Client)"
+    identifier_field: name
+    folder: "src/content/reviews"
+    extension: json
+    format: json
+    create: true
+    slug: "{{fields.key}}"
+    summary: "{{name}}  ·  /r/{{url_slug}}/"
+    fields:
+      - { name: name, label: "Client / company name (shown to them)", widget: string }
+      - { name: key, label: "Short id — lowercase, no spaces (e.g. trrp). Don't change after going live.", widget: string, pattern: ['^[a-z0-9-]+$', 'lowercase letters, numbers, dashes only'] }
+      - { name: url_slug, label: "Secret link slug — the page is /r/<this>/ . Make it unguessable (e.g. trrp-9f3kx2).", widget: string, pattern: ['^[a-z0-9-]+$', 'lowercase letters, numbers, dashes only'] }
+      - { name: logo, label: "Client logo (optional, shown beside the Supernerd mark)", widget: image, required: false }
+      - { name: published, label: "Published — live (uncheck to take the link offline)", widget: boolean, default: true, required: false }
+
+  - name: reviewProjects
+    label: "Reviews — Projects"
+    label_singular: "Project"
+    identifier_field: title
+    folder: "src/content/reviewProjects"
+    extension: json
+    format: json
+    create: true
+    slug: "{{fields.key}}"
+    summary: "{{title}}  ·  {{company_key}}"
+    sortable_fields: [order, title]
+    fields:
+      - name: company_key
+        label: "Client (which Review this project belongs to)"
+        widget: relation
+        collection: reviews
+        value_field: key
+        search_fields: [name]
+        display_fields: [name]
+      - { name: title, label: "Project title (e.g. Animated PSA)", widget: string }
+      - { name: key, label: "Short id — lowercase, no spaces (e.g. animated-psa). Don't change after going live.", widget: string, pattern: ['^[a-z0-9-]+$', 'lowercase letters, numbers, dashes only'] }
+      - { name: tagline, label: "Tagline (optional, shown on the project card)", widget: string, required: false }
+      - { name: order, label: "Sort order (lower shows first)", widget: number, value_type: int, default: 100, required: false }
+      - { name: show_style_frames, label: "Section: Style Frames", widget: boolean, default: false, required: false }
+      - { name: show_assets, label: "Section: Assets", widget: boolean, default: false, required: false }
+      - { name: show_storyboards, label: "Section: Storyboards", widget: boolean, default: false, required: false }
+      - { name: show_videos, label: "Section: Videos", widget: boolean, default: true, required: false }
+      - { name: published, label: "Published — show this project", widget: boolean, default: true, required: false }
+
+  - name: reviewItems
+    label: "Reviews — Items (deliverables)"
+    label_singular: "Item"
+    identifier_field: title
+    folder: "src/content/reviewItems"
+    extension: json
+    format: json
+    create: true
+    slug: "{{fields.section}}-{{year}}{{month}}{{day}}{{hour}}{{minute}}{{second}}"
+    summary: "{{section}}  ·  {{title}}{{label}} {{version}}"
+    sortable_fields: [order]
+    fields:
+      - name: project_key
+        label: "Project (which project this belongs to)"
+        widget: relation
+        collection: reviewProjects
+        value_field: key
+        search_fields: [title]
+        display_fields: [title]
+      - name: section
+        label: "Section (which folder it shows in)"
+        widget: select
+        options:
+          - { label: "Style Frames", value: style-frames }
+          - { label: "Assets", value: assets }
+          - { label: "Storyboards", value: storyboards }
+          - { label: "Videos", value: videos }
+      - name: kind
+        label: "Type"
+        widget: select
+        default: image
+        options:
+          - { label: "Image (style frame, asset, board)", value: image }
+          - { label: "Video (Cloudflare Stream)", value: video }
+      - { name: title, label: "Title — for IMAGES (e.g. Style Frame 01)", widget: string, required: false }
+      - { name: label, label: "Label — for VIDEOS (Animatic / Rough Cut / Working Cut / Final Cut)", widget: string, required: false }
+      - { name: version, label: "Version — for VIDEOS (e.g. v1)", widget: string, required: false }
+      - { name: stream_uid, label: "Cloudflare Stream video ID — for VIDEOS (paste the UID)", widget: string, required: false }
+      - { name: image, label: "Image upload — for IMAGES (or use the URL field below)", widget: image, required: false }
+      - { name: image_url, label: "Image URL — for IMAGES hosted elsewhere (Dropbox: end with ?raw=1)", widget: string, required: false }
+      - { name: order, label: "Sort order within the section (lower first)", widget: number, value_type: int, default: 100, required: false }
+      - { name: published, label: "Published — show this item", widget: boolean, default: true, required: false }

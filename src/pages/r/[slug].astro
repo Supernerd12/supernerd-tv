@@ -1,0 +1,457 @@
+---
+import { getCollection } from 'astro:content';
+
+export async function getStaticPaths() {
+  const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
+  const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
+  const items    = (await getCollection('reviewItems')).filter(i => i.data.published !== false);
+
+  const SECTION_DEFS = [
+    { id: 'style-frames', name: 'Style Frames', flag: 'show_style_frames' },
+    { id: 'assets',       name: 'Assets',       flag: 'show_assets' },
+    { id: 'storyboards',  name: 'Storyboards',  flag: 'show_storyboards' },
+    { id: 'videos',       name: 'Videos',       flag: 'show_videos' },
+  ];
+
+  return reviews.map((review) => {
+    const co = review.data;
+
+    const PROJECTS = projects
+      .filter(p => p.data.company_key === co.key)
+      .sort((a, b) => (a.data.order ?? 100) - (b.data.order ?? 100))
+      .map((p) => {
+        const sections = SECTION_DEFS
+          .filter(sd => p.data[sd.flag] === true)
+          .map(sd => {
+            const its = items
+              .filter(i => i.data.project_key === p.data.key && i.data.section === sd.id)
+              .sort((a, b) => (a.data.order ?? 100) - (b.data.order ?? 100))
+              .map(i => ({
+                id: String(i.id).replace(/\.(json|ya?ml)$/i, ''),
+                type: i.data.kind,
+                title: i.data.title || '',
+                label: i.data.label || '',
+                version: i.data.version || '',
+                stream_uid: i.data.stream_uid || '',
+                src: i.data.image || i.data.image_url || '',
+              }));
+            return { id: sd.id, name: sd.name, items: its };
+          });
+        return { key: p.data.key, title: p.data.title, tagline: p.data.tagline || '', sections };
+      });
+
+    const data = {
+      REVIEW_SLUG: co.key,
+      COMPANY: { name: co.name, logo: co.logo || '' },
+      PROJECTS,
+    };
+    return { params: { slug: co.url_slug }, props: { data } };
+  });
+}
+
+const { data } = Astro.props;
+
+// ---- site-wide constants (same for every review) ----
+const SUPABASE_URL   = 'https://wvtokocjhtpjrkojxaia.supabase.co';
+const SUPABASE_KEY    = 'sb_publishable_NOSa5I95dUTHZhVai9dZtQ_8GEM00J6';
+const STREAM_CUSTOMER = 'customer-jo6j16htmygzl1y3.cloudflarestream.com';
+const ADMIN_KEY       = 'sn-admin-7yq4';
+---
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Supernerd — Review</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style is:global>
+  :root{
+    --ink:#050505; --panel:#0c0c0c; --green:#BAC01E; --green-hi:#D6DC3A;
+    --bone:#ECECEA; --dim:rgba(236,236,234,.55); --line:rgba(236,236,234,.13);
+    --disp:'Bricolage Grotesque',system-ui,sans-serif; --mono:'Space Mono',ui-monospace,monospace;
+    --ease:cubic-bezier(.2,.7,.2,1);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0; background:var(--ink); color:var(--bone)}
+  body{font-family:var(--disp); -webkit-font-smoothing:antialiased; line-height:1.5}
+  a{color:inherit; text-decoration:none}
+  .wrap{max-width:1140px; margin:0 auto; padding:0 24px}
+  .eyebrow{font-family:var(--mono); font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--green)}
+
+  /* ---- header ---- */
+  header{border-bottom:1px solid var(--line); padding:20px 0; position:sticky; top:0; background:rgba(5,5,5,.86); backdrop-filter:blur(10px); z-index:20}
+  .head-row{display:flex; align-items:center; gap:16px}
+  .logo{font-weight:800; letter-spacing:-.02em; font-size:19px; color:var(--green); white-space:nowrap; cursor:pointer}
+  .logo b{color:var(--bone)}
+  .cobrand{height:28px; width:auto; max-width:150px; object-fit:contain}
+  .head-meta{margin-left:auto; text-align:right}
+  .head-meta .co{font-size:14px; font-weight:600}
+
+  /* ---- landing ---- */
+  .landing{padding:60px 0 40px}
+  .landing .co-name{font-size:clamp(34px,6vw,68px); font-weight:800; letter-spacing:-.03em; line-height:1; margin:10px 0 0}
+  .landing .lead{color:var(--dim); margin:16px 0 48px; font-size:15px; max-width:56ch}
+  .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:18px}
+  .card{display:block; border:1px solid var(--line); border-radius:10px; padding:24px; background:var(--panel); transition:border-color .18s var(--ease), transform .18s var(--ease)}
+  .card:hover{border-color:rgba(186,192,30,.5); transform:translateY(-2px)}
+  .card .c-eye{font-family:var(--mono); font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim)}
+  .card h3{font-size:24px; font-weight:700; letter-spacing:-.02em; margin:12px 0 6px}
+  .card .c-tag{color:var(--dim); font-size:14px}
+  .card .c-foot{margin-top:22px; display:flex; align-items:center; justify-content:space-between}
+  .card .c-count{font-family:var(--mono); font-size:12px; color:var(--dim)}
+  .card .c-go{font-family:var(--mono); font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:var(--green)}
+
+  /* ---- project view ---- */
+  .pv{display:grid; grid-template-columns:228px 1fr; gap:44px; padding:40px 0 0; align-items:start}
+  .side{position:sticky; top:86px}
+  .side .back{font-family:var(--mono); font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--dim); display:inline-block; margin-bottom:18px}
+  .side .back:hover{color:var(--green)}
+  .side .pv-title{font-size:22px; font-weight:700; letter-spacing:-.02em; margin:0 0 20px; line-height:1.1}
+  .nav{display:flex; flex-direction:column; gap:2px}
+  .nav a{display:flex; align-items:baseline; gap:10px; padding:11px 12px; border-radius:7px; transition:background .15s var(--ease)}
+  .nav a .n-num{font-family:var(--mono); font-size:11px; color:var(--dim)}
+  .nav a .n-name{font-size:14.5px; font-weight:600}
+  .nav a .n-ct{margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--dim)}
+  .nav a:hover{background:rgba(236,236,234,.05)}
+  .nav a.active{background:rgba(186,192,30,.12)}
+  .nav a.active .n-name{color:var(--green-hi)}
+  .nav a.active .n-num{color:var(--green)}
+
+  .main-head{margin-bottom:8px}
+  .main-head h2{font-size:clamp(24px,4vw,38px); font-weight:800; letter-spacing:-.03em; margin:6px 0 0}
+
+  /* ---- deliverable ---- */
+  .deliv{padding:34px 0; border-top:1px solid var(--line)}
+  .deliv:first-of-type{border-top:none; padding-top:22px}
+  .deliv-head{display:flex; align-items:center; gap:12px; margin-bottom:15px; flex-wrap:wrap}
+  .deliv-title{font-size:20px; font-weight:700; letter-spacing:-.02em}
+  .deliv-ver{font-family:var(--mono); font-size:11px; color:var(--green-hi); border:1px solid rgba(186,192,30,.35); padding:2px 8px; border-radius:4px}
+  .deliv-kind{font-family:var(--mono); font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink); background:var(--green); padding:3px 8px; border-radius:3px}
+
+  .stage{position:relative; width:100%; aspect-ratio:16/9; max-height:62vh; background:#000; border-radius:8px; overflow:hidden; border:1px solid var(--line)}
+  .stage iframe{position:absolute; inset:0; width:100%; height:100%; border:0}
+  .stage.is-image{aspect-ratio:auto; max-height:none}
+  .stage.is-image img{width:100%; height:auto; display:block; object-fit:contain}
+  .ph{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; padding:24px; color:var(--dim); font-family:var(--mono); font-size:13px; border:1px dashed var(--line); border-radius:8px}
+  .is-image .ph{position:static; min-height:220px}
+
+  .sec-empty{color:var(--dim); font-size:15px; padding:30px 0; font-family:var(--mono)}
+
+  /* ---- notes ---- */
+  .notes{margin-top:20px}
+  .notes-bar{display:flex; align-items:center; gap:10px; margin-bottom:12px}
+  .notes-bar h3{font-size:12px; font-family:var(--mono); letter-spacing:.14em; text-transform:uppercase; color:var(--dim); margin:0; font-weight:400}
+  .count{font-family:var(--mono); font-size:12px; color:var(--green)}
+  .note{display:flex; gap:12px; padding:13px 0; border-top:1px solid var(--line)}
+  .note:first-child{border-top:none}
+  .ava{flex:0 0 30px; height:30px; border-radius:50%; background:rgba(186,192,30,.16); color:var(--green); display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:12px; text-transform:uppercase}
+  .note-main{flex:1; min-width:0}
+  .note-head{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:3px}
+  .note-name{font-weight:600; font-size:14px}
+  .tc{font-family:var(--mono); font-size:12px; color:var(--green-hi); background:rgba(186,192,30,.12); border:1px solid rgba(186,192,30,.3); padding:1px 7px; border-radius:4px; cursor:pointer}
+  .tc:hover{background:rgba(186,192,30,.22)}
+  .tc.static{cursor:default; color:var(--dim); border-color:var(--line); background:transparent}
+  .note-time{font-family:var(--mono); font-size:11px; color:var(--dim); margin-left:auto}
+  .note-body{font-size:14.5px; color:var(--bone); white-space:pre-wrap; word-wrap:break-word; line-height:1.55}
+  .empty{color:var(--dim); font-size:14px; padding:6px 0 2px}
+
+  /* ---- composer ---- */
+  .composer{margin-top:16px; border:1px solid var(--line); border-radius:8px; padding:14px; background:var(--panel)}
+  .composer .row{display:flex; gap:10px; margin-bottom:10px; flex-wrap:wrap}
+  .field{display:flex; flex-direction:column; gap:5px}
+  .field label{font-family:var(--mono); font-size:10px; letter-spacing:.14em; text-transform:uppercase; color:var(--dim)}
+  .composer input, .composer textarea{font-family:var(--disp); font-size:14.5px; color:var(--bone); background:#000; border:1px solid var(--line); border-radius:6px; padding:9px 11px; width:100%}
+  .composer input::placeholder, .composer textarea::placeholder{color:rgba(236,236,234,.32)}
+  .composer .f-name{width:220px}
+  .composer .f-tc{width:120px}
+  .composer .f-tc input{font-family:var(--mono)}
+  .composer textarea{min-height:72px; resize:vertical; line-height:1.5}
+  .composer:focus-within{border-color:rgba(186,192,30,.4)}
+  input:focus-visible, textarea:focus-visible, button:focus-visible, .tc:focus-visible, .card:focus-visible, .nav a:focus-visible{outline:2px solid var(--green); outline-offset:2px}
+  .composer-foot{display:flex; align-items:center; gap:14px; margin-top:10px}
+  .post{font-family:var(--mono); font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink); background:var(--green); border:none; padding:10px 20px; border-radius:6px; cursor:pointer; font-weight:700; transition:background .15s var(--ease)}
+  .post:hover{background:var(--green-hi)}
+  .post:disabled{opacity:.5; cursor:default}
+  .msg{font-size:13px; color:var(--dim)}
+  .msg.err{color:#e8806b}
+
+  footer{border-top:1px solid var(--line); margin-top:60px; padding:28px 0 56px; text-align:center}
+  footer .mk{font-family:var(--mono); font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim)}
+  footer .mk b{color:var(--green); font-weight:700}
+
+  @media (max-width:760px){
+    .pv{grid-template-columns:1fr; gap:22px}
+    .side{position:static; top:auto}
+    .side .pv-title{margin-bottom:14px}
+    .nav{flex-direction:row; overflow-x:auto; gap:6px; padding-bottom:6px; -webkit-overflow-scrolling:touch}
+    .nav a{flex:0 0 auto; white-space:nowrap}
+    .nav a .n-ct{display:none}
+    .composer .f-name{width:100%}
+  }
+  @media (prefers-reduced-motion:reduce){ *{transition:none!important; animation:none!important} }
+  .logo-link{display:inline-flex; align-items:center}
+  .logo-img{height:30px; width:auto; display:block}
+  .co{cursor:pointer; transition:color .15s var(--ease)}
+  .co:hover{color:var(--green)}
+  footer a.mk:hover b{color:var(--green-hi)}
+  .admin-strip{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:4px 0 24px; padding:12px 14px; border:1px dashed rgba(186,192,30,.45); border-radius:8px; background:rgba(186,192,30,.05)}
+  .admin-tag{font-family:var(--mono); font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink); background:var(--green); padding:3px 8px; border-radius:3px}
+  .admin-input{flex:1; min-width:200px; font-family:var(--disp); font-size:14px; color:var(--bone); background:#000; border:1px solid var(--line); border-radius:6px; padding:8px 11px}
+  .admin-input::placeholder{color:rgba(236,236,234,.32)}
+  .admin-btn{font-family:var(--mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink); background:var(--green); border:none; padding:9px 16px; border-radius:6px; cursor:pointer; font-weight:700}
+  .admin-btn:hover{background:var(--green-hi)}
+  .admin-btn:disabled{opacity:.5; cursor:default}
+  .admin-msg{font-size:12px; color:var(--dim)}
+  .admin-msg.ok{color:var(--green)} .admin-msg.err{color:#e8806b}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap head-row">
+    <a class="logo-link" href="https://supernerd.tv" target="_blank" rel="noopener" title="Visit supernerd.tv"><img class="logo-img" src="/email-logo.png" alt="Supernerd"></a>
+    <img class="cobrand" id="cobrand" alt="" hidden>
+    <div class="head-meta">
+      <div class="eyebrow">Review</div>
+      <div class="co" id="coName" onclick="location.hash=''" title="Back to projects">—</div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap" id="app"></main>
+
+<footer>
+  <div class="wrap"><a class="mk" href="https://supernerd.tv" target="_blank" rel="noopener">Crafted by <b>Supernerd</b></a></div>
+</footer>
+
+<script is:inline src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script is:inline src="https://embed.cloudflarestream.com/embed/sdk.latest.js"></script>
+<script is:inline define:vars={{ data, SUPABASE_URL, SUPABASE_KEY, STREAM_CUSTOMER, ADMIN_KEY }}>
+const CONFIG = Object.assign({ SUPABASE_URL, SUPABASE_KEY, STREAM_CUSTOMER, ADMIN_KEY }, data);
+
+
+const sb = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
+const ADMIN = !!CONFIG.ADMIN_KEY && new URLSearchParams(location.search).get('admin') === CONFIG.ADMIN_KEY;
+let players = {};
+const NAME_KEY = 'sn_review_name';
+const getName = ()=>{ try{ return localStorage.getItem(NAME_KEY)||''; }catch(e){ return ''; } };
+const setName = n=>{ try{ localStorage.setItem(NAME_KEY,n); }catch(e){} };
+
+function parseTimecode(tc){
+  if(!tc) return null;
+  const parts=String(tc).trim().split(':').map(p=>parseInt(p,10));
+  if(parts.some(isNaN)) return null;
+  let s=0; for(const p of parts){ s=s*60+p; } return s;
+}
+function relTime(iso){
+  const d=(Date.now()-new Date(iso).getTime())/1000;
+  if(d<60) return 'just now';
+  if(d<3600) return Math.floor(d/60)+'m ago';
+  if(d<86400) return Math.floor(d/3600)+'h ago';
+  return Math.floor(d/86400)+'d ago';
+}
+function fmtTime(iso){ const d=new Date(iso); return d.toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}); }
+function esc(s){ const d=document.createElement('div'); d.textContent=s==null?'':s; return d.innerHTML; }
+function itemTitle(it){ return it.type==='video' ? (it.label||'Video') : (it.title||'Untitled'); }
+
+function seek(itemId, seconds){
+  const p=players[itemId];
+  if(p){ try{ p.currentTime=seconds; p.play(); const st=document.getElementById('stage-'+itemId); if(st) window.scrollTo({top:st.getBoundingClientRect().top+window.scrollY-86, behavior:'smooth'}); }catch(e){} }
+}
+
+/* ---------- header / chrome ---------- */
+function chrome(){
+  document.getElementById('coName').textContent = CONFIG.COMPANY.name;
+  if(CONFIG.COMPANY.logo){ const c=document.getElementById('cobrand'); c.src=CONFIG.COMPANY.logo; c.hidden=false; }
+}
+
+/* ---------- routing ---------- */
+function route(){
+  const h=new URLSearchParams(location.hash.replace(/^#/,''));
+  const p=h.get('p'), s=h.get('s');
+  players={};
+  if(!p){ renderLanding(); return; }
+  const proj=CONFIG.PROJECTS.find(x=>x.id===p);
+  if(!proj){ renderLanding(); return; }
+  const sec=proj.sections.find(x=>x.id===s)||proj.sections[0];
+  renderProject(proj, sec);
+}
+
+/* ---------- landing: company + project folders ---------- */
+function renderLanding(){
+  const app=document.getElementById('app');
+  const cards=CONFIG.PROJECTS.map(p=>{
+    const items=p.sections.reduce((n,sec)=>n+sec.items.length,0);
+    return `<a class="card" href="#p=${encodeURIComponent(p.id)}" tabindex="0">
+      <div class="c-eye">Project</div>
+      <h3>${esc(p.title)}</h3>
+      <div class="c-tag">${esc(p.tagline||'')}</div>
+      <div class="c-foot">
+        <span class="c-count">${p.sections.length} sections · ${items} item${items===1?'':'s'}</span>
+        <span class="c-go">Open →</span>
+      </div></a>`;
+  }).join('');
+  app.innerHTML=`<section class="landing">
+    <div class="eyebrow">Client review</div>
+    <h1 class="co-name">${esc(CONFIG.COMPANY.name)}</h1>
+    <p class="lead">Open a project to review its work. Each section holds its own deliverables, and every item has its own notes — leave feedback right under what you're looking at.</p>
+    <div class="grid">${cards||'<p class="sec-empty">No projects yet.</p>'}</div>
+  </section>`;
+}
+
+/* ---------- project: side nav + active section ---------- */
+function renderProject(proj, sec){
+  const app=document.getElementById('app');
+  const nav=proj.sections.map((s,i)=>`
+    <a href="#p=${encodeURIComponent(proj.id)}&s=${encodeURIComponent(s.id)}" class="${s.id===sec.id?'active':''}">
+      <span class="n-num">${String(i+1).padStart(2,'0')}</span>
+      <span class="n-name">${esc(s.name)}</span>
+      <span class="n-ct">${s.items.length||''}</span>
+    </a>`).join('');
+
+  const body = (ADMIN ? adminStrip(proj,sec) : '') + (sec.items.length
+    ? sec.items.map(it=>delivHTML(proj,sec,it)).join('')
+    : `<div class="sec-empty">Nothing in ${esc(sec.name)} yet. Items will appear here as they're added.</div>`);
+
+  app.innerHTML=`<div class="pv">
+    <aside class="side">
+      <a class="back" href="#">← ${esc(CONFIG.COMPANY.name)}</a>
+      <h2 class="pv-title">${esc(proj.title)}</h2>
+      <nav class="nav">${nav}</nav>
+    </aside>
+    <div class="mainsec">
+      <div class="main-head"><div class="eyebrow">${esc(proj.title)}</div><h2>${esc(sec.name)}</h2></div>
+      ${body}
+    </div>
+  </div>`;
+
+  sec.items.forEach(it=>{
+    if(it.type==='video' && it.stream_uid && window.Stream){
+      try{ players[it.id]=Stream(document.getElementById('if-'+it.id)); }catch(e){}
+    }
+    const btn=document.getElementById('post-'+it.id);
+    if(btn){
+      btn.addEventListener('click', ()=>postNote(proj,sec,it));
+      const nEl=document.getElementById('name-'+it.id), bEl=document.getElementById('body-'+it.id);
+      const gate=()=>{ btn.disabled = !((nEl.value||'').trim() && (bEl.value||'').trim()); };
+      nEl.addEventListener('input',gate); bEl.addEventListener('input',gate); gate();
+    }
+    loadNotes(proj,sec,it);
+  });
+}
+
+function mediaHTML(it){
+  if(it.type==='video' && it.stream_uid){
+    return `<div class="stage" id="stage-${it.id}"><iframe id="if-${it.id}" src="https://${CONFIG.STREAM_CUSTOMER}/${it.stream_uid}/iframe" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;" allowfullscreen></iframe></div>`;
+  }
+  if(it.type==='image' && it.src){
+    return `<div class="stage is-image" id="stage-${it.id}"><img src="${esc(it.src)}" alt="${esc(itemTitle(it))}"></div>`;
+  }
+  const need = it.type==='video' ? 'a Stream video ID' : 'an image URL';
+  return `<div class="stage ${it.type==='image'?'is-image':''}" id="stage-${it.id}"><div class="ph">Add ${need} for "${esc(itemTitle(it))}" in the CONFIG.</div></div>`;
+}
+
+function delivHTML(proj,sec,it){
+  const ver = it.type==='video' && it.version ? `<span class="deliv-ver">${esc(it.version)}</span>` : '';
+  const kind = it.type==='video' ? 'video' : 'image';
+  return `<section class="deliv">
+    <div class="deliv-head">
+      <span class="deliv-title">${esc(itemTitle(it))}</span>${ver}
+      <span class="deliv-kind">${kind}</span>
+    </div>
+    ${mediaHTML(it)}
+    <div class="notes">
+      <div class="notes-bar"><h3>Notes</h3><span class="count" id="count-${it.id}"></span></div>
+      <div id="notes-${it.id}"><div class="empty">Loading notes…</div></div>
+      <div class="composer">
+        <div class="row">
+          <div class="field f-name"><label>Your name</label><input id="name-${it.id}" placeholder="e.g. Margot" value="${esc(getName())}"></div>
+          ${it.type==='video' ? `<div class="field f-tc"><label>Timecode</label><input id="tc-${it.id}" placeholder="00:00"></div>` : ''}
+        </div>
+        <div class="field"><label>Note</label><textarea id="body-${it.id}" placeholder="What should change, or what's working?"></textarea></div>
+        <div class="composer-foot">
+          <button class="post" id="post-${it.id}" disabled>Post note</button>
+          <span class="msg" id="msg-${it.id}"></span>
+        </div>
+      </div>
+    </div>
+  </section>`;
+}
+
+function adminStrip(proj,sec){
+  return `<div class="admin-strip">
+    <span class="admin-tag">Admin</span>
+    <input id="ann-msg-${sec.id}" class="admin-input" placeholder="Optional message \u2014 e.g. 'Animatic v2 is up for review'">
+    <button class="admin-btn" id="ann-btn-${sec.id}" onclick="announce('${proj.id}','${sec.id}')">Notify team \u00b7 ${esc(sec.name)} ready</button>
+    <span class="admin-msg" id="ann-status-${sec.id}"></span>
+  </div>`;
+}
+async function announce(projId, secId){
+  const proj=CONFIG.PROJECTS.find(p=>p.id===projId); if(!proj) return;
+  const sec=proj.sections.find(s=>s.id===secId); if(!sec) return;
+  const btn=document.getElementById('ann-btn-'+secId), st=document.getElementById('ann-status-'+secId), inp=document.getElementById('ann-msg-'+secId);
+  const message=((inp&&inp.value)||'').trim();
+  btn.disabled=true; const orig=btn.textContent; btn.textContent='Sending\u2026'; st.className='admin-msg'; st.textContent='';
+  try{
+    const { error } = await sb.from('announcements').insert({ review_slug:CONFIG.REVIEW_SLUG, project:proj.id, section:sec.id, message:message||null });
+    if(error) throw error;
+    if(inp) inp.value=''; st.className='admin-msg ok'; st.textContent='Team notified.'; setTimeout(()=>{ if(st) st.textContent=''; },3000);
+  }catch(e){ console.error('announce failed', e); st.className='admin-msg err'; st.textContent='Couldn\'t send \u2014 is the announcements table set up?'; }
+  finally{ btn.disabled=false; btn.textContent=orig; }
+}
+function assetId(proj,sec,it){ return proj.id+':'+sec.id+':'+it.id; }
+
+async function loadNotes(proj,sec,it){
+  const box=document.getElementById('notes-'+it.id); if(!box) return;
+  try{
+    const { data, error } = await sb.from('comments').select('*')
+      .eq('review_slug', CONFIG.REVIEW_SLUG).eq('asset_id', assetId(proj,sec,it))
+      .order('created_at', { ascending:true });
+    if(error) throw error;
+    const ct=document.getElementById('count-'+it.id); if(ct) ct.textContent=data.length||'';
+    if(!data.length){ box.innerHTML='<div class="empty">No notes yet. Add the first one below.</div>'; return; }
+    box.innerHTML=data.map(c=>{
+      const secs=parseTimecode(c.timecode);
+      const canSeek=secs!=null && players[it.id];
+      const tc=c.timecode ? `<button class="tc ${canSeek?'':'static'}" ${canSeek?`onclick="seek('${it.id}',${secs})"`:'disabled'}>${esc(c.timecode)}</button>` : '';
+      return `<div class="note"><div class="ava">${esc((c.author_name||'?').trim().charAt(0)||'?')}</div>
+        <div class="note-main"><div class="note-head"><span class="note-name">${esc(c.author_name||'Anonymous')}</span>${tc}<span class="note-time" title="${esc(relTime(c.created_at))}">${esc(fmtTime(c.created_at))}</span></div>
+        <div class="note-body">${esc(c.body)}</div></div></div>`;
+    }).join('');
+  }catch(e){
+    console.error('load notes failed', e);
+    box.innerHTML='<div class="empty">Couldn\'t load notes. Refresh the page to try again.</div>';
+  }
+}
+
+async function postNote(proj,sec,it){
+  const nameEl=document.getElementById('name-'+it.id), tcEl=document.getElementById('tc-'+it.id), bodyEl=document.getElementById('body-'+it.id);
+  const msg=document.getElementById('msg-'+it.id), btn=document.getElementById('post-'+it.id);
+  const name=(nameEl.value||'').trim(), tc=(tcEl?tcEl.value:'').trim(), body=(bodyEl.value||'').trim();
+  msg.className='msg'; msg.textContent='';
+  if(!name){ msg.className='msg err'; msg.textContent='Add your name first.'; nameEl.focus(); return; }
+  if(!body){ msg.className='msg err'; msg.textContent='Write a note before posting.'; bodyEl.focus(); return; }
+  btn.disabled=true; btn.textContent='Posting…';
+  try{
+    const { error } = await sb.from('comments').insert({
+      review_slug:CONFIG.REVIEW_SLUG, asset_id:assetId(proj,sec,it), author_name:name, timecode:tc||null, body:body
+    });
+    if(error) throw error;
+    setName(name); bodyEl.value=''; if(tcEl) tcEl.value='';
+    await loadNotes(proj,sec,it);
+    msg.className='msg'; msg.textContent='Posted.'; setTimeout(()=>{ msg.textContent=''; },2500);
+  }catch(e){
+    console.error('post failed', e);
+    msg.className='msg err'; msg.textContent='Couldn\'t post that note. Check your connection and try again.';
+  }finally{ btn.disabled=false; btn.textContent='Post note'; }
+}
+
+chrome();
+window.addEventListener('hashchange', route);
+route();
+
+</script>
+</body>
+</html>
