@@ -4,14 +4,10 @@ import { getCollection } from 'astro:content';
 export async function getStaticPaths() {
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
+  const sections = (await getCollection('reviewSections')).filter(s => s.data.published !== false);
   const items    = (await getCollection('reviewItems')).filter(i => i.data.published !== false);
 
-  const SECTION_DEFS = [
-    { id: 'style-frames', name: 'Style Frames', flag: 'show_style_frames' },
-    { id: 'assets',       name: 'Assets',       flag: 'show_assets' },
-    { id: 'storyboards',  name: 'Storyboards',  flag: 'show_storyboards' },
-    { id: 'videos',       name: 'Videos',       flag: 'show_videos' },
-  ];
+  const cleanId = (id) => String(id).replace(/\.(json|ya?ml)$/i, '');
 
   return reviews.map((review) => {
     const co = review.data;
@@ -20,39 +16,42 @@ export async function getStaticPaths() {
       .filter(p => p.data.company_key === co.key)
       .sort((a, b) => (a.data.order ?? 100) - (b.data.order ?? 100))
       .map((p) => {
-        const sections = SECTION_DEFS
-          .filter(sd => p.data[sd.flag] === true)
-          .map(sd => {
+        const secs = sections
+          .filter(s => s.data.project_key === p.data.key)
+          .sort((a, b) => (a.data.order ?? 100) - (b.data.order ?? 100))
+          .map((s) => {
             const its = items
-              .filter(i => i.data.project_key === p.data.key && i.data.section === sd.id)
+              .filter(i => i.data.section_key === s.data.key)
               .sort((a, b) => (a.data.order ?? 100) - (b.data.order ?? 100))
               .map(i => ({
-                id: String(i.id).replace(/\.(json|ya?ml)$/i, ''),
+                id: cleanId(i.id),
                 type: i.data.kind,
                 title: i.data.title || '',
                 label: i.data.label || '',
                 version: i.data.version || '',
                 stream_uid: i.data.stream_uid || '',
-                src: i.data.image || i.data.image_url || '',
+                src: i.data.image || i.data.src_url || '',
+                download_url: i.data.download_url || '',
+                date: i.data.date || '',
+                archived: i.data.archived === true,
               }));
-            return { id: sd.id, name: sd.name, items: its };
+            return {
+              id: s.data.key,
+              name: s.data.name,
+              current: its.filter(x => !x.archived),
+              archive: its.filter(x => x.archived),
+            };
           });
-        return { id: p.data.key, title: p.data.title, tagline: p.data.tagline || '', sections };
+        return { id: p.data.key, title: p.data.title, tagline: p.data.tagline || '', sections: secs };
       });
 
-    const data = {
-      REVIEW_SLUG: co.key,
-      COMPANY: { name: co.name, logo: co.logo || '' },
-      PROJECTS,
-    };
+    const data = { REVIEW_SLUG: co.key, COMPANY: { name: co.name, logo: co.logo || '' }, PROJECTS };
     return { params: { slug: co.url_slug }, props: { data } };
   });
 }
 
 const { data } = Astro.props;
-
-// ---- site-wide constants (same for every review) ----
-const SUPABASE_URL   = 'https://wvtokocjhtpjrkojxaia.supabase.co';
+const SUPABASE_URL    = 'https://wvtokocjhtpjrkojxaia.supabase.co';
 const SUPABASE_KEY    = 'sb_publishable_NOSa5I95dUTHZhVai9dZtQ_8GEM00J6';
 const STREAM_CUSTOMER = 'customer-jo6j16htmygzl1y3.cloudflarestream.com';
 const ADMIN_KEY       = 'sn-admin-7yq4';
@@ -68,6 +67,7 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style is:global>
+
   :root{
     --ink:#050505; --panel:#0c0c0c; --green:#BAC01E; --green-hi:#D6DC3A;
     --bone:#ECECEA; --dim:rgba(236,236,234,.55); --line:rgba(236,236,234,.13);
@@ -206,6 +206,47 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
   .admin-btn:disabled{opacity:.5; cursor:default}
   .admin-msg{font-size:12px; color:var(--dim)}
   .admin-msg.ok{color:var(--green)} .admin-msg.err{color:#e8806b}
+
+  /* ---------- v2 additions ---------- */
+  .deliv-date{font-family:var(--mono); font-size:11px; color:var(--dim); margin-left:auto}
+  .dl-bar{margin-top:12px}
+  .dl-btn{display:inline-flex; align-items:center; gap:8px; font-family:var(--mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--green-hi); background:rgba(186,192,30,.08); border:1px solid rgba(186,192,30,.45); border-radius:7px; padding:10px 18px; transition:background .15s var(--ease), color .15s var(--ease)}
+  .dl-btn:hover{background:var(--green); color:var(--ink)}
+  .stage.is-image img{cursor:zoom-in}
+  .stage.is-audio{aspect-ratio:auto; max-height:none; min-height:0; padding:18px; display:flex; align-items:center}
+  .stage.is-audio audio{width:100%}
+  .stage.is-file{aspect-ratio:auto; max-height:none}
+  .file-card{display:flex; align-items:center; gap:14px; padding:22px}
+  .file-ic{font-family:var(--mono); font-size:22px; color:var(--green)}
+  .file-name{font-size:16px; font-weight:600}
+
+  .archive{margin:0 0 26px}
+  .archive-toggle{display:inline-flex; align-items:center; gap:8px; font-family:var(--mono); font-size:12px; letter-spacing:.08em; text-transform:uppercase; color:var(--dim); background:none; border:1px solid var(--line); border-radius:7px; padding:9px 14px; cursor:pointer; transition:color .15s var(--ease), border-color .15s var(--ease)}
+  .archive-toggle:hover{color:var(--green); border-color:rgba(186,192,30,.4)}
+  .archive-toggle .ar-ic{color:var(--green)}
+  .archive-toggle .ar-caret{transition:transform .15s var(--ease)}
+  .archive.open .archive-toggle .ar-caret{transform:rotate(180deg)}
+  .archive-row{display:none; gap:12px; overflow-x:auto; padding:16px 2px 6px; -webkit-overflow-scrolling:touch}
+  .archive.open .archive-row{display:flex}
+  .ar-card{flex:0 0 158px; text-align:left; background:var(--panel); border:1px solid var(--line); border-radius:9px; overflow:hidden; cursor:pointer; padding:0; transition:border-color .15s var(--ease), transform .15s var(--ease)}
+  .ar-card:hover{border-color:rgba(186,192,30,.5); transform:translateY(-2px)}
+  .ar-thumb{width:100%; aspect-ratio:16/10; background:#000; display:flex; align-items:center; justify-content:center; overflow:hidden}
+  .ar-thumb img{width:100%; height:100%; object-fit:cover}
+  .ar-glyph{font-family:var(--mono); font-size:24px; color:var(--dim)}
+  .ar-meta{padding:10px 11px}
+  .ar-title{font-size:13px; font-weight:600; line-height:1.2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .ar-date{font-family:var(--mono); font-size:11px; color:var(--dim); margin-top:3px}
+
+  #overlay{position:fixed; inset:0; background:rgba(3,3,3,.92); -webkit-backdrop-filter:blur(6px); backdrop-filter:blur(6px); display:none; align-items:center; justify-content:center; padding:38px 20px; z-index:60}
+  #overlay.show{display:flex}
+  .ov-inner{max-width:min(1100px,94vw); max-height:90vh; overflow:auto; width:100%}
+  #overlay:not(.wide) .ov-inner{width:auto}
+  .ov-img{display:block; max-width:100%; max-height:84vh; margin:0 auto; border-radius:8px}
+  .ov-cap{text-align:center; font-family:var(--mono); font-size:12px; color:var(--dim); margin-top:12px}
+  .ov-deliv{background:var(--ink)}
+  .ov-close{position:fixed; top:16px; right:20px; width:42px; height:42px; font-size:30px; line-height:1; color:var(--bone); background:rgba(20,20,20,.7); border:1px solid var(--line); border-radius:50%; cursor:pointer; z-index:61}
+  .ov-close:hover{color:var(--green); border-color:rgba(186,192,30,.5)}
+  @media (max-width:560px){ .deliv-date{margin-left:0} }
 </style>
 </head>
 <body>
@@ -213,220 +254,173 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
   <div class="wrap head-row">
     <a class="logo-link" href="https://supernerd.tv" target="_blank" rel="noopener" title="Visit supernerd.tv"><img class="logo-img" src="/email-logo.png" alt="Supernerd"></a>
     <img class="cobrand" id="cobrand" alt="" hidden>
-    <div class="head-meta">
-      <div class="eyebrow">Review</div>
-      <div class="co" id="coName" onclick="location.hash=''" title="Back to projects">—</div>
-    </div>
+    <div class="head-meta"><div class="eyebrow">Review</div><div class="co" id="coName" onclick="location.hash=''" title="Back to projects">—</div></div>
   </div>
 </header>
 
 <main class="wrap" id="app"></main>
 
-<footer>
-  <div class="wrap"><a class="mk" href="https://supernerd.tv" target="_blank" rel="noopener">Crafted by <b>Supernerd</b></a></div>
-</footer>
+<div id="overlay" onclick="if(event.target===this)closeOverlay()"><button class="ov-close" onclick="closeOverlay()" aria-label="Close">×</button><div class="ov-inner"></div></div>
+
+<footer><div class="wrap"><a class="mk" href="https://supernerd.tv" target="_blank" rel="noopener">Crafted by <b>Supernerd</b></a></div></footer>
 
 <script is:inline src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script is:inline src="https://embed.cloudflarestream.com/embed/sdk.latest.js"></script>
 <script is:inline define:vars={{ data, SUPABASE_URL, SUPABASE_KEY, STREAM_CUSTOMER, ADMIN_KEY }}>
 const CONFIG = Object.assign({ SUPABASE_URL, SUPABASE_KEY, STREAM_CUSTOMER, ADMIN_KEY }, data);
-
-
 const sb = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
 const ADMIN = !!CONFIG.ADMIN_KEY && new URLSearchParams(location.search).get('admin') === CONFIG.ADMIN_KEY;
 let players = {};
 const NAME_KEY = 'sn_review_name';
-const getName = ()=>{ try{ return localStorage.getItem(NAME_KEY)||''; }catch(e){ return ''; } };
-const setName = n=>{ try{ localStorage.setItem(NAME_KEY,n); }catch(e){} };
+const getName = () => { try { return localStorage.getItem(NAME_KEY) || ''; } catch (e) { return ''; } };
+const setName = (n) => { try { localStorage.setItem(NAME_KEY, n); } catch (e) {} };
 
-function parseTimecode(tc){
-  if(!tc) return null;
-  const parts=String(tc).trim().split(':').map(p=>parseInt(p,10));
-  if(parts.some(isNaN)) return null;
-  let s=0; for(const p of parts){ s=s*60+p; } return s;
-}
-function relTime(iso){
-  const d=(Date.now()-new Date(iso).getTime())/1000;
-  if(d<60) return 'just now';
-  if(d<3600) return Math.floor(d/60)+'m ago';
-  if(d<86400) return Math.floor(d/3600)+'h ago';
-  return Math.floor(d/86400)+'d ago';
-}
+function parseTimecode(tc){ if(!tc) return null; const parts=String(tc).trim().split(':').map(p=>parseInt(p,10)); if(parts.some(isNaN)) return null; let s=0; for(const p of parts){ s=s*60+p; } return s; }
+function relTime(iso){ const d=(Date.now()-new Date(iso).getTime())/1000; if(d<60) return 'just now'; if(d<3600) return Math.floor(d/60)+'m ago'; if(d<86400) return Math.floor(d/3600)+'h ago'; return Math.floor(d/86400)+'d ago'; }
 function fmtTime(iso){ const d=new Date(iso); return d.toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}); }
-function esc(s){ const d=document.createElement('div'); d.textContent=s==null?'':s; return d.innerHTML; }
-function itemTitle(it){ return it.type==='video' ? (it.label||'Video') : (it.title||'Untitled'); }
+function fmtDate(iso){ if(!iso) return ''; let d; const m=String(iso).match(/^(\d{4})-(\d{2})-(\d{2})$/); if(m){ d=new Date(+m[1], +m[2]-1, +m[3], 12); } else { d=new Date(iso); } if(isNaN(d.getTime())) return ''; return d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}); }
+function esc(s){ const d=document.createElement('div'); d.textContent=(s==null?'':s); return d.innerHTML; }
+function itemTitle(it){ return it.type==='video' ? (it.label||'Video') : (it.title || itemFallback(it)); }
+function itemFallback(it){ return it.type==='audio' ? 'Audio' : (it.type==='file' ? 'File' : 'Untitled'); }
+function downloadHref(it){ if(it.download_url) return it.download_url; if(it.type==='video' && it.stream_uid) return 'https://'+CONFIG.STREAM_CUSTOMER+'/'+it.stream_uid+'/downloads/default.mp4'; return it.src || ''; }
 
-function seek(itemId, seconds){
-  const p=players[itemId];
-  if(p){ try{ p.currentTime=seconds; p.play(); const st=document.getElementById('stage-'+itemId); if(st) window.scrollTo({top:st.getBoundingClientRect().top+window.scrollY-86, behavior:'smooth'}); }catch(e){} }
-}
+function seek(id, seconds){ const p=players[id]; if(p){ try{ p.currentTime=seconds; p.play(); const st=document.getElementById('stage-'+id); if(st) window.scrollTo({top:st.getBoundingClientRect().top+window.scrollY-86, behavior:'smooth'}); }catch(e){} } }
 
-/* ---------- header / chrome ---------- */
-function chrome(){
-  document.getElementById('coName').textContent = CONFIG.COMPANY.name;
-  if(CONFIG.COMPANY.logo){ const c=document.getElementById('cobrand'); c.src=CONFIG.COMPANY.logo; c.hidden=false; }
+function chrome(){ document.getElementById('coName').textContent = CONFIG.COMPANY.name; if(CONFIG.COMPANY.logo){ const c=document.getElementById('cobrand'); c.src=CONFIG.COMPANY.logo; c.hidden=false; } }
+
+/* ---------- overlay / lightbox ---------- */
+function openOverlay(html, wide){ const o=document.getElementById('overlay'); o.querySelector('.ov-inner').innerHTML=html; o.classList.toggle('wide', !!wide); o.classList.add('show'); document.body.style.overflow='hidden'; }
+function closeOverlay(){ const o=document.getElementById('overlay'); o.classList.remove('show'); o.querySelector('.ov-inner').innerHTML=''; document.body.style.overflow=''; }
+function lightboxImage(src, cap){ openOverlay('<img class="ov-img" src="'+esc(src)+'" alt="'+esc(cap||'')+'">' + (cap ? '<div class="ov-cap">'+esc(cap)+'</div>' : '')); }
+function openArchived(projId, secId, itemId){
+  const proj=CONFIG.PROJECTS.find(p=>p.id===projId); if(!proj) return;
+  const sec=proj.sections.find(s=>s.id===secId); if(!sec) return;
+  const it=sec.archive.find(x=>x.id===itemId) || sec.current.find(x=>x.id===itemId); if(!it) return;
+  openOverlay('<div class="ov-deliv">'+delivHTML(proj,sec,it)+'</div>', true);
+  wireItem(proj,sec,it);
 }
 
 /* ---------- routing ---------- */
 function route(){
-  const h=new URLSearchParams(location.hash.replace(/^#/,''));
-  const p=h.get('p'), s=h.get('s');
-  players={};
+  const h=new URLSearchParams(location.hash.replace(/^#/,'')); const p=h.get('p'), s=h.get('s');
+  players={}; closeOverlay();
   if(!p){ renderLanding(); return; }
-  const proj=CONFIG.PROJECTS.find(x=>x.id===p);
-  if(!proj){ renderLanding(); return; }
-  const sec=proj.sections.find(x=>x.id===s)||proj.sections[0];
+  const proj=CONFIG.PROJECTS.find(x=>x.id===p); if(!proj){ renderLanding(); return; }
+  const sec=proj.sections.find(x=>x.id===s) || proj.sections[0];
+  if(!sec){ renderLanding(); return; }
   renderProject(proj, sec);
 }
 
-/* ---------- landing: company + project folders ---------- */
+/* ---------- landing ---------- */
 function renderLanding(){
   const app=document.getElementById('app');
   const cards=CONFIG.PROJECTS.map(p=>{
-    const items=p.sections.reduce((n,sec)=>n+sec.items.length,0);
-    return `<a class="card" href="#p=${encodeURIComponent(p.id)}" tabindex="0">
-      <div class="c-eye">Project</div>
-      <h3>${esc(p.title)}</h3>
-      <div class="c-tag">${esc(p.tagline||'')}</div>
-      <div class="c-foot">
-        <span class="c-count">${p.sections.length} sections · ${items} item${items===1?'':'s'}</span>
-        <span class="c-go">Open →</span>
-      </div></a>`;
+    const items=p.sections.reduce((n,sec)=>n+sec.current.length+sec.archive.length,0);
+    return '<a class="card" href="#p='+encodeURIComponent(p.id)+'" tabindex="0"><div class="c-eye">Project</div><h3>'+esc(p.title)+'</h3><div class="c-tag">'+esc(p.tagline||'')+'</div><div class="c-foot"><span class="c-count">'+p.sections.length+' sections · '+items+' item'+(items===1?'':'s')+'</span><span class="c-go">Open →</span></div></a>';
   }).join('');
-  app.innerHTML=`<section class="landing">
-    <div class="eyebrow">Client review</div>
-    <h1 class="co-name">${esc(CONFIG.COMPANY.name)}</h1>
-    <p class="lead">Open a project to review its work. Each section holds its own deliverables, and every item has its own notes — leave feedback right under what you're looking at.</p>
-    <div class="grid">${cards||'<p class="sec-empty">No projects yet.</p>'}</div>
-  </section>`;
+  app.innerHTML='<section class="landing"><div class="eyebrow">Client review</div><h1 class="co-name">'+esc(CONFIG.COMPANY.name)+'</h1><p class="lead">Open a project to review its work. Each section holds its own deliverables, and every item has its own notes — leave feedback right under what you are looking at.</p><div class="grid">'+(cards||'<p class="sec-empty">No projects yet.</p>')+'</div></section>';
 }
 
-/* ---------- project: side nav + active section ---------- */
+/* ---------- project view ---------- */
 function renderProject(proj, sec){
   const app=document.getElementById('app');
-  const nav=proj.sections.map((s,i)=>`
-    <a href="#p=${encodeURIComponent(proj.id)}&s=${encodeURIComponent(s.id)}" class="${s.id===sec.id?'active':''}">
-      <span class="n-num">${String(i+1).padStart(2,'0')}</span>
-      <span class="n-name">${esc(s.name)}</span>
-      <span class="n-ct">${s.items.length||''}</span>
-    </a>`).join('');
+  const nav=proj.sections.map((s,i)=>'<a href="#p='+encodeURIComponent(proj.id)+'&s='+encodeURIComponent(s.id)+'" class="'+(s.id===sec.id?'active':'')+'"><span class="n-num">'+String(i+1).padStart(2,'0')+'</span><span class="n-name">'+esc(s.name)+'</span><span class="n-ct">'+((s.current.length+s.archive.length)||'')+'</span></a>').join('');
 
-  const body = (ADMIN ? adminStrip(proj,sec) : '') + (sec.items.length
-    ? sec.items.map(it=>delivHTML(proj,sec,it)).join('')
-    : `<div class="sec-empty">Nothing in ${esc(sec.name)} yet. Items will appear here as they're added.</div>`);
+  const adminHTML = ADMIN ? adminStrip(proj,sec) : '';
+  const archiveHTML = sec.archive.length ? archivePanel(proj,sec) : '';
+  const currentHTML = sec.current.length
+    ? sec.current.map(it=>delivHTML(proj,sec,it)).join('')
+    : (sec.archive.length ? '<div class="sec-empty">No current items — everything here is archived. Open the archive above.</div>' : '<div class="sec-empty">Nothing in '+esc(sec.name)+' yet.</div>');
 
-  app.innerHTML=`<div class="pv">
-    <aside class="side">
-      <a class="back" href="#">← ${esc(CONFIG.COMPANY.name)}</a>
-      <h2 class="pv-title">${esc(proj.title)}</h2>
-      <nav class="nav">${nav}</nav>
-    </aside>
-    <div class="mainsec">
-      <div class="main-head"><div class="eyebrow">${esc(proj.title)}</div><h2>${esc(sec.name)}</h2></div>
-      ${body}
-    </div>
-  </div>`;
+  app.innerHTML='<div class="pv"><aside class="side"><a class="back" href="#">← '+esc(CONFIG.COMPANY.name)+'</a><h2 class="pv-title">'+esc(proj.title)+'</h2><nav class="nav">'+nav+'</nav></aside><div class="mainsec"><div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>'+esc(sec.name)+'</h2></div>'+adminHTML+archiveHTML+currentHTML+'</div></div>';
 
-  sec.items.forEach(it=>{
-    if(it.type==='video' && it.stream_uid && window.Stream){
-      try{ players[it.id]=Stream(document.getElementById('if-'+it.id)); }catch(e){}
-    }
-    const btn=document.getElementById('post-'+it.id);
-    if(btn){
-      btn.addEventListener('click', ()=>postNote(proj,sec,it));
-      const nEl=document.getElementById('name-'+it.id), bEl=document.getElementById('body-'+it.id);
-      const gate=()=>{ btn.disabled = !((nEl.value||'').trim() && (bEl.value||'').trim()); };
-      nEl.addEventListener('input',gate); bEl.addEventListener('input',gate); gate();
-    }
-    loadNotes(proj,sec,it);
-  });
+  sec.current.forEach(it=>wireItem(proj,sec,it));
+  if(ADMIN){ const ab=document.getElementById('ann-btn-'+sec.id); if(ab) ab.addEventListener('click', ()=>announce(proj.id,sec.id)); }
 }
 
+/* ---------- archive panel ---------- */
+function archivePanel(proj, sec){
+  const cards=sec.archive.map(it=>{
+    let thumb='';
+    if(it.type==='image') thumb=it.src||'';
+    else if(it.type==='video' && it.stream_uid) thumb='https://'+CONFIG.STREAM_CUSTOMER+'/'+it.stream_uid+'/thumbnails/thumbnail.jpg';
+    const thumbHTML = thumb ? '<img src="'+esc(thumb)+'" alt="">' : '<div class="ar-glyph">'+(it.type==='audio'?'♪':'⤓')+'</div>';
+    const ver = (it.type==='video' && it.version) ? ' · '+esc(it.version) : '';
+    return '<button class="ar-card" onclick="openArchived(\''+proj.id+'\',\''+sec.id+'\',\''+it.id+'\')"><div class="ar-thumb">'+thumbHTML+'</div><div class="ar-meta"><div class="ar-title">'+esc(itemTitle(it))+ver+'</div><div class="ar-date">'+esc(fmtDate(it.date))+'</div></div></button>';
+  }).join('');
+  return '<div class="archive"><button class="archive-toggle" onclick="this.parentElement.classList.toggle(\'open\')"><span class="ar-ic">⌖</span> Archive — '+sec.archive.length+' older version'+(sec.archive.length===1?'':'s')+' <span class="ar-caret">▾</span></button><div class="archive-row">'+cards+'</div></div>';
+}
+
+/* ---------- a single deliverable ---------- */
 function mediaHTML(it){
   if(it.type==='video' && it.stream_uid){
-    return `<div class="stage" id="stage-${it.id}"><iframe id="if-${it.id}" src="https://${CONFIG.STREAM_CUSTOMER}/${it.stream_uid}/iframe" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;" allowfullscreen></iframe></div>`;
+    return '<div class="stage" id="stage-'+it.id+'"><iframe id="if-'+it.id+'" src="https://'+CONFIG.STREAM_CUSTOMER+'/'+it.stream_uid+'/iframe" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;" allowfullscreen></iframe></div>';
   }
   if(it.type==='image' && it.src){
-    return `<div class="stage is-image" id="stage-${it.id}"><img src="${esc(it.src)}" alt="${esc(itemTitle(it))}"></div>`;
+    return '<div class="stage is-image" id="stage-'+it.id+'"><img src="'+esc(it.src)+'" alt="'+esc(itemTitle(it))+'" title="Click to enlarge" onclick="lightboxImage(\''+esc(it.src)+'\',\''+esc(itemTitle(it))+'\')"></div>';
   }
-  const need = it.type==='video' ? 'a Stream video ID' : 'an image URL';
-  return `<div class="stage ${it.type==='image'?'is-image':''}" id="stage-${it.id}"><div class="ph">Add ${need} for "${esc(itemTitle(it))}" in the CONFIG.</div></div>`;
+  if(it.type==='audio' && (it.src||it.download_url)){
+    return '<div class="stage is-audio" id="stage-'+it.id+'"><audio controls src="'+esc(it.src||it.download_url)+'"></audio></div>';
+  }
+  if(it.type==='file'){
+    return '<div class="stage is-file" id="stage-'+it.id+'"><div class="file-card"><div class="file-ic">⤓</div><div class="file-name">'+esc(itemTitle(it))+'</div></div></div>';
+  }
+  const need = it.type==='video' ? 'a Stream video ID' : (it.type==='image' ? 'an image' : 'a file URL');
+  return '<div class="stage '+(it.type==='image'?'is-image':'')+'" id="stage-'+it.id+'"><div class="ph">Add '+need+' for "'+esc(itemTitle(it))+'".</div></div>';
 }
 
-function delivHTML(proj,sec,it){
-  const ver = it.type==='video' && it.version ? `<span class="deliv-ver">${esc(it.version)}</span>` : '';
-  const kind = it.type==='video' ? 'video' : 'image';
-  return `<section class="deliv">
-    <div class="deliv-head">
-      <span class="deliv-title">${esc(itemTitle(it))}</span>${ver}
-      <span class="deliv-kind">${kind}</span>
-    </div>
-    ${mediaHTML(it)}
-    <div class="notes">
-      <div class="notes-bar"><h3>Notes</h3><span class="count" id="count-${it.id}"></span></div>
-      <div id="notes-${it.id}"><div class="empty">Loading notes…</div></div>
-      <div class="composer">
-        <div class="row">
-          <div class="field f-name"><label>Your name</label><input id="name-${it.id}" placeholder="e.g. Margot" value="${esc(getName())}"></div>
-          ${it.type==='video' ? `<div class="field f-tc"><label>Timecode</label><input id="tc-${it.id}" placeholder="00:00"></div>` : ''}
-        </div>
-        <div class="field"><label>Note</label><textarea id="body-${it.id}" placeholder="What should change, or what's working?"></textarea></div>
-        <div class="composer-foot">
-          <button class="post" id="post-${it.id}" disabled>Post note</button>
-          <span class="msg" id="msg-${it.id}"></span>
-        </div>
-      </div>
-    </div>
-  </section>`;
+function delivHTML(proj, sec, it){
+  const ver = (it.type==='video' && it.version) ? '<span class="deliv-ver">'+esc(it.version)+'</span>' : '';
+  const date = it.date ? '<span class="deliv-date">'+esc(fmtDate(it.date))+'</span>' : '';
+  const dl = downloadHref(it);
+  const dlBar = dl ? '<div class="dl-bar"><a class="dl-btn" href="'+esc(dl)+'" download target="_blank" rel="noopener">⤓ Download</a></div>' : '';
+  const tcField = it.type==='video' ? '<div class="field f-tc"><label>Timecode</label><input id="tc-'+it.id+'" placeholder="00:00"></div>' : '';
+  return '<section class="deliv">'
+    + '<div class="deliv-head"><span class="deliv-title">'+esc(itemTitle(it))+'</span>'+ver+'<span class="deliv-kind">'+it.type+'</span>'+date+'</div>'
+    + mediaHTML(it)
+    + dlBar
+    + '<div class="notes"><div class="notes-bar"><h3>Notes</h3><span class="count" id="count-'+it.id+'"></span></div>'
+    + '<div id="notes-'+it.id+'"><div class="empty">Loading notes…</div></div>'
+    + '<div class="composer"><div class="row"><div class="field f-name"><label>Your name</label><input id="name-'+it.id+'" placeholder="e.g. Margot" value="'+esc(getName())+'"></div>'+tcField+'</div>'
+    + '<div class="field"><label>Note</label><textarea id="body-'+it.id+'" placeholder="What should change, or what is working?"></textarea></div>'
+    + '<div class="composer-foot"><button class="post" id="post-'+it.id+'" disabled>Post note</button><span class="msg" id="msg-'+it.id+'"></span></div></div></div>'
+    + '</section>';
 }
 
-function adminStrip(proj,sec){
-  return `<div class="admin-strip">
-    <span class="admin-tag">Admin</span>
-    <input id="ann-msg-${sec.id}" class="admin-input" placeholder="Optional message \u2014 e.g. 'Animatic v2 is up for review'">
-    <button class="admin-btn" id="ann-btn-${sec.id}" onclick="announce('${proj.id}','${sec.id}')">Notify team \u00b7 ${esc(sec.name)} ready</button>
-    <span class="admin-msg" id="ann-status-${sec.id}"></span>
-  </div>`;
+function wireItem(proj, sec, it){
+  if(it.type==='video' && it.stream_uid && window.Stream){ try{ players[it.id]=Stream(document.getElementById('if-'+it.id)); }catch(e){} }
+  const btn=document.getElementById('post-'+it.id);
+  if(btn){
+    btn.addEventListener('click', ()=>postNote(proj,sec,it));
+    const nEl=document.getElementById('name-'+it.id), bEl=document.getElementById('body-'+it.id);
+    const gate=()=>{ btn.disabled = !((nEl.value||'').trim() && (bEl.value||'').trim()); };
+    nEl.addEventListener('input',gate); bEl.addEventListener('input',gate); gate();
+  }
+  loadNotes(proj,sec,it);
 }
-async function announce(projId, secId){
-  const proj=CONFIG.PROJECTS.find(p=>p.id===projId); if(!proj) return;
-  const sec=proj.sections.find(s=>s.id===secId); if(!sec) return;
-  const btn=document.getElementById('ann-btn-'+secId), st=document.getElementById('ann-status-'+secId), inp=document.getElementById('ann-msg-'+secId);
-  const message=((inp&&inp.value)||'').trim();
-  btn.disabled=true; const orig=btn.textContent; btn.textContent='Sending\u2026'; st.className='admin-msg'; st.textContent='';
-  try{
-    const { error } = await sb.from('announcements').insert({ review_slug:CONFIG.REVIEW_SLUG, project:proj.id, section:sec.id, message:message||null });
-    if(error) throw error;
-    if(inp) inp.value=''; st.className='admin-msg ok'; st.textContent='Team notified.'; setTimeout(()=>{ if(st) st.textContent=''; },3000);
-  }catch(e){ console.error('announce failed', e); st.className='admin-msg err'; st.textContent='Couldn\'t send \u2014 is the announcements table set up?'; }
-  finally{ btn.disabled=false; btn.textContent=orig; }
-}
-function assetId(proj,sec,it){ return proj.id+':'+sec.id+':'+it.id; }
 
-async function loadNotes(proj,sec,it){
+function assetId(proj, sec, it){ return proj.id+':'+sec.id+':'+it.id; }
+
+async function loadNotes(proj, sec, it){
   const box=document.getElementById('notes-'+it.id); if(!box) return;
   try{
-    const { data, error } = await sb.from('comments').select('*')
-      .eq('review_slug', CONFIG.REVIEW_SLUG).eq('asset_id', assetId(proj,sec,it))
-      .order('created_at', { ascending:true });
+    const { data, error } = await sb.from('comments').select('*').eq('review_slug', CONFIG.REVIEW_SLUG).eq('asset_id', assetId(proj,sec,it)).order('created_at', { ascending:true });
     if(error) throw error;
     const ct=document.getElementById('count-'+it.id); if(ct) ct.textContent=data.length||'';
     if(!data.length){ box.innerHTML='<div class="empty">No notes yet. Add the first one below.</div>'; return; }
     box.innerHTML=data.map(c=>{
       const secs=parseTimecode(c.timecode);
       const canSeek=secs!=null && players[it.id];
-      const tc=c.timecode ? `<button class="tc ${canSeek?'':'static'}" ${canSeek?`onclick="seek('${it.id}',${secs})"`:'disabled'}>${esc(c.timecode)}</button>` : '';
-      return `<div class="note"><div class="ava">${esc((c.author_name||'?').trim().charAt(0)||'?')}</div>
-        <div class="note-main"><div class="note-head"><span class="note-name">${esc(c.author_name||'Anonymous')}</span>${tc}<span class="note-time" title="${esc(relTime(c.created_at))}">${esc(fmtTime(c.created_at))}</span></div>
-        <div class="note-body">${esc(c.body)}</div></div></div>`;
+      const tc=c.timecode ? '<button class="tc '+(canSeek?'':'static')+'" '+(canSeek?'onclick="seek(\''+it.id+'\','+secs+')"':'disabled')+'>'+esc(c.timecode)+'</button>' : '';
+      return '<div class="note"><div class="ava">'+esc((c.author_name||'?').trim().charAt(0)||'?')+'</div><div class="note-main"><div class="note-head"><span class="note-name">'+esc(c.author_name||'Anonymous')+'</span>'+tc+'<span class="note-time" title="'+esc(relTime(c.created_at))+'">'+esc(fmtTime(c.created_at))+'</span></div><div class="note-body">'+esc(c.body)+'</div></div></div>';
     }).join('');
   }catch(e){
     console.error('load notes failed', e);
-    box.innerHTML='<div class="empty">Couldn\'t load notes. Refresh the page to try again.</div>';
+    box.innerHTML='<div class="empty">Could not load notes. Refresh the page to try again.</div>';
   }
 }
 
-async function postNote(proj,sec,it){
+async function postNote(proj, sec, it){
   const nameEl=document.getElementById('name-'+it.id), tcEl=document.getElementById('tc-'+it.id), bodyEl=document.getElementById('body-'+it.id);
   const msg=document.getElementById('msg-'+it.id), btn=document.getElementById('post-'+it.id);
   const name=(nameEl.value||'').trim(), tc=(tcEl?tcEl.value:'').trim(), body=(bodyEl.value||'').trim();
@@ -435,19 +429,35 @@ async function postNote(proj,sec,it){
   if(!body){ msg.className='msg err'; msg.textContent='Write a note before posting.'; bodyEl.focus(); return; }
   btn.disabled=true; btn.textContent='Posting…';
   try{
-    const { error } = await sb.from('comments').insert({
-      review_slug:CONFIG.REVIEW_SLUG, asset_id:assetId(proj,sec,it), author_name:name, timecode:tc||null, body:body
-    });
+    const { error } = await sb.from('comments').insert({ review_slug:CONFIG.REVIEW_SLUG, asset_id:assetId(proj,sec,it), author_name:name, timecode:tc||null, body:body });
     if(error) throw error;
     setName(name); bodyEl.value=''; if(tcEl) tcEl.value='';
     await loadNotes(proj,sec,it);
     msg.className='msg'; msg.textContent='Posted.'; setTimeout(()=>{ msg.textContent=''; },2500);
   }catch(e){
     console.error('post failed', e);
-    msg.className='msg err'; msg.textContent='Couldn\'t post that note. Check your connection and try again.';
+    msg.className='msg err'; msg.textContent='Could not post that note. Check your connection and try again.';
   }finally{ btn.disabled=false; btn.textContent='Post note'; }
 }
 
+function adminStrip(proj, sec){
+  return '<div class="admin-strip"><span class="admin-tag">Admin</span><input id="ann-msg-'+sec.id+'" class="admin-input" placeholder="Optional message — e.g. \'Animatic v2 is up for review\'"><button class="admin-btn" id="ann-btn-'+sec.id+'">Notify team · '+esc(sec.name)+' ready</button><span class="admin-msg" id="ann-status-'+sec.id+'"></span></div>';
+}
+async function announce(projId, secId){
+  const proj=CONFIG.PROJECTS.find(p=>p.id===projId); if(!proj) return;
+  const sec=proj.sections.find(s=>s.id===secId); if(!sec) return;
+  const btn=document.getElementById('ann-btn-'+secId), st=document.getElementById('ann-status-'+secId), inp=document.getElementById('ann-msg-'+secId);
+  const message=((inp&&inp.value)||'').trim();
+  btn.disabled=true; const orig=btn.textContent; btn.textContent='Sending…'; st.className='admin-msg'; st.textContent='';
+  try{
+    const { error } = await sb.from('announcements').insert({ review_slug:CONFIG.REVIEW_SLUG, project:proj.id, section:sec.id, message:message||null });
+    if(error) throw error;
+    if(inp) inp.value=''; st.className='admin-msg ok'; st.textContent='Team notified.'; setTimeout(()=>{ if(st) st.textContent=''; },3000);
+  }catch(e){ console.error('announce failed', e); st.className='admin-msg err'; st.textContent='Could not send — is the announcements table set up?'; }
+  finally{ btn.disabled=false; btn.textContent=orig; }
+}
+
+document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeOverlay(); });
 chrome();
 window.addEventListener('hashchange', route);
 route();

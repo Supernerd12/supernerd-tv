@@ -1,13 +1,1 @@
-{
-  "project_key": "animated-psa",
-  "section": "assets",
-  "kind": "image",
-  "title": "Dr. Patel - Character Sheet",
-  "label": "",
-  "version": "",
-  "stream_uid": "",
-  "image": "/work/uploads/dr.patel-style2.png",
-  "image_url": "",
-  "order": 1,
-  "published": true
-}
+{ "section_key": "apsa-style-frames", "kind": "image", "title": "Style Frame 01", "src_url": "", "date": "2026-06-20", "order": 1, "published": true }
