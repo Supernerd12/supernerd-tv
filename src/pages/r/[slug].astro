@@ -7,11 +7,13 @@ export async function getStaticPaths() {
   const items    = (await getCollection('reviewItems')).filter(i => i.data.published !== false);
 
   const cleanId = (id) => String(id).replace(/\.(json|ya?ml)$/i, '');
+  const slug = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  const pv = (v) => { const m = String(v || '').match(/(\d+)/); return m ? parseInt(m[1], 10) : 0; };
   const inferKind = (d) => {
     if (d.kind) return d.kind;
     if (d.stream_uid) return 'video';
     if (d.image) return 'image';
-    const u = (d.src_url || '').toLowerCase();
+    const u = (d.src_url || d.image_url || '').toLowerCase();
     if (/\.(mp3|wav|m4a|aac|ogg|flac)$/.test(u)) return 'audio';
     if (/\.(png|jpe?g|gif|webp|svg|avif)$/.test(u)) return 'image';
     if (u) return 'file';
@@ -40,33 +42,46 @@ export async function getStaticPaths() {
               id,
               section: ((i.data.section || i.data.section_key || 'Other').trim()) || 'Other',
               type: inferKind(i.data),
-              title: i.data.title || '',
-              label: i.data.label || '',
+              title: i.data.title || i.data.label || '',
               version: i.data.version || '',
               stream_uid: i.data.stream_uid || '',
               src: i.data.image || i.data.src_url || i.data.image_url || '',
               download_url: i.data.download_url || '',
               date: dateFromId(id, i.data.date),
-              archived: i.data.archived === true,
-              order: i.data.order ?? 100,
             };
           });
 
-        // group items by their (typed) section name; sections appear in lowest-order-first order
-        const seen = [];
-        const byName = new Map();
+        // group by section (order of first appearance)
+        const secOrder = []; const secMap = new Map();
         for (const it of mine) {
-          if (!byName.has(it.section)) { byName.set(it.section, []); seen.push(it.section); }
-          byName.get(it.section).push(it);
+          if (!secMap.has(it.section)) { secMap.set(it.section, []); secOrder.push(it.section); }
+          secMap.get(it.section).push(it);
         }
-        const sections = seen.map((name) => {
-          const list = byName.get(name);
-          return {
-            id: name,
-            name,
-            current: list.filter(x => !x.archived),
-            archive: list.filter(x => x.archived),
-          };
+
+        const sections = secOrder.map((sName) => {
+          const list = secMap.get(sName);
+          // group by Title into version stacks
+          const stOrder = []; const stMap = new Map();
+          for (const it of list) {
+            const key = ((it.title || '').trim().toLowerCase()) || ('__' + it.id);
+            if (!stMap.has(key)) { stMap.set(key, []); stOrder.push(key); }
+            stMap.get(key).push(it);
+          }
+          const used = new Set();
+          const stacks = stOrder.map((key) => {
+            const versions = stMap.get(key).slice().sort((a, b) => {
+              const dv = pv(b.version) - pv(a.version);
+              if (dv !== 0) return dv;
+              return String(b.date || '').localeCompare(String(a.date || ''));
+            });
+            const title = versions[0].title || 'Untitled';
+            let base = (slug(sName) || 'sec') + '--' + (slug(title) || 'item');
+            let sid = base, k = 2;
+            while (used.has(sid)) { sid = base + '-' + (k++); }
+            used.add(sid);
+            return { id: sid, title, versions };
+          });
+          return { id: sName, name: sName, stacks };
         });
 
         return { id: p.data.key, title: p.data.title, tagline: p.data.tagline || '', sections };
@@ -278,6 +293,11 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
   .note-del:hover{color:#ff6b6b; border-color:rgba(255,107,107,.55)}
   .meta-bar{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:12px; flex-wrap:wrap}
   .up-stamp{font-family:var(--mono); font-size:11px; color:var(--dim)}
+  .ver-chips{display:inline-flex; gap:6px; flex-wrap:wrap; margin-left:10px; vertical-align:middle}
+  .ver-chip{font-family:var(--mono); font-size:11px; letter-spacing:.04em; padding:3px 10px; border-radius:999px; border:1px solid rgba(186,192,30,.5); color:var(--green-hi); background:transparent; cursor:pointer; transition:background .12s var(--ease), color .12s var(--ease), border-color .12s var(--ease)}
+  .ver-chip:hover{border-color:var(--green); color:var(--green)}
+  .ver-chip.active{background:var(--green); color:var(--ink); border-color:var(--green)}
+  .ver-body{display:block}
 </style>
 </head>
 <body>
@@ -313,28 +333,24 @@ function dropMine(id){ try { localStorage.setItem(MINE_KEY, JSON.stringify(myCom
 function parseTimecode(tc){ if(!tc) return null; const parts=String(tc).trim().split(':').map(p=>parseInt(p,10)); if(parts.some(isNaN)) return null; let s=0; for(const p of parts){ s=s*60+p; } return s; }
 function relTime(iso){ const d=(Date.now()-new Date(iso).getTime())/1000; if(d<60) return 'just now'; if(d<3600) return Math.floor(d/60)+'m ago'; if(d<86400) return Math.floor(d/3600)+'h ago'; return Math.floor(d/86400)+'d ago'; }
 function fmtTime(iso){ const d=new Date(iso); return d.toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}); }
-function fmtDate(iso){ if(!iso) return ''; let d; const m=String(iso).match(/^(\d{4})-(\d{2})-(\d{2})$/); if(m){ d=new Date(+m[1], +m[2]-1, +m[3], 12); } else { d=new Date(iso); } if(isNaN(d.getTime())) return ''; return d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}); }
+function fmtDate(iso){ if(!iso) return ''; let d; const m=String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/); if(m){ d=new Date(+m[1], +m[2]-1, +m[3], 12); } else { d=new Date(iso); } if(isNaN(d.getTime())) return ''; return d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}); }
 function fmtStamp(iso){ if(!iso) return ''; let d; const m=String(iso).match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/); if(m){ d=new Date(+m[1], +m[2]-1, +m[3], +m[4], +m[5]); } else { d=new Date(iso); } if(isNaN(d.getTime())) return ''; return d.toLocaleString(undefined,{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'}); }
 function esc(s){ const d=document.createElement('div'); d.textContent=(s==null?'':s); return d.innerHTML; }
+function itemFallback(it){ return it.type==='audio' ? 'Audio' : (it.type==='file' ? 'File' : (it.type==='video' ? 'Video' : 'Untitled')); }
 function itemTitle(it){ return it.title || it.label || itemFallback(it); }
-function itemFallback(it){ return it.type==='audio' ? 'Audio' : (it.type==='file' ? 'File' : 'Untitled'); }
 function downloadHref(it){ if(it.download_url) return it.download_url; if(it.type==='video' && it.stream_uid) return 'https://'+CONFIG.STREAM_CUSTOMER+'/'+it.stream_uid+'/downloads/default.mp4'; return it.src || ''; }
 
 function seek(id, seconds){ const p=players[id]; if(p){ try{ p.currentTime=seconds; p.play(); const st=document.getElementById('stage-'+id); if(st) window.scrollTo({top:st.getBoundingClientRect().top+window.scrollY-86, behavior:'smooth'}); }catch(e){} } }
-
 function chrome(){ document.getElementById('coName').textContent = CONFIG.COMPANY.name; if(CONFIG.COMPANY.logo){ const c=document.getElementById('cobrand'); c.src=CONFIG.COMPANY.logo; c.hidden=false; } }
 
 /* ---------- overlay / lightbox ---------- */
 function openOverlay(html, wide){ const o=document.getElementById('overlay'); o.querySelector('.ov-inner').innerHTML=html; o.classList.toggle('wide', !!wide); o.classList.add('show'); document.body.style.overflow='hidden'; }
 function closeOverlay(){ const o=document.getElementById('overlay'); o.classList.remove('show'); o.querySelector('.ov-inner').innerHTML=''; document.body.style.overflow=''; }
 function lightboxImage(src, cap){ openOverlay('<img class="ov-img" src="'+esc(src)+'" alt="'+esc(cap||'')+'">' + (cap ? '<div class="ov-cap">'+esc(cap)+'</div>' : '')); }
-function openArchived(projId, secId, itemId){
-  const proj=CONFIG.PROJECTS.find(p=>p.id===projId); if(!proj) return;
-  const sec=proj.sections.find(s=>s.id===secId); if(!sec) return;
-  const it=sec.archive.find(x=>x.id===itemId) || sec.current.find(x=>x.id===itemId); if(!it) return;
-  openOverlay('<div class="ov-deliv">'+delivHTML(proj,sec,it)+'</div>', true);
-  wireItem(proj,sec,it);
-}
+
+/* ---------- lookups ---------- */
+function findStack(stackId){ for(const p of CONFIG.PROJECTS){ for(const s of p.sections){ for(const st of s.stacks){ if(st.id===stackId) return { proj:p, sec:s, stack:st }; } } } return null; }
+function findItem(itemId){ for(const p of CONFIG.PROJECTS){ for(const s of p.sections){ for(const st of s.stacks){ for(const v of st.versions){ if(v.id===itemId) return { proj:p, sec:s, it:v }; } } } } return null; }
 
 /* ---------- routing ---------- */
 function route(){
@@ -351,49 +367,61 @@ function route(){
 function renderLanding(){
   const app=document.getElementById('app');
   const cards=CONFIG.PROJECTS.map(p=>{
-    const items=p.sections.reduce((n,sec)=>n+sec.current.length+sec.archive.length,0);
+    const items=p.sections.reduce((n,sec)=>n+sec.stacks.reduce((m,st)=>m+st.versions.length,0),0);
     return '<a class="card" href="#p='+encodeURIComponent(p.id)+'" tabindex="0"><div class="c-eye">Project</div><h3>'+esc(p.title)+'</h3><div class="c-tag">'+esc(p.tagline||'')+'</div><div class="c-foot"><span class="c-count">'+p.sections.length+' sections · '+items+' item'+(items===1?'':'s')+'</span><span class="c-go">Open →</span></div></a>';
   }).join('');
-  app.innerHTML='<section class="landing"><div class="eyebrow">Client review</div><h1 class="co-name">'+esc(CONFIG.COMPANY.name)+'</h1><p class="lead">Open a project to review its work. Each section holds its own deliverables, and every item has its own notes — leave feedback right under what you are looking at.</p><div class="grid">'+(cards||'<p class="sec-empty">No projects yet.</p>')+'</div></section>';
+  app.innerHTML='<section class="landing"><div class="eyebrow">Client review</div><h1 class="co-name">'+esc(CONFIG.COMPANY.name)+'</h1><p class="lead">Open a project to review its work. Each section holds its own deliverables, and every item keeps its own version history and notes.</p><div class="grid">'+(cards||'<p class="sec-empty">No projects yet.</p>')+'</div></section>';
 }
 
 /* ---------- project view ---------- */
 function renderProject(proj, sec){
   const app=document.getElementById('app');
-  const nav=proj.sections.map((s,i)=>'<a href="#p='+encodeURIComponent(proj.id)+'&s='+encodeURIComponent(s.id)+'" class="'+(s.id===sec.id?'active':'')+'"><span class="n-num">'+String(i+1).padStart(2,'0')+'</span><span class="n-name">'+esc(s.name)+'</span><span class="n-ct">'+((s.current.length+s.archive.length)||'')+'</span></a>').join('');
-
+  const nav=proj.sections.map((s,i)=>{
+    const n=s.stacks.reduce((m,st)=>m+st.versions.length,0);
+    return '<a href="#p='+encodeURIComponent(proj.id)+'&s='+encodeURIComponent(s.id)+'" class="'+(s.id===sec.id?'active':'')+'"><span class="n-num">'+String(i+1).padStart(2,'0')+'</span><span class="n-name">'+esc(s.name)+'</span><span class="n-ct">'+(n||'')+'</span></a>';
+  }).join('');
   const adminHTML = ADMIN ? adminStrip(proj,sec) : '';
-  const archiveHTML = sec.archive.length ? archivePanel(proj,sec) : '';
-  const currentHTML = sec.current.length
-    ? sec.current.map(it=>delivHTML(proj,sec,it)).join('')
-    : (sec.archive.length ? '<div class="sec-empty">No current items — everything here is archived. Open the archive above.</div>' : '<div class="sec-empty">Nothing in '+esc(sec.name)+' yet.</div>');
+  const body = sec.stacks.length ? sec.stacks.map(st=>stackHTML(proj,sec,st)).join('') : '<div class="sec-empty">Nothing in '+esc(sec.name)+' yet.</div>';
 
-  app.innerHTML='<div class="pv"><aside class="side"><a class="back" href="#">← '+esc(CONFIG.COMPANY.name)+'</a><h2 class="pv-title">'+esc(proj.title)+'</h2><nav class="nav">'+nav+'</nav></aside><div class="mainsec"><div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>'+esc(sec.name)+'</h2></div>'+adminHTML+archiveHTML+currentHTML+'</div></div>';
+  app.innerHTML='<div class="pv"><aside class="side"><a class="back" href="#">← '+esc(CONFIG.COMPANY.name)+'</a><h2 class="pv-title">'+esc(proj.title)+'</h2><nav class="nav">'+nav+'</nav></aside><div class="mainsec"><div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>'+esc(sec.name)+'</h2></div>'+adminHTML+body+'</div></div>';
 
-  sec.current.forEach(it=>wireItem(proj,sec,it));
+  // wire the default (newest) version of each stack
+  sec.stacks.forEach(st=> wireVersion(proj, sec, st.versions[0]));
+  // wire version chips
+  document.querySelectorAll('.ver-chip').forEach(chip=>{
+    chip.addEventListener('click', ()=> selectVersion(chip.dataset.stack, chip.dataset.v));
+  });
   if(ADMIN){ const ab=document.getElementById('ann-btn-'+sec.id); if(ab) ab.addEventListener('click', ()=>announce(proj.id,sec.id)); }
 }
 
-/* ---------- archive panel ---------- */
-function archivePanel(proj, sec){
-  const cards=sec.archive.map(it=>{
-    let thumb='';
-    if(it.type==='image') thumb=it.src||'';
-    else if(it.type==='video' && it.stream_uid) thumb='https://'+CONFIG.STREAM_CUSTOMER+'/'+it.stream_uid+'/thumbnails/thumbnail.jpg';
-    const thumbHTML = thumb ? '<img src="'+esc(thumb)+'" alt="">' : '<div class="ar-glyph">'+(it.type==='audio'?'♪':'⤓')+'</div>';
-    const ver = (it.type==='video' && it.version) ? ' · '+esc(it.version) : '';
-    return '<button class="ar-card" onclick="openArchived(\''+proj.id+'\',\''+sec.id+'\',\''+it.id+'\')"><div class="ar-thumb">'+thumbHTML+'</div><div class="ar-meta"><div class="ar-title">'+esc(itemTitle(it))+ver+'</div><div class="ar-date">'+esc(fmtDate(it.date))+'</div></div></button>';
-  }).join('');
-  return '<div class="archive"><button class="archive-toggle" onclick="this.parentElement.classList.toggle(\'open\')"><span class="ar-ic">⌖</span> Archive — '+sec.archive.length+' older version'+(sec.archive.length===1?'':'s')+' <span class="ar-caret">▾</span></button><div class="archive-row">'+cards+'</div></div>';
+/* ---------- a stack (one deliverable + its versions) ---------- */
+function stackHTML(proj, sec, stack){
+  const sel = stack.versions[0];
+  const showChips = stack.versions.length > 1 || !!sel.version;
+  const chips = showChips ? '<div class="ver-chips">' + stack.versions.map((v,i)=>{
+    const label = v.version || fmtDate(v.date) || ('v'+(stack.versions.length - i));
+    return '<button class="ver-chip'+(i===0?' active':'')+'" data-stack="'+esc(stack.id)+'" data-v="'+esc(v.id)+'">'+esc(label)+'</button>';
+  }).join('') + '</div>' : '';
+  return '<section class="deliv" id="stack-'+stack.id+'"><div class="deliv-head"><span class="deliv-title">'+esc(stack.title)+'</span>'+chips+'</div><div class="ver-body" id="vbody-'+stack.id+'">'+versionBodyHTML(proj,sec,sel)+'</div></section>';
 }
 
-/* ---------- a single deliverable ---------- */
+function selectVersion(stackId, versionId){
+  const ctx=findStack(stackId); if(!ctx) return;
+  const v=ctx.stack.versions.find(x=>x.id===versionId); if(!v) return;
+  const body=document.getElementById('vbody-'+stackId); if(!body) return;
+  body.innerHTML=versionBodyHTML(ctx.proj, ctx.sec, v);
+  const stackEl=document.getElementById('stack-'+stackId);
+  if(stackEl) stackEl.querySelectorAll('.ver-chip').forEach(c=> c.classList.toggle('active', c.dataset.v===versionId));
+  wireVersion(ctx.proj, ctx.sec, v);
+}
+
+/* ---------- media ---------- */
 function mediaHTML(it){
   if(it.type==='video' && it.stream_uid){
     return '<div class="stage" id="stage-'+it.id+'"><iframe id="if-'+it.id+'" src="https://'+CONFIG.STREAM_CUSTOMER+'/'+it.stream_uid+'/iframe" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;" allowfullscreen></iframe></div>';
   }
   if(it.type==='image' && it.src){
-    return '<div class="stage is-image" id="stage-'+it.id+'"><img src="'+esc(it.src)+'" alt="'+esc(itemTitle(it))+'" title="Click to enlarge" onclick="lightboxImage(\''+esc(it.src)+'\',\''+esc(itemTitle(it))+'\')"></div>';
+    return '<div class="stage is-image" id="stage-'+it.id+'"><img id="img-'+it.id+'" src="'+esc(it.src)+'" alt="'+esc(itemTitle(it))+'" title="Click to enlarge"></div>';
   }
   if(it.type==='audio' && (it.src||it.download_url)){
     return '<div class="stage is-audio" id="stage-'+it.id+'"><audio controls src="'+esc(it.src||it.download_url)+'"></audio></div>';
@@ -405,27 +433,24 @@ function mediaHTML(it){
   return '<div class="stage '+(it.type==='image'?'is-image':'')+'" id="stage-'+it.id+'"><div class="ph">Add '+need+' for "'+esc(itemTitle(it))+'".</div></div>';
 }
 
-function delivHTML(proj, sec, it){
-  const ver = it.version ? '<span class="deliv-ver">'+esc(it.version)+'</span>' : '';
+function versionBodyHTML(proj, sec, it){
   const dl = downloadHref(it);
   const dlBtn = dl ? '<a class="dl-btn" href="'+esc(dl)+'" download target="_blank" rel="noopener">⤓ Download</a>' : '<span></span>';
   const stamp = it.date ? '<span class="up-stamp">Uploaded '+esc(fmtStamp(it.date))+'</span>' : '';
   const metaBar = (dl || it.date) ? '<div class="meta-bar">'+dlBtn+stamp+'</div>' : '';
   const tcField = it.type==='video' ? '<div class="field f-tc"><label>Timecode</label><input id="tc-'+it.id+'" placeholder="00:00"></div>' : '';
-  return '<section class="deliv">'
-    + '<div class="deliv-head"><span class="deliv-title">'+esc(itemTitle(it))+'</span>'+ver+'<span class="deliv-kind">'+it.type+'</span></div>'
-    + mediaHTML(it)
+  return mediaHTML(it)
     + metaBar
     + '<div class="notes"><div class="notes-bar"><h3>Notes</h3><span class="count" id="count-'+it.id+'"></span></div>'
     + '<div id="notes-'+it.id+'"><div class="empty">Loading notes…</div></div>'
     + '<div class="composer"><div class="row"><div class="field f-name"><label>Your name</label><input id="name-'+it.id+'" placeholder="e.g. Margot" value="'+esc(getName())+'"></div>'+tcField+'</div>'
     + '<div class="field"><label>Note</label><textarea id="body-'+it.id+'" placeholder="What should change, or what is working?"></textarea></div>'
-    + '<div class="composer-foot"><button class="post" id="post-'+it.id+'" disabled>Post note</button><span class="msg" id="msg-'+it.id+'"></span></div></div></div>'
-    + '</section>';
+    + '<div class="composer-foot"><button class="post" id="post-'+it.id+'" disabled>Post note</button><span class="msg" id="msg-'+it.id+'"></span></div></div></div>';
 }
 
-function wireItem(proj, sec, it){
+function wireVersion(proj, sec, it){
   if(it.type==='video' && it.stream_uid && window.Stream){ try{ players[it.id]=Stream(document.getElementById('if-'+it.id)); }catch(e){} }
+  if(it.type==='image' && it.src){ const img=document.getElementById('img-'+it.id); if(img) img.addEventListener('click', ()=>lightboxImage(it.src, itemTitle(it))); }
   const btn=document.getElementById('post-'+it.id);
   if(btn){
     btn.addEventListener('click', ()=>postNote(proj,sec,it));
@@ -448,9 +473,9 @@ async function loadNotes(proj, sec, it){
     const mineSet=new Set(myComments());
     box.innerHTML=data.map(c=>{
       const secs=parseTimecode(c.timecode);
-      const del=(ADMIN || mineSet.has(c.id)) ? '<button class="note-del" title="Delete note" onclick="deleteNote(\''+it.id+'\',\''+c.id+'\')">\u00d7</button>' : '';
       const canSeek=secs!=null && players[it.id];
       const tc=c.timecode ? '<button class="tc '+(canSeek?'':'static')+'" '+(canSeek?'onclick="seek(\''+it.id+'\','+secs+')"':'disabled')+'>'+esc(c.timecode)+'</button>' : '';
+      const del=(ADMIN || mineSet.has(c.id)) ? '<button class="note-del" title="Delete note" onclick="deleteNote(\''+it.id+'\',\''+c.id+'\')">\u00d7</button>' : '';
       return '<div class="note"><div class="ava">'+esc((c.author_name||'?').trim().charAt(0)||'?')+'</div><div class="note-main"><div class="note-head"><span class="note-name">'+esc(c.author_name||'Anonymous')+'</span>'+tc+'<span class="note-time" title="'+esc(relTime(c.created_at))+'">'+esc(fmtTime(c.created_at))+'</span>'+del+'</div><div class="note-body">'+esc(c.body)+'</div></div></div>';
     }).join('');
   }catch(e){
@@ -480,8 +505,18 @@ async function postNote(proj, sec, it){
   }finally{ btn.disabled=false; btn.textContent='Post note'; }
 }
 
+async function deleteNote(itemId, commentId){
+  if(!confirm('Delete this note? This cannot be undone.')) return;
+  try{
+    const { error } = await sb.from('comments').delete().eq('id', commentId);
+    if(error) throw error;
+    dropMine(commentId);
+    const ctx=findItem(itemId); if(ctx) loadNotes(ctx.proj, ctx.sec, ctx.it);
+  }catch(e){ console.error('delete failed', e); alert('Could not delete that note. (Make sure the delete policy from comments-delete.sql is set up in Supabase.)'); }
+}
+
 function adminStrip(proj, sec){
-  return '<div class="admin-strip"><span class="admin-tag">Admin</span><input id="ann-msg-'+sec.id+'" class="admin-input" placeholder="Optional message — e.g. \'Animatic v2 is up for review\'"><button class="admin-btn" id="ann-btn-'+sec.id+'">Notify team · '+esc(sec.name)+' ready</button><span class="admin-msg" id="ann-status-'+sec.id+'"></span></div>';
+  return '<div class="admin-strip"><span class="admin-tag">Admin</span><input id="ann-msg-'+sec.id+'" class="admin-input" placeholder="Optional message — e.g. \'New work is up for review\'"><button class="admin-btn" id="ann-btn-'+sec.id+'">Notify team · '+esc(sec.name)+' ready</button><span class="admin-msg" id="ann-status-'+sec.id+'"></span></div>';
 }
 async function announce(projId, secId){
   const proj=CONFIG.PROJECTS.find(p=>p.id===projId); if(!proj) return;
@@ -497,17 +532,8 @@ async function announce(projId, secId){
   finally{ btn.disabled=false; btn.textContent=orig; }
 }
 
-function findCtx(itemId){ for(const p of CONFIG.PROJECTS){ for(const s of p.sections){ const all=s.current.concat(s.archive); for(const it of all){ if(it.id===itemId) return { proj:p, sec:s, it:it }; } } } return null; }
-async function deleteNote(itemId, commentId){
-  if(!confirm('Delete this note? This cannot be undone.')) return;
-  try{
-    const { error } = await sb.from('comments').delete().eq('id', commentId);
-    if(error) throw error;
-    dropMine(commentId);
-    const ctx=findCtx(itemId); if(ctx) loadNotes(ctx.proj, ctx.sec, ctx.it);
-  }catch(e){ console.error('delete failed', e); alert('Could not delete that note. (Make sure the delete policy from comments-delete.sql is set up in Supabase.)'); }
-}
 document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeOverlay(); });
+(function(){ const o=document.getElementById('overlay'); if(o){ o.addEventListener('click', (e)=>{ if(e.target===o) closeOverlay(); }); const x=o.querySelector('.ov-close'); if(x) x.addEventListener('click', closeOverlay); } })();
 chrome();
 window.addEventListener('hashchange', route);
 route();
