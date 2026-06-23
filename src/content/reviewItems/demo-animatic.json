@@ -1,3 +1,6 @@
+<<<<<<< HEAD
+{ "section_key": "apsa-videos", "kind": "video", "label": "Animatic", "version": "v2", "stream_uid": "d0dc8c487a18d04d83410e52b3677535", "date": "2026-06-22", "archived": false, "order": 1, "published": true }
+=======
 {
   "project_key": "animated-psa",
   "section": "videos",
@@ -10,3 +13,4 @@
   "order": 1,
   "published": false
 }
+>>>>>>> 3f3b61f35fb3060fdc19f0bf46008a6beb8fd41d

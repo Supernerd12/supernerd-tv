@@ -25,10 +25,10 @@ const work = defineCollection({
 const reviews = defineCollection({
   type: 'data',
   schema: z.object({
-    key: z.string(),                 // stable id used to group projects + scope comments (e.g. "trrp")
-    name: z.string(),                // shown to the client (e.g. "TRRP")
+    key: z.string(),
+    name: z.string(),
     logo: z.string().optional().default(''),
-    url_slug: z.string(),            // the secret URL: /r/<url_slug>/
+    url_slug: z.string(),
     published: z.boolean().optional().default(true),
   }),
 });
@@ -36,15 +36,22 @@ const reviews = defineCollection({
 const reviewProjects = defineCollection({
   type: 'data',
   schema: z.object({
-    key: z.string(),                 // stable id (e.g. "animated-psa")
-    company_key: z.string(),         // which Review this belongs to
+    key: z.string(),
+    company_key: z.string(),
     title: z.string(),
     tagline: z.string().optional().default(''),
     order: z.number().optional().default(100),
-    show_style_frames: z.boolean().optional().default(false),
-    show_assets: z.boolean().optional().default(false),
-    show_storyboards: z.boolean().optional().default(false),
-    show_videos: z.boolean().optional().default(true),
+    published: z.boolean().optional().default(true),
+  }),
+});
+
+const reviewSections = defineCollection({
+  type: 'data',
+  schema: z.object({
+    key: z.string(),                 // unique per section (e.g. "apsa-videos")
+    project_key: z.string(),         // which project it belongs to
+    name: z.string(),                // display name (Style Frames, Audio, Client Files...)
+    order: z.number().optional().default(100),
     published: z.boolean().optional().default(true),
   }),
 });
@@ -52,18 +59,20 @@ const reviewProjects = defineCollection({
 const reviewItems = defineCollection({
   type: 'data',
   schema: z.object({
-    project_key: z.string(),
-    section: z.enum(['style-frames', 'assets', 'storyboards', 'videos']),
-    kind: z.enum(['video', 'image']),
+    section_key: z.string().optional().default(''),
+    kind: z.enum(['video', 'image', 'audio', 'file']).optional().default('image'),
     title: z.string().optional().default(''),
     label: z.string().optional().default(''),
     version: z.string().optional().default(''),
     stream_uid: z.string().optional().default(''),
     image: z.string().optional().default(''),
-    image_url: z.string().optional().default(''),
+    src_url: z.string().optional().default(''),
+    download_url: z.string().optional().default(''),
+    date: z.string().optional().default(''),
+    archived: z.boolean().optional().default(false),
     order: z.number().optional().default(100),
     published: z.boolean().optional().default(true),
   }),
 });
 
-export const collections = { work, reviews, reviewProjects, reviewItems };
+export const collections = { work, reviews, reviewProjects, reviewSections, reviewItems };
