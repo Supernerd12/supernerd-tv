@@ -1,13 +1,15 @@
 {
-  "project_key": "apsa-assets",
+  "project_key": "animated-psa",
   "section": "assets",
-  "kind": "image",
   "title": "test",
-  "label": "",
   "version": "",
-  "stream_uid": "",
   "image": "/work/uploads/mary-style2.png",
-  "image_url": "",
+  "stream_uid": "",
+  "src_url": "",
+  "download_url": "",
   "order": 100,
-  "published": true
+  "published": true,
+  "image_url": "",
+  "kind": "image",
+  "label": ""
 }
