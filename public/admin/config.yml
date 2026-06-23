@@ -9,7 +9,6 @@ backend:
 media_folder: "public/work/uploads"
 public_folder: "/work/uploads"
 
-# Auto-clean uploaded filenames (lowercase, hyphens, no spaces/accents) so heroes never break
 media_libraries:
   default:
     config:
@@ -112,11 +111,31 @@ collections:
       - { name: key, label: "Short id — lowercase, no spaces (e.g. animated-psa). Don't change after going live.", widget: string, pattern: ['^[a-z0-9-]+$', 'lowercase letters, numbers, dashes only'] }
       - { name: tagline, label: "Tagline (optional, shown on the project card)", widget: string, required: false }
       - { name: order, label: "Sort order (lower shows first)", widget: number, value_type: int, default: 100, required: false }
-      - { name: show_style_frames, label: "Section: Style Frames", widget: boolean, default: false, required: false }
-      - { name: show_assets, label: "Section: Assets", widget: boolean, default: false, required: false }
-      - { name: show_storyboards, label: "Section: Storyboards", widget: boolean, default: false, required: false }
-      - { name: show_videos, label: "Section: Videos", widget: boolean, default: true, required: false }
       - { name: published, label: "Published — show this project", widget: boolean, default: true, required: false }
+
+  - name: reviewSections
+    label: "Reviews — Sections"
+    label_singular: "Section"
+    identifier_field: name
+    folder: "src/content/reviewSections"
+    extension: json
+    format: json
+    create: true
+    slug: "{{fields.key}}"
+    summary: "{{name}}  ·  {{project_key}}"
+    sortable_fields: [order, name]
+    fields:
+      - name: project_key
+        label: "Project (which project this section belongs to)"
+        widget: relation
+        collection: reviewProjects
+        value_field: key
+        search_fields: [title]
+        display_fields: [title]
+      - { name: name, label: "Section name (Style Frames, Assets, Storyboards, Videos, Audio, Client Files...)", widget: string }
+      - { name: key, label: "Short id — UNIQUE, lowercase. Tip: prefix with the project (e.g. apsa-audio).", widget: string, pattern: ['^[a-z0-9-]+$', 'lowercase letters, numbers, dashes only'] }
+      - { name: order, label: "Sort order in the side nav (lower shows first)", widget: number, value_type: int, default: 100, required: false }
+      - { name: published, label: "Published — show this section", widget: boolean, default: true, required: false }
 
   - name: reviewItems
     label: "Reviews — Items (deliverables)"
@@ -126,25 +145,17 @@ collections:
     extension: json
     format: json
     create: true
-    slug: "{{fields.section}}-{{year}}{{month}}{{day}}{{hour}}{{minute}}{{second}}"
-    summary: "{{section}}  ·  {{title}}{{label}} {{version}}"
-    sortable_fields: [order]
+    slug: "{{fields.section_key}}-{{year}}{{month}}{{day}}{{hour}}{{minute}}{{second}}"
+    summary: "{{section_key}}  ·  {{title}}{{label}} {{version}}"
+    sortable_fields: [order, date]
     fields:
-      - name: project_key
-        label: "Project (which project this belongs to)"
-        widget: relation
-        collection: reviewProjects
-        value_field: key
-        search_fields: [title]
-        display_fields: [title]
-      - name: section
+      - name: section_key
         label: "Section (which folder it shows in)"
-        widget: select
-        options:
-          - { label: "Style Frames", value: style-frames }
-          - { label: "Assets", value: assets }
-          - { label: "Storyboards", value: storyboards }
-          - { label: "Videos", value: videos }
+        widget: relation
+        collection: reviewSections
+        value_field: key
+        search_fields: [name, project_key]
+        display_fields: [name, project_key]
       - name: kind
         label: "Type"
         widget: select
@@ -152,11 +163,16 @@ collections:
         options:
           - { label: "Image (style frame, asset, board)", value: image }
           - { label: "Video (Cloudflare Stream)", value: video }
-      - { name: title, label: "Title — for IMAGES (e.g. Style Frame 01)", widget: string, required: false }
+          - { label: "Audio", value: audio }
+          - { label: "File (client files, downloads)", value: file }
+      - { name: title, label: "Title — for IMAGES / AUDIO / FILES (e.g. Style Frame 01)", widget: string, required: false }
       - { name: label, label: "Label — for VIDEOS (Animatic / Rough Cut / Working Cut / Final Cut)", widget: string, required: false }
       - { name: version, label: "Version — for VIDEOS (e.g. v1)", widget: string, required: false }
       - { name: stream_uid, label: "Cloudflare Stream video ID — for VIDEOS (paste the UID)", widget: string, required: false }
       - { name: image, label: "Image upload — for IMAGES (or use the URL field below)", widget: image, required: false }
-      - { name: image_url, label: "Image URL — for IMAGES hosted elsewhere (Dropbox: end with ?raw=1)", widget: string, required: false }
+      - { name: src_url, label: "File / image / audio URL — for anything hosted elsewhere (Dropbox: end with ?raw=1)", widget: string, required: false }
+      - { name: download_url, label: "Download link (optional) — direct file link for the Download button. Leave blank to auto-use the media.", widget: string, required: false }
+      - { name: date, label: "Upload date (shown on the item & archive)", widget: datetime, date_format: "YYYY-MM-DD", time_format: false, required: false }
+      - { name: archived, label: "Archived — move to the section's Archive row (keeps it, just out of the main view)", widget: boolean, default: false, required: false }
       - { name: order, label: "Sort order within the section (lower first)", widget: number, value_type: int, default: 100, required: false }
-      - { name: published, label: "Published — show this item", widget: boolean, default: true, required: false }
+      - { name: published, label: "Published — show this item (uncheck to fully hide)", widget: boolean, default: true, required: false }
