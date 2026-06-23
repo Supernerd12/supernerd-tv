@@ -37,7 +37,7 @@ export async function getStaticPaths() {
               }));
             return { id: sd.id, name: sd.name, items: its };
           });
-        return { key: p.data.key, title: p.data.title, tagline: p.data.tagline || '', sections };
+        return { id: p.data.key, title: p.data.title, tagline: p.data.tagline || '', sections };
       });
 
     const data = {
