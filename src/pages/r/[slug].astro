@@ -298,6 +298,24 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
   .ver-chip:hover{border-color:var(--green); color:var(--green)}
   .ver-chip.active{background:var(--green); color:var(--ink); border-color:var(--green)}
   .ver-body{display:block}
+  .composer-tools{display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:4px 0 2px}
+  .tool-btn{font-family:var(--mono); font-size:12px; padding:7px 12px; border-radius:7px; border:1px solid var(--line); background:none; color:var(--dim); cursor:pointer; transition:color .12s var(--ease), border-color .12s var(--ease)}
+  .tool-btn:hover{color:var(--green); border-color:rgba(186,192,30,.4)}
+  .tool-btn.active{color:var(--ink); background:var(--green); border-color:var(--green)}
+  .tool-btn.recording{color:#ff6b6b; border-color:rgba(255,107,107,.55)}
+  .pin-ind{font-family:var(--mono); font-size:11px; color:var(--green-hi)}
+  .rec-prev{margin:2px 0}
+  .rec-prev audio{height:36px; vertical-align:middle; max-width:240px}
+  .rec-clear{margin-left:10px; font-family:var(--mono); font-size:11px; color:var(--dim); background:none; border:none; cursor:pointer; text-decoration:underline}
+  .note audio{display:block; width:100%; max-width:340px; margin-top:8px; height:36px}
+  .pin-wrap{position:relative; display:block; line-height:0}
+  .pin-layer{position:absolute; inset:0; pointer-events:none}
+  .pin-layer.arming{pointer-events:auto; cursor:crosshair}
+  .pin-marker{position:absolute; transform:translate(-50%,-50%); width:24px; height:24px; border-radius:50%; background:var(--green); color:var(--ink); font-family:var(--mono); font-size:12px; font-weight:700; display:flex; align-items:center; justify-content:center; border:2px solid #050505; box-shadow:0 1px 7px rgba(0,0,0,.55); cursor:pointer; pointer-events:auto; z-index:2}
+  .pin-marker.pending{background:var(--green-hi); opacity:.9}
+  .pin-marker.flash{outline:3px solid var(--bone); outline-offset:2px}
+  .pin-badge{display:inline-flex; align-items:center; justify-content:center; min-width:19px; height:19px; padding:0 5px; border-radius:10px; background:var(--green); color:var(--ink); font-family:var(--mono); font-size:11px; font-weight:700; border:none; cursor:pointer; margin-right:7px}
+  .note.flash{outline:2px solid var(--green); outline-offset:3px; border-radius:8px}
 </style>
 </head>
 <body>
@@ -322,6 +340,10 @@ const CONFIG = Object.assign({ SUPABASE_URL, SUPABASE_KEY, STREAM_CUSTOMER, ADMI
 const sb = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
 const ADMIN = !!CONFIG.ADMIN_KEY && new URLSearchParams(location.search).get('admin') === CONFIG.ADMIN_KEY;
 let players = {};
+let recorders = {};      // itemId -> MediaRecorder
+let pendingAudio = {};   // itemId -> Blob
+let pendingPin = {};     // itemId -> {x,y}
+let pinMode = {};        // itemId -> bool
 const NAME_KEY = 'sn_review_name';
 const getName = () => { try { return localStorage.getItem(NAME_KEY) || ''; } catch (e) { return ''; } };
 const setName = (n) => { try { localStorage.setItem(NAME_KEY, n); } catch (e) {} };
@@ -370,7 +392,7 @@ function renderLanding(){
     const items=p.sections.reduce((n,sec)=>n+sec.stacks.reduce((m,st)=>m+st.versions.length,0),0);
     return '<a class="card" href="#p='+encodeURIComponent(p.id)+'" tabindex="0"><div class="c-eye">Project</div><h3>'+esc(p.title)+'</h3><div class="c-tag">'+esc(p.tagline||'')+'</div><div class="c-foot"><span class="c-count">'+p.sections.length+' sections · '+items+' item'+(items===1?'':'s')+'</span><span class="c-go">Open →</span></div></a>';
   }).join('');
-  app.innerHTML='<section class="landing"><div class="eyebrow">Client review</div><h1 class="co-name">'+esc(CONFIG.COMPANY.name)+'</h1><p class="lead">Open a project to review its work. Each section holds its own deliverables, and every item keeps its own version history and notes.</p><div class="grid">'+(cards||'<p class="sec-empty">No projects yet.</p>')+'</div></section>';
+  app.innerHTML='<section class="landing"><div class="eyebrow">Client review</div><h1 class="co-name">'+esc(CONFIG.COMPANY.name)+'</h1><p class="lead">Open a project to review its work. Leave a note, a voice note, or pin a comment right onto an image.</p><div class="grid">'+(cards||'<p class="sec-empty">No projects yet.</p>')+'</div></section>';
 }
 
 /* ---------- project view ---------- */
@@ -385,16 +407,12 @@ function renderProject(proj, sec){
 
   app.innerHTML='<div class="pv"><aside class="side"><a class="back" href="#">← '+esc(CONFIG.COMPANY.name)+'</a><h2 class="pv-title">'+esc(proj.title)+'</h2><nav class="nav">'+nav+'</nav></aside><div class="mainsec"><div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>'+esc(sec.name)+'</h2></div>'+adminHTML+body+'</div></div>';
 
-  // wire the default (newest) version of each stack
   sec.stacks.forEach(st=> wireVersion(proj, sec, st.versions[0]));
-  // wire version chips
-  document.querySelectorAll('.ver-chip').forEach(chip=>{
-    chip.addEventListener('click', ()=> selectVersion(chip.dataset.stack, chip.dataset.v));
-  });
+  document.querySelectorAll('.ver-chip').forEach(chip=>{ chip.addEventListener('click', ()=> selectVersion(chip.dataset.stack, chip.dataset.v)); });
   if(ADMIN){ const ab=document.getElementById('ann-btn-'+sec.id); if(ab) ab.addEventListener('click', ()=>announce(proj.id,sec.id)); }
 }
 
-/* ---------- a stack (one deliverable + its versions) ---------- */
+/* ---------- a stack (deliverable + versions) ---------- */
 function stackHTML(proj, sec, stack){
   const sel = stack.versions[0];
   const showChips = stack.versions.length > 1 || !!sel.version;
@@ -421,7 +439,7 @@ function mediaHTML(it){
     return '<div class="stage" id="stage-'+it.id+'"><iframe id="if-'+it.id+'" src="https://'+CONFIG.STREAM_CUSTOMER+'/'+it.stream_uid+'/iframe" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;" allowfullscreen></iframe></div>';
   }
   if(it.type==='image' && it.src){
-    return '<div class="stage is-image" id="stage-'+it.id+'"><img id="img-'+it.id+'" src="'+esc(it.src)+'" alt="'+esc(itemTitle(it))+'" title="Click to enlarge"></div>';
+    return '<div class="stage is-image" id="stage-'+it.id+'"><div class="pin-wrap"><img id="img-'+it.id+'" src="'+esc(it.src)+'" alt="'+esc(itemTitle(it))+'" title="Click to enlarge"><div class="pin-layer" id="pinlayer-'+it.id+'"></div></div></div>';
   }
   if(it.type==='audio' && (it.src||it.download_url)){
     return '<div class="stage is-audio" id="stage-'+it.id+'"><audio controls src="'+esc(it.src||it.download_url)+'"></audio></div>';
@@ -439,26 +457,104 @@ function versionBodyHTML(proj, sec, it){
   const stamp = it.date ? '<span class="up-stamp">Uploaded '+esc(fmtStamp(it.date))+'</span>' : '';
   const metaBar = (dl || it.date) ? '<div class="meta-bar">'+dlBtn+stamp+'</div>' : '';
   const tcField = it.type==='video' ? '<div class="field f-tc"><label>Timecode</label><input id="tc-'+it.id+'" placeholder="00:00"></div>' : '';
+  const pinTool = it.type==='image' ? '<button class="tool-btn" id="pin-'+it.id+'" type="button">📍 Pin to image</button><span class="pin-ind" id="pin-ind-'+it.id+'"></span>' : '';
   return mediaHTML(it)
     + metaBar
     + '<div class="notes"><div class="notes-bar"><h3>Notes</h3><span class="count" id="count-'+it.id+'"></span></div>'
     + '<div id="notes-'+it.id+'"><div class="empty">Loading notes…</div></div>'
     + '<div class="composer"><div class="row"><div class="field f-name"><label>Your name</label><input id="name-'+it.id+'" placeholder="e.g. Margot" value="'+esc(getName())+'"></div>'+tcField+'</div>'
-    + '<div class="field"><label>Note</label><textarea id="body-'+it.id+'" placeholder="What should change, or what is working?"></textarea></div>'
+    + '<div class="field"><label>Note</label><textarea id="body-'+it.id+'" placeholder="What should change, or what is working? (or just leave a voice note)"></textarea></div>'
+    + '<div class="composer-tools"><button class="tool-btn" id="rec-'+it.id+'" type="button">🎤 Record voice note</button>'+pinTool+'</div>'
+    + '<div class="rec-prev" id="rec-prev-'+it.id+'"></div>'
     + '<div class="composer-foot"><button class="post" id="post-'+it.id+'" disabled>Post note</button><span class="msg" id="msg-'+it.id+'"></span></div></div></div>';
+}
+
+function gateFor(it){
+  const btn=document.getElementById('post-'+it.id); if(!btn) return;
+  const nEl=document.getElementById('name-'+it.id), bEl=document.getElementById('body-'+it.id);
+  const n=(nEl&&nEl.value||'').trim(), b=(bEl&&bEl.value||'').trim();
+  btn.disabled = !(n && (b || pendingAudio[it.id]));
 }
 
 function wireVersion(proj, sec, it){
   if(it.type==='video' && it.stream_uid && window.Stream){ try{ players[it.id]=Stream(document.getElementById('if-'+it.id)); }catch(e){} }
-  if(it.type==='image' && it.src){ const img=document.getElementById('img-'+it.id); if(img) img.addEventListener('click', ()=>lightboxImage(it.src, itemTitle(it))); }
-  const btn=document.getElementById('post-'+it.id);
-  if(btn){
-    btn.addEventListener('click', ()=>postNote(proj,sec,it));
-    const nEl=document.getElementById('name-'+it.id), bEl=document.getElementById('body-'+it.id);
-    const gate=()=>{ btn.disabled = !((nEl.value||'').trim() && (bEl.value||'').trim()); };
-    nEl.addEventListener('input',gate); bEl.addEventListener('input',gate); gate();
+  if(it.type==='image' && it.src){ const img=document.getElementById('img-'+it.id); if(img) img.addEventListener('click', ()=>{ if(!pinMode[it.id]) lightboxImage(it.src, itemTitle(it)); }); }
+
+  // pin controls (images)
+  if(it.type==='image'){
+    const pinBtn=document.getElementById('pin-'+it.id);
+    const layer=document.getElementById('pinlayer-'+it.id);
+    if(pinBtn) pinBtn.addEventListener('click', ()=>{
+      pinMode[it.id]=!pinMode[it.id];
+      pinBtn.classList.toggle('active', pinMode[it.id]);
+      if(layer) layer.classList.toggle('arming', pinMode[it.id]);
+      const ind=document.getElementById('pin-ind-'+it.id); if(ind) ind.textContent = pinMode[it.id] ? 'click the image to drop a pin' : '';
+    });
+    if(layer) layer.addEventListener('click', (e)=>{
+      if(!pinMode[it.id]) return;
+      const r=layer.getBoundingClientRect();
+      const x=Math.max(0,Math.min(100,((e.clientX-r.left)/r.width)*100));
+      const y=Math.max(0,Math.min(100,((e.clientY-r.top)/r.height)*100));
+      pendingPin[it.id]={x,y};
+      let pm=layer.querySelector('.pin-marker.pending'); if(!pm){ pm=document.createElement('span'); pm.className='pin-marker pending'; pm.textContent='+'; layer.appendChild(pm); }
+      pm.style.left=x+'%'; pm.style.top=y+'%';
+      const ind=document.getElementById('pin-ind-'+it.id); if(ind) ind.textContent='📍 pin set — write your note and post';
+    });
   }
+
+  // record voice note
+  const rec=document.getElementById('rec-'+it.id);
+  if(rec) rec.addEventListener('click', ()=>toggleRecord(it));
+
+  // notes delegation: delete, seek, pin-badge
+  const box=document.getElementById('notes-'+it.id);
+  if(box) box.addEventListener('click', (e)=>{
+    const d=e.target.closest('.note-del'); if(d){ deleteNote(it.id, d.dataset.c); return; }
+    const t=e.target.closest('.tc'); if(t && t.dataset.sec){ seek(it.id, +t.dataset.sec); return; }
+    const pb=e.target.closest('.pin-badge'); if(pb){ const layer=document.getElementById('pinlayer-'+it.id); if(layer){ const mk=layer.querySelector('.pin-marker[data-c="'+pb.dataset.c+'"]'); if(mk){ mk.classList.add('flash'); mk.scrollIntoView({behavior:'smooth',block:'center'}); setTimeout(()=>mk.classList.remove('flash'),1100); } } }
+  });
+
+  // post
+  const btn=document.getElementById('post-'+it.id);
+  if(btn) btn.addEventListener('click', ()=>postNote(proj,sec,it));
+  const nEl=document.getElementById('name-'+it.id), bEl=document.getElementById('body-'+it.id);
+  if(nEl) nEl.addEventListener('input', ()=>gateFor(it));
+  if(bEl) bEl.addEventListener('input', ()=>gateFor(it));
+  gateFor(it);
   loadNotes(proj,sec,it);
+}
+
+async function toggleRecord(it){
+  const btn=document.getElementById('rec-'+it.id);
+  const r=recorders[it.id];
+  if(r && r.state==='recording'){ r.stop(); return; }
+  if(!navigator.mediaDevices || !window.MediaRecorder){ alert('Voice recording is not supported in this browser. Try Chrome or a recent Safari.'); return; }
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    const mr=new MediaRecorder(stream); const chunks=[];
+    mr.ondataavailable=e=>{ if(e.data && e.data.size) chunks.push(e.data); };
+    mr.onstop=()=>{
+      stream.getTracks().forEach(t=>t.stop());
+      const blob=new Blob(chunks, { type: mr.mimeType || 'audio/webm' });
+      pendingAudio[it.id]=blob;
+      const prev=document.getElementById('rec-prev-'+it.id);
+      if(prev){ prev.innerHTML='<audio controls src="'+URL.createObjectURL(blob)+'"></audio><button class="rec-clear" id="rec-clear-'+it.id+'" type="button">remove</button>'; const rc=document.getElementById('rec-clear-'+it.id); if(rc) rc.addEventListener('click', ()=>{ pendingAudio[it.id]=null; prev.innerHTML=''; gateFor(it); }); }
+      if(btn){ btn.classList.remove('recording'); btn.textContent='🎤 Record voice note'; }
+      recorders[it.id]=null; gateFor(it);
+    };
+    recorders[it.id]=mr; mr.start();
+    if(btn){ btn.classList.add('recording'); btn.textContent='■ Stop recording'; }
+  }catch(e){ console.error(e); alert('Could not access the microphone — check that you allowed mic permission.'); }
+}
+
+async function uploadVoice(it){
+  const blob=pendingAudio[it.id]; if(!blob) return null;
+  const t=blob.type||''; const ext = t.indexOf('mp4')>-1?'mp4' : (t.indexOf('ogg')>-1?'ogg' : (t.indexOf('wav')>-1?'wav':'webm'));
+  const path=CONFIG.REVIEW_SLUG+'/'+it.id+'/'+Date.now()+'.'+ext;
+  const up=await sb.storage.from('review-voice').upload(path, blob, { contentType: blob.type||'audio/webm', upsert:false });
+  if(up.error) throw up.error;
+  const pub=sb.storage.from('review-voice').getPublicUrl(path);
+  return pub.data.publicUrl;
 }
 
 function assetId(proj, sec, it){ return proj.id+':'+sec.id+':'+it.id; }
@@ -469,19 +565,37 @@ async function loadNotes(proj, sec, it){
     const { data, error } = await sb.from('comments').select('*').eq('review_slug', CONFIG.REVIEW_SLUG).eq('asset_id', assetId(proj,sec,it)).order('created_at', { ascending:true });
     if(error) throw error;
     const ct=document.getElementById('count-'+it.id); if(ct) ct.textContent=data.length||'';
-    if(!data.length){ box.innerHTML='<div class="empty">No notes yet. Add the first one below.</div>'; return; }
+    const pinned=data.filter(c=>c.pos_x!=null && c.pos_y!=null);
+    const pinNum=new Map(); pinned.forEach((c,i)=>pinNum.set(c.id,i+1));
+    if(!data.length){ box.innerHTML='<div class="empty">No notes yet. Add the first one below.</div>'; if(it.type==='image') renderPins(it, [], pinNum); return; }
     const mineSet=new Set(myComments());
     box.innerHTML=data.map(c=>{
       const secs=parseTimecode(c.timecode);
       const canSeek=secs!=null && players[it.id];
-      const tc=c.timecode ? '<button class="tc '+(canSeek?'':'static')+'" '+(canSeek?'onclick="seek(\''+it.id+'\','+secs+')"':'disabled')+'>'+esc(c.timecode)+'</button>' : '';
-      const del=(ADMIN || mineSet.has(c.id)) ? '<button class="note-del" title="Delete note" onclick="deleteNote(\''+it.id+'\',\''+c.id+'\')">\u00d7</button>' : '';
-      return '<div class="note"><div class="ava">'+esc((c.author_name||'?').trim().charAt(0)||'?')+'</div><div class="note-main"><div class="note-head"><span class="note-name">'+esc(c.author_name||'Anonymous')+'</span>'+tc+'<span class="note-time" title="'+esc(relTime(c.created_at))+'">'+esc(fmtTime(c.created_at))+'</span>'+del+'</div><div class="note-body">'+esc(c.body)+'</div></div></div>';
+      const tc=c.timecode ? '<button class="tc '+(canSeek?'':'static')+'" '+(canSeek?'data-sec="'+secs+'"':'disabled')+'>'+esc(c.timecode)+'</button>' : '';
+      const del=(ADMIN || mineSet.has(c.id)) ? '<button class="note-del" title="Delete note" data-c="'+c.id+'">\u00d7</button>' : '';
+      const pin=pinNum.has(c.id) ? '<button class="pin-badge" data-c="'+c.id+'" title="Show on image">'+pinNum.get(c.id)+'</button>' : '';
+      const audio=c.audio_url ? '<audio controls preload="none" src="'+esc(c.audio_url)+'"></audio>' : '';
+      const bodyHtml=c.body ? '<div class="note-body">'+esc(c.body)+'</div>' : '';
+      return '<div class="note" id="note-'+it.id+'-'+c.id+'"><div class="ava">'+esc((c.author_name||'?').trim().charAt(0)||'?')+'</div><div class="note-main"><div class="note-head">'+pin+'<span class="note-name">'+esc(c.author_name||'Anonymous')+'</span>'+tc+'<span class="note-time" title="'+esc(relTime(c.created_at))+'">'+esc(fmtTime(c.created_at))+'</span>'+del+'</div>'+bodyHtml+audio+'</div></div>';
     }).join('');
+    if(it.type==='image') renderPins(it, pinned, pinNum);
   }catch(e){
     console.error('load notes failed', e);
     box.innerHTML='<div class="empty">Could not load notes. Refresh the page to try again.</div>';
   }
+}
+
+function renderPins(it, pinned, pinNum){
+  const layer=document.getElementById('pinlayer-'+it.id); if(!layer) return;
+  let html=pinned.map(c=>'<button class="pin-marker" data-c="'+c.id+'" style="left:'+c.pos_x+'%;top:'+c.pos_y+'%;">'+pinNum.get(c.id)+'</button>').join('');
+  if(pendingPin[it.id]) html+='<span class="pin-marker pending" style="left:'+pendingPin[it.id].x+'%;top:'+pendingPin[it.id].y+'%;">+</span>';
+  layer.innerHTML=html;
+  layer.querySelectorAll('.pin-marker[data-c]').forEach(m=>m.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    const note=document.getElementById('note-'+it.id+'-'+m.dataset.c);
+    if(note){ note.scrollIntoView({behavior:'smooth',block:'center'}); note.classList.add('flash'); setTimeout(()=>note.classList.remove('flash'),1200); }
+  }));
 }
 
 async function postNote(proj, sec, it){
@@ -490,29 +604,44 @@ async function postNote(proj, sec, it){
   const name=(nameEl.value||'').trim(), tc=(tcEl?tcEl.value:'').trim(), body=(bodyEl.value||'').trim();
   msg.className='msg'; msg.textContent='';
   if(!name){ msg.className='msg err'; msg.textContent='Add your name first.'; nameEl.focus(); return; }
-  if(!body){ msg.className='msg err'; msg.textContent='Write a note before posting.'; bodyEl.focus(); return; }
+  if(!body && !pendingAudio[it.id]){ msg.className='msg err'; msg.textContent='Write a note or record a voice note.'; bodyEl.focus(); return; }
   btn.disabled=true; btn.textContent='Posting…';
   try{
-    const { data:ins, error } = await sb.from('comments').insert({ review_slug:CONFIG.REVIEW_SLUG, asset_id:assetId(proj,sec,it), author_name:name, timecode:tc||null, body:body }).select();
+    let audio_url=null;
+    if(pendingAudio[it.id]){ audio_url=await uploadVoice(it); }
+    const pin=pendingPin[it.id];
+    const row={ review_slug:CONFIG.REVIEW_SLUG, asset_id:assetId(proj,sec,it), author_name:name, timecode:tc||null, body:body||null };
+    if(audio_url) row.audio_url=audio_url;
+    if(pin){ row.pos_x=pin.x; row.pos_y=pin.y; }
+    const { data:ins, error } = await sb.from('comments').insert(row).select();
     if(error) throw error;
     if(ins && ins[0] && ins[0].id) addMine(ins[0].id);
     setName(name); bodyEl.value=''; if(tcEl) tcEl.value='';
+    pendingAudio[it.id]=null; pendingPin[it.id]=null; pinMode[it.id]=false;
+    const prev=document.getElementById('rec-prev-'+it.id); if(prev) prev.innerHTML='';
+    const pinBtn=document.getElementById('pin-'+it.id); if(pinBtn) pinBtn.classList.remove('active');
+    const layer=document.getElementById('pinlayer-'+it.id); if(layer) layer.classList.remove('arming');
+    const ind=document.getElementById('pin-ind-'+it.id); if(ind) ind.textContent='';
     await loadNotes(proj,sec,it);
     msg.className='msg'; msg.textContent='Posted.'; setTimeout(()=>{ msg.textContent=''; },2500);
   }catch(e){
     console.error('post failed', e);
-    msg.className='msg err'; msg.textContent='Could not post that note. Check your connection and try again.';
-  }finally{ btn.disabled=false; btn.textContent='Post note'; }
+    const m=(e && (e.message||e.error||'')+'').toLowerCase();
+    if(m.includes('bucket') || m.includes('storage') || m.includes('row-level')) { msg.className='msg err'; msg.textContent='Voice upload failed — run comments-upgrade.sql so the review-voice bucket exists.'; }
+    else if(m.includes('column') || m.includes('audio_url') || m.includes('pos_x')) { msg.className='msg err'; msg.textContent='Run comments-upgrade.sql first (new columns needed for voice/pins).'; }
+    else { msg.className='msg err'; msg.textContent='Could not post that note. Check your connection and try again.'; }
+  }finally{ btn.disabled=false; btn.textContent='Post note'; gateFor(it); }
 }
 
 async function deleteNote(itemId, commentId){
   if(!confirm('Delete this note? This cannot be undone.')) return;
   try{
-    const { error } = await sb.from('comments').delete().eq('id', commentId);
+    const { data, error } = await sb.from('comments').delete().eq('id', commentId).select();
     if(error) throw error;
+    if(!data || data.length===0){ alert('Delete was blocked by the database. Run comments-upgrade.sql in Supabase (the delete policy is missing).'); return; }
     dropMine(commentId);
     const ctx=findItem(itemId); if(ctx) loadNotes(ctx.proj, ctx.sec, ctx.it);
-  }catch(e){ console.error('delete failed', e); alert('Could not delete that note. (Make sure the delete policy from comments-delete.sql is set up in Supabase.)'); }
+  }catch(e){ console.error('delete failed', e); alert('Could not delete that note. '+((e&&e.message)||'')); }
 }
 
 function adminStrip(proj, sec){
