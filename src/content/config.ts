@@ -21,7 +21,6 @@ const work = defineCollection({
   }),
 });
 
-// ---- Client review portal ----
 const reviews = defineCollection({
   type: 'data',
   schema: z.object({
@@ -45,34 +44,26 @@ const reviewProjects = defineCollection({
   }),
 });
 
-const reviewSections = defineCollection({
-  type: 'data',
-  schema: z.object({
-    key: z.string(),                 // unique per section (e.g. "apsa-videos")
-    project_key: z.string(),         // which project it belongs to
-    name: z.string(),                // display name (Style Frames, Audio, Client Files...)
-    order: z.number().optional().default(100),
-    published: z.boolean().optional().default(true),
-  }),
-});
-
 const reviewItems = defineCollection({
   type: 'data',
   schema: z.object({
-    section_key: z.string().optional().default(''),
-    kind: z.enum(['video', 'image', 'audio', 'file']).optional().default('image'),
+    project_key: z.string(),
+    section: z.string().optional().default(''),       // free text — you type it
+    section_key: z.string().optional().default(''),   // tolerated for old files
+    kind: z.string().optional().default(''),          // optional override; normally auto-detected
     title: z.string().optional().default(''),
     label: z.string().optional().default(''),
     version: z.string().optional().default(''),
     stream_uid: z.string().optional().default(''),
     image: z.string().optional().default(''),
+    image_url: z.string().optional().default(''),     // tolerated for old files
     src_url: z.string().optional().default(''),
     download_url: z.string().optional().default(''),
-    date: z.string().optional().default(''),
+    date: z.string().optional().default(''),          // optional override; normally auto from filename
     archived: z.boolean().optional().default(false),
     order: z.number().optional().default(100),
     published: z.boolean().optional().default(true),
   }),
 });
 
-export const collections = { work, reviews, reviewProjects, reviewSections, reviewItems };
+export const collections = { work, reviews, reviewProjects, reviewItems };

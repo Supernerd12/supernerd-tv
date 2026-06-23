@@ -4,10 +4,25 @@ import { getCollection } from 'astro:content';
 export async function getStaticPaths() {
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
-  const sections = (await getCollection('reviewSections')).filter(s => s.data.published !== false);
   const items    = (await getCollection('reviewItems')).filter(i => i.data.published !== false);
 
   const cleanId = (id) => String(id).replace(/\.(json|ya?ml)$/i, '');
+  const inferKind = (d) => {
+    if (d.kind) return d.kind;
+    if (d.stream_uid) return 'video';
+    if (d.image) return 'image';
+    const u = (d.src_url || '').toLowerCase();
+    if (/\.(mp3|wav|m4a|aac|ogg|flac)$/.test(u)) return 'audio';
+    if (/\.(png|jpe?g|gif|webp|svg|avif)$/.test(u)) return 'image';
+    if (u) return 'file';
+    return 'image';
+  };
+  const dateFromId = (id, explicit) => {
+    if (explicit) return explicit;
+    const m = String(id).match(/(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})/);
+    if (m) return `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}`;
+    return '';
+  };
 
   return reviews.map((review) => {
     const co = review.data;
@@ -16,33 +31,45 @@ export async function getStaticPaths() {
       .filter(p => p.data.company_key === co.key)
       .sort((a, b) => (a.data.order ?? 100) - (b.data.order ?? 100))
       .map((p) => {
-        const secs = sections
-          .filter(s => s.data.project_key === p.data.key)
+        const mine = items
+          .filter(i => i.data.project_key === p.data.key)
           .sort((a, b) => (a.data.order ?? 100) - (b.data.order ?? 100))
-          .map((s) => {
-            const its = items
-              .filter(i => i.data.section_key === s.data.key)
-              .sort((a, b) => (a.data.order ?? 100) - (b.data.order ?? 100))
-              .map(i => ({
-                id: cleanId(i.id),
-                type: i.data.kind,
-                title: i.data.title || '',
-                label: i.data.label || '',
-                version: i.data.version || '',
-                stream_uid: i.data.stream_uid || '',
-                src: i.data.image || i.data.src_url || '',
-                download_url: i.data.download_url || '',
-                date: i.data.date || '',
-                archived: i.data.archived === true,
-              }));
+          .map((i) => {
+            const id = cleanId(i.id);
             return {
-              id: s.data.key,
-              name: s.data.name,
-              current: its.filter(x => !x.archived),
-              archive: its.filter(x => x.archived),
+              id,
+              section: ((i.data.section || i.data.section_key || 'Other').trim()) || 'Other',
+              type: inferKind(i.data),
+              title: i.data.title || '',
+              label: i.data.label || '',
+              version: i.data.version || '',
+              stream_uid: i.data.stream_uid || '',
+              src: i.data.image || i.data.src_url || i.data.image_url || '',
+              download_url: i.data.download_url || '',
+              date: dateFromId(id, i.data.date),
+              archived: i.data.archived === true,
+              order: i.data.order ?? 100,
             };
           });
-        return { id: p.data.key, title: p.data.title, tagline: p.data.tagline || '', sections: secs };
+
+        // group items by their (typed) section name; sections appear in lowest-order-first order
+        const seen = [];
+        const byName = new Map();
+        for (const it of mine) {
+          if (!byName.has(it.section)) { byName.set(it.section, []); seen.push(it.section); }
+          byName.get(it.section).push(it);
+        }
+        const sections = seen.map((name) => {
+          const list = byName.get(name);
+          return {
+            id: name,
+            name,
+            current: list.filter(x => !x.archived),
+            archive: list.filter(x => x.archived),
+          };
+        });
+
+        return { id: p.data.key, title: p.data.title, tagline: p.data.tagline || '', sections };
       });
 
     const data = { REVIEW_SLUG: co.key, COMPANY: { name: co.name, logo: co.logo || '' }, PROJECTS };
@@ -249,6 +276,8 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
   @media (max-width:560px){ .deliv-date{margin-left:0} }
   .note-del{margin-left:6px; width:21px; height:21px; line-height:1; font-size:15px; color:var(--dim); background:none; border:1px solid var(--line); border-radius:5px; cursor:pointer; flex:0 0 auto; transition:color .12s var(--ease), border-color .12s var(--ease)}
   .note-del:hover{color:#ff6b6b; border-color:rgba(255,107,107,.55)}
+  .meta-bar{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:12px; flex-wrap:wrap}
+  .up-stamp{font-family:var(--mono); font-size:11px; color:var(--dim)}
 </style>
 </head>
 <body>
@@ -285,8 +314,9 @@ function parseTimecode(tc){ if(!tc) return null; const parts=String(tc).trim().s
 function relTime(iso){ const d=(Date.now()-new Date(iso).getTime())/1000; if(d<60) return 'just now'; if(d<3600) return Math.floor(d/60)+'m ago'; if(d<86400) return Math.floor(d/3600)+'h ago'; return Math.floor(d/86400)+'d ago'; }
 function fmtTime(iso){ const d=new Date(iso); return d.toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}); }
 function fmtDate(iso){ if(!iso) return ''; let d; const m=String(iso).match(/^(\d{4})-(\d{2})-(\d{2})$/); if(m){ d=new Date(+m[1], +m[2]-1, +m[3], 12); } else { d=new Date(iso); } if(isNaN(d.getTime())) return ''; return d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}); }
+function fmtStamp(iso){ if(!iso) return ''; let d; const m=String(iso).match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/); if(m){ d=new Date(+m[1], +m[2]-1, +m[3], +m[4], +m[5]); } else { d=new Date(iso); } if(isNaN(d.getTime())) return ''; return d.toLocaleString(undefined,{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'}); }
 function esc(s){ const d=document.createElement('div'); d.textContent=(s==null?'':s); return d.innerHTML; }
-function itemTitle(it){ return it.type==='video' ? (it.label||'Video') : (it.title || itemFallback(it)); }
+function itemTitle(it){ return it.title || it.label || itemFallback(it); }
 function itemFallback(it){ return it.type==='audio' ? 'Audio' : (it.type==='file' ? 'File' : 'Untitled'); }
 function downloadHref(it){ if(it.download_url) return it.download_url; if(it.type==='video' && it.stream_uid) return 'https://'+CONFIG.STREAM_CUSTOMER+'/'+it.stream_uid+'/downloads/default.mp4'; return it.src || ''; }
 
@@ -376,15 +406,16 @@ function mediaHTML(it){
 }
 
 function delivHTML(proj, sec, it){
-  const ver = (it.type==='video' && it.version) ? '<span class="deliv-ver">'+esc(it.version)+'</span>' : '';
-  const date = it.date ? '<span class="deliv-date">'+esc(fmtDate(it.date))+'</span>' : '';
+  const ver = it.version ? '<span class="deliv-ver">'+esc(it.version)+'</span>' : '';
   const dl = downloadHref(it);
-  const dlBar = dl ? '<div class="dl-bar"><a class="dl-btn" href="'+esc(dl)+'" download target="_blank" rel="noopener">⤓ Download</a></div>' : '';
+  const dlBtn = dl ? '<a class="dl-btn" href="'+esc(dl)+'" download target="_blank" rel="noopener">⤓ Download</a>' : '<span></span>';
+  const stamp = it.date ? '<span class="up-stamp">Uploaded '+esc(fmtStamp(it.date))+'</span>' : '';
+  const metaBar = (dl || it.date) ? '<div class="meta-bar">'+dlBtn+stamp+'</div>' : '';
   const tcField = it.type==='video' ? '<div class="field f-tc"><label>Timecode</label><input id="tc-'+it.id+'" placeholder="00:00"></div>' : '';
   return '<section class="deliv">'
-    + '<div class="deliv-head"><span class="deliv-title">'+esc(itemTitle(it))+'</span>'+ver+'<span class="deliv-kind">'+it.type+'</span>'+date+'</div>'
+    + '<div class="deliv-head"><span class="deliv-title">'+esc(itemTitle(it))+'</span>'+ver+'<span class="deliv-kind">'+it.type+'</span></div>'
     + mediaHTML(it)
-    + dlBar
+    + metaBar
     + '<div class="notes"><div class="notes-bar"><h3>Notes</h3><span class="count" id="count-'+it.id+'"></span></div>'
     + '<div id="notes-'+it.id+'"><div class="empty">Loading notes…</div></div>'
     + '<div class="composer"><div class="row"><div class="field f-name"><label>Your name</label><input id="name-'+it.id+'" placeholder="e.g. Margot" value="'+esc(getName())+'"></div>'+tcField+'</div>'
