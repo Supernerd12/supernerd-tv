@@ -361,6 +361,7 @@ function esc(s){ const d=document.createElement('div'); d.textContent=(s==null?'
 function itemFallback(it){ return it.type==='audio' ? 'Audio' : (it.type==='file' ? 'File' : (it.type==='video' ? 'Video' : 'Untitled')); }
 function itemTitle(it){ return it.title || it.label || itemFallback(it); }
 function downloadHref(it){ if(it.download_url) return it.download_url; if(it.type==='video' && it.stream_uid) return 'https://'+CONFIG.STREAM_CUSTOMER+'/'+it.stream_uid+'/downloads/default.mp4'; return it.src || ''; }
+function previewFor(it, tcSecs){ if(it.type==='image' && it.src) return it.src; if(it.type==='video' && it.stream_uid){ let u='https://'+CONFIG.STREAM_CUSTOMER+'/'+it.stream_uid+'/thumbnails/thumbnail.jpg?height=320'; if(tcSecs!=null) u+='&time='+Math.floor(tcSecs)+'s'; return u; } return null; }
 
 function seek(id, seconds){ const p=players[id]; if(p){ try{ p.currentTime=seconds; p.play(); const st=document.getElementById('stage-'+id); if(st) window.scrollTo({top:st.getBoundingClientRect().top+window.scrollY-86, behavior:'smooth'}); }catch(e){} } }
 function chrome(){ document.getElementById('coName').textContent = CONFIG.COMPANY.name; if(CONFIG.COMPANY.logo){ const c=document.getElementById('cobrand'); c.src=CONFIG.COMPANY.logo; c.hidden=false; } }
@@ -610,9 +611,11 @@ async function postNote(proj, sec, it){
     let audio_url=null;
     if(pendingAudio[it.id]){ audio_url=await uploadVoice(it); }
     const pin=pendingPin[it.id];
+    const preview=previewFor(it, parseTimecode(tc));
     const row={ review_slug:CONFIG.REVIEW_SLUG, asset_id:assetId(proj,sec,it), author_name:name, timecode:tc||null, body:body||null };
     if(audio_url) row.audio_url=audio_url;
     if(pin){ row.pos_x=pin.x; row.pos_y=pin.y; }
+    if(preview) row.preview_url=preview;
     const { data:ins, error } = await sb.from('comments').insert(row).select();
     if(error) throw error;
     if(ins && ins[0] && ins[0].id) addMine(ins[0].id);
