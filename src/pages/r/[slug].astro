@@ -361,7 +361,8 @@ function esc(s){ const d=document.createElement('div'); d.textContent=(s==null?'
 function itemFallback(it){ return it.type==='audio' ? 'Audio' : (it.type==='file' ? 'File' : (it.type==='video' ? 'Video' : 'Untitled')); }
 function itemTitle(it){ return it.title || it.label || itemFallback(it); }
 function downloadHref(it){ if(it.download_url) return it.download_url; if(it.type==='video' && it.stream_uid) return 'https://'+CONFIG.STREAM_CUSTOMER+'/'+it.stream_uid+'/downloads/default.mp4'; return it.src || ''; }
-function previewFor(it, tcSecs){ if(it.type==='image' && it.src) return it.src; if(it.type==='video' && it.stream_uid){ let u='https://'+CONFIG.STREAM_CUSTOMER+'/'+it.stream_uid+'/thumbnails/thumbnail.jpg?height=320'; if(tcSecs!=null) u+='&time='+Math.floor(tcSecs)+'s'; return u; } return null; }
+function absUrl(u){ if(!u) return u; if(/^https?:\/\//i.test(u)) return u; return location.origin + (u.charAt(0)==='/'?'':'/') + u; }
+function previewFor(it, tcSecs){ if(it.type==='image' && it.src) return absUrl(it.src); if(it.type==='video' && it.stream_uid){ let u='https://'+CONFIG.STREAM_CUSTOMER+'/'+it.stream_uid+'/thumbnails/thumbnail.jpg?height=320'; if(tcSecs!=null) u+='&time='+Math.floor(tcSecs)+'s'; return u; } return null; }
 
 function seek(id, seconds){ const p=players[id]; if(p){ try{ p.currentTime=seconds; p.play(); const st=document.getElementById('stage-'+id); if(st) window.scrollTo({top:st.getBoundingClientRect().top+window.scrollY-86, behavior:'smooth'}); }catch(e){} } }
 function chrome(){ document.getElementById('coName').textContent = CONFIG.COMPANY.name; if(CONFIG.COMPANY.logo){ const c=document.getElementById('cobrand'); c.src=CONFIG.COMPANY.logo; c.hidden=false; } }
