@@ -1,1 +1,16 @@
-{ "section_key": "apsa-videos", "kind": "video", "label": "Animatic", "version": "v1", "stream_uid": "d0dc8c487a18d04d83410e52b3677535", "date": "2026-06-18", "archived": true, "order": 2, "published": true }
+{
+  "project_key": "animated-psa",
+  "section": "assets",
+  "kind": "image",
+  "title": "",
+  "label": "Animatic",
+  "version": "v1",
+  "stream_uid": "d0dc8c487a18d04d83410e52b3677535",
+  "image": "/work/uploads/mary-style2.png",
+  "image_url": "",
+  "order": 2,
+  "published": true,
+  "archived": true,
+  "section_key": "apsa-videos",
+  "date": "2026-06-18"
+}
