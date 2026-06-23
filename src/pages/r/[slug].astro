@@ -247,6 +247,8 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
   .ov-close{position:fixed; top:16px; right:20px; width:42px; height:42px; font-size:30px; line-height:1; color:var(--bone); background:rgba(20,20,20,.7); border:1px solid var(--line); border-radius:50%; cursor:pointer; z-index:61}
   .ov-close:hover{color:var(--green); border-color:rgba(186,192,30,.5)}
   @media (max-width:560px){ .deliv-date{margin-left:0} }
+  .note-del{margin-left:6px; width:21px; height:21px; line-height:1; font-size:15px; color:var(--dim); background:none; border:1px solid var(--line); border-radius:5px; cursor:pointer; flex:0 0 auto; transition:color .12s var(--ease), border-color .12s var(--ease)}
+  .note-del:hover{color:#ff6b6b; border-color:rgba(255,107,107,.55)}
 </style>
 </head>
 <body>
@@ -274,6 +276,10 @@ let players = {};
 const NAME_KEY = 'sn_review_name';
 const getName = () => { try { return localStorage.getItem(NAME_KEY) || ''; } catch (e) { return ''; } };
 const setName = (n) => { try { localStorage.setItem(NAME_KEY, n); } catch (e) {} };
+const MINE_KEY = 'sn_my_comments';
+function myComments(){ try { return JSON.parse(localStorage.getItem(MINE_KEY) || '[]'); } catch (e) { return []; } }
+function addMine(id){ try { const a = myComments(); a.push(id); localStorage.setItem(MINE_KEY, JSON.stringify(a)); } catch (e) {} }
+function dropMine(id){ try { localStorage.setItem(MINE_KEY, JSON.stringify(myComments().filter(x => x !== id))); } catch (e) {} }
 
 function parseTimecode(tc){ if(!tc) return null; const parts=String(tc).trim().split(':').map(p=>parseInt(p,10)); if(parts.some(isNaN)) return null; let s=0; for(const p of parts){ s=s*60+p; } return s; }
 function relTime(iso){ const d=(Date.now()-new Date(iso).getTime())/1000; if(d<60) return 'just now'; if(d<3600) return Math.floor(d/60)+'m ago'; if(d<86400) return Math.floor(d/3600)+'h ago'; return Math.floor(d/86400)+'d ago'; }
@@ -408,11 +414,13 @@ async function loadNotes(proj, sec, it){
     if(error) throw error;
     const ct=document.getElementById('count-'+it.id); if(ct) ct.textContent=data.length||'';
     if(!data.length){ box.innerHTML='<div class="empty">No notes yet. Add the first one below.</div>'; return; }
+    const mineSet=new Set(myComments());
     box.innerHTML=data.map(c=>{
       const secs=parseTimecode(c.timecode);
+      const del=(ADMIN || mineSet.has(c.id)) ? '<button class="note-del" title="Delete note" onclick="deleteNote(\''+it.id+'\',\''+c.id+'\')">\u00d7</button>' : '';
       const canSeek=secs!=null && players[it.id];
       const tc=c.timecode ? '<button class="tc '+(canSeek?'':'static')+'" '+(canSeek?'onclick="seek(\''+it.id+'\','+secs+')"':'disabled')+'>'+esc(c.timecode)+'</button>' : '';
-      return '<div class="note"><div class="ava">'+esc((c.author_name||'?').trim().charAt(0)||'?')+'</div><div class="note-main"><div class="note-head"><span class="note-name">'+esc(c.author_name||'Anonymous')+'</span>'+tc+'<span class="note-time" title="'+esc(relTime(c.created_at))+'">'+esc(fmtTime(c.created_at))+'</span></div><div class="note-body">'+esc(c.body)+'</div></div></div>';
+      return '<div class="note"><div class="ava">'+esc((c.author_name||'?').trim().charAt(0)||'?')+'</div><div class="note-main"><div class="note-head"><span class="note-name">'+esc(c.author_name||'Anonymous')+'</span>'+tc+'<span class="note-time" title="'+esc(relTime(c.created_at))+'">'+esc(fmtTime(c.created_at))+'</span>'+del+'</div><div class="note-body">'+esc(c.body)+'</div></div></div>';
     }).join('');
   }catch(e){
     console.error('load notes failed', e);
@@ -429,8 +437,9 @@ async function postNote(proj, sec, it){
   if(!body){ msg.className='msg err'; msg.textContent='Write a note before posting.'; bodyEl.focus(); return; }
   btn.disabled=true; btn.textContent='Posting…';
   try{
-    const { error } = await sb.from('comments').insert({ review_slug:CONFIG.REVIEW_SLUG, asset_id:assetId(proj,sec,it), author_name:name, timecode:tc||null, body:body });
+    const { data:ins, error } = await sb.from('comments').insert({ review_slug:CONFIG.REVIEW_SLUG, asset_id:assetId(proj,sec,it), author_name:name, timecode:tc||null, body:body }).select();
     if(error) throw error;
+    if(ins && ins[0] && ins[0].id) addMine(ins[0].id);
     setName(name); bodyEl.value=''; if(tcEl) tcEl.value='';
     await loadNotes(proj,sec,it);
     msg.className='msg'; msg.textContent='Posted.'; setTimeout(()=>{ msg.textContent=''; },2500);
@@ -457,6 +466,16 @@ async function announce(projId, secId){
   finally{ btn.disabled=false; btn.textContent=orig; }
 }
 
+function findCtx(itemId){ for(const p of CONFIG.PROJECTS){ for(const s of p.sections){ const all=s.current.concat(s.archive); for(const it of all){ if(it.id===itemId) return { proj:p, sec:s, it:it }; } } } return null; }
+async function deleteNote(itemId, commentId){
+  if(!confirm('Delete this note? This cannot be undone.')) return;
+  try{
+    const { error } = await sb.from('comments').delete().eq('id', commentId);
+    if(error) throw error;
+    dropMine(commentId);
+    const ctx=findCtx(itemId); if(ctx) loadNotes(ctx.proj, ctx.sec, ctx.it);
+  }catch(e){ console.error('delete failed', e); alert('Could not delete that note. (Make sure the delete policy from comments-delete.sql is set up in Supabase.)'); }
+}
 document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeOverlay(); });
 chrome();
 window.addEventListener('hashchange', route);
