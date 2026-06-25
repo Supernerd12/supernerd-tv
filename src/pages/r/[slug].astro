@@ -472,14 +472,105 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
 
   /* ---- mobile spacing breathe ---- */
   @media (max-width:760px){ .landing{padding-top:48px} }
+
+  /* ===================================================================
+     v3.1 — make the glass + the art actually READ
+     =================================================================== */
+  /* acid-green text highlight + form accents everywhere */
+  ::selection{background:var(--green); color:#0a0a04}
+  ::-moz-selection{background:var(--green); color:#0a0a04}
+  *{accent-color:var(--green)}
+  input, textarea, select{caret-color:var(--green)}
+  select option:checked, select option:hover{background:var(--green); color:#0a0a04}
+
+  /* brighter green backdrop so it never reads as flat black */
+  #bg-art{opacity:.9}
+  body::before{
+    background:
+      radial-gradient(60vw 52vh at 8% -12%, rgba(186,192,30,.22), transparent 60%),
+      radial-gradient(52vw 50vh at 104% 4%, rgba(186,192,30,.13), transparent 58%),
+      radial-gradient(85vw 66vh at 50% 124%, rgba(150,170,40,.14), transparent 64%);}
+
+  /* ETHEREAL GLASS — translucent frosted panels; the green field shows through */
+  .card, .composer, .onboard, .admin-strip{
+    background:rgba(15,16,18,.55);
+    -webkit-backdrop-filter:blur(16px) saturate(140%);
+    backdrop-filter:blur(16px) saturate(140%);
+    border:1px solid var(--hair-2);
+    box-shadow:var(--shadow-card), var(--inner-hi);}
+  @media (hover:hover) and (pointer:fine){
+    .card:hover{background:rgba(18,19,16,.6)}
+  }
+  .notify-box{background:rgba(186,192,30,.06); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px)}
+
+  /* text + content visibly LOADS IN (rise + de-blur), clearly staggered */
+  @keyframes riseIn{from{opacity:0; transform:translateY(14px); filter:blur(7px)} to{opacity:1; transform:translateY(0); filter:blur(0)}}
+  .landing>.eyebrow,.landing .co-name,.landing .lead,.onboard{animation:riseIn .62s var(--ease-out) both}
+  .landing .co-name{animation-delay:.06s} .landing .lead{animation-delay:.12s} .onboard{animation-delay:.16s}
+  .pv .side .back{animation:riseIn .5s var(--ease-out) both}
+  .pv .pv-title{animation:riseIn .5s var(--ease-out) both; animation-delay:.04s}
+  .pv .nav a{animation:riseIn .5s var(--ease-out) both}
+  .pv .nav a:nth-child(2){animation-delay:.06s} .pv .nav a:nth-child(3){animation-delay:.1s} .pv .nav a:nth-child(4){animation-delay:.14s} .pv .nav a:nth-child(n+5){animation-delay:.18s}
+  .pv .main-head{animation:riseIn .55s var(--ease-out) both; animation-delay:.05s}
+
+  /* route-change loading pulse (a thin acid-green sweep across the top) */
+  .routebar{position:fixed; top:0; left:0; right:0; height:2px; z-index:80; background:linear-gradient(90deg,var(--green),var(--green-hi)); transform:scaleX(0); transform-origin:left; opacity:0; pointer-events:none}
+
+  @media (prefers-reduced-motion:reduce){
+    .card,.composer,.onboard,.admin-strip{-webkit-backdrop-filter:none; backdrop-filter:none; background:rgba(12,12,13,.92)}
+    .routebar{display:none}
+  }
+
+  /* ===================================================================
+     v3.2 — visible mesh, brand "+", fullscreen zoom, collapsible feedback
+     =================================================================== */
+  /* mesh fully ON-screen + stronger, darker center for text legibility */
+  body::before{
+    background:
+      radial-gradient(900px 620px at 16% 14%, rgba(186,192,30,.20), transparent 72%),
+      radial-gradient(820px 600px at 88% 26%, rgba(186,192,30,.13), transparent 72%),
+      radial-gradient(1000px 720px at 50% 110%, rgba(150,170,40,.17), transparent 70%),
+      radial-gradient(120% 90% at 50% 42%, transparent 40%, rgba(5,5,5,.55) 100%);}
+  #bg-art{opacity:.9}
+
+  /* header lockup: Supernerd + [company logo] */
+  .head-row{gap:20px}
+  .brand-plus{font-family:var(--disp); font-weight:800; font-size:24px; line-height:1; color:#fff; opacity:.92; margin:0 2px}
+  .cobrand{height:30px; width:auto; max-width:170px; object-fit:contain}
+  @media (max-width:560px){ .brand-plus{font-size:19px} .cobrand{height:24px} }
+
+  /* fullscreen image: rises up + scales as the backdrop darkens with ease */
+  #overlay.show{animation:ovIn .34s var(--ease-out) both}
+  @keyframes ovIn{from{background:rgba(3,3,3,0); -webkit-backdrop-filter:blur(0); backdrop-filter:blur(0)} to{background:rgba(3,3,3,.92); -webkit-backdrop-filter:blur(7px); backdrop-filter:blur(7px)}}
+  .ov-img{animation:imgZoom .46s var(--ease-out) both; transform-origin:center}
+  @keyframes imgZoom{from{opacity:0; transform:translateY(18px) scale(.9); filter:blur(8px)} to{opacity:1; transform:translateY(0) scale(1); filter:blur(0)}}
+
+  /* collapsible feedback — fans latest -> oldest on expand */
+  .notes-toggle{margin-left:auto; font-family:var(--mono); font-size:11px; letter-spacing:.04em; color:var(--dim); background:none; border:1px solid var(--line); border-radius:7px; padding:4px 11px; cursor:pointer; transition:color .15s var(--ease-out), border-color .15s var(--ease-out), transform .14s var(--ease-out)}
+  .notes-toggle:hover{color:var(--green); border-color:rgba(186,192,30,.4)}
+  .notes-toggle:active{transform:scale(.96)}
+  .notes-list{overflow:hidden; max-height:7000px; opacity:1; transition:max-height .45s var(--ease-io), opacity .3s var(--ease-out)}
+  .notes-list.collapsed{max-height:0; opacity:0}
+  .notes-list.fan .note{animation:fanIn .5s var(--ease-out) both}
+  .notes-list.fan .note:nth-child(1){animation-delay:0s}
+  .notes-list.fan .note:nth-child(2){animation-delay:.05s}
+  .notes-list.fan .note:nth-child(3){animation-delay:.1s}
+  .notes-list.fan .note:nth-child(4){animation-delay:.15s}
+  .notes-list.fan .note:nth-child(5){animation-delay:.2s}
+  .notes-list.fan .note:nth-child(6){animation-delay:.25s}
+  .notes-list.fan .note:nth-child(n+7){animation-delay:.3s}
+  @keyframes fanIn{from{opacity:0; transform:translateY(-9px) scale(.99); filter:blur(4px)} to{opacity:1; transform:translateY(0) scale(1); filter:blur(0)}}
+  @media (prefers-reduced-motion:reduce){ .notes-list.fan .note{animation:none} .ov-img{animation:none} #overlay.show{animation:none; background:rgba(3,3,3,.92)} }
 </style>
 </head>
 <body>
 <canvas id="bg-art" aria-hidden="true"></canvas>
 <div class="grain" aria-hidden="true"></div>
+<div class="routebar" id="routebar" aria-hidden="true"></div>
 <header>
   <div class="wrap head-row">
     <a class="logo-link" href="https://supernerd.tv" target="_blank" rel="noopener" title="Visit supernerd.tv"><img class="logo-img" src="/email-logo.png" alt="Supernerd"></a>
+    <span class="brand-plus" id="brandPlus" hidden>+</span>
     <img class="cobrand" id="cobrand" alt="" hidden>
     <div class="head-meta"><div class="eyebrow">Review</div><div class="co" id="coName" onclick="location.hash=''" title="Back to projects">—</div></div>
   </div>
@@ -500,7 +591,7 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
   var ctx=c.getContext('2d'); if(!ctx) return;
   var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   var DPR=Math.min(window.devicePixelRatio||1,1.25), W=0,H=0,N=0,pts=[];
-  var GREEN='186,192,30', BONE='236,236,234', SC=0.0016, SP=0.5;
+  var GREEN='186,192,30', BONE='236,236,234', SC=0.0016, SP=0.6;
   var seed=20231, perm=new Uint8Array(512);
   function rnd(){ seed=(seed*1664525+1013904223)>>>0; return ((seed>>>8)&0xffffff)/0xffffff; }
   (function(){ var p=[],i,j,t; for(i=0;i<256;i++)p[i]=i; for(i=255;i>0;i--){ j=(rnd()*(i+1))|0; t=p[i];p[i]=p[j];p[j]=t; } for(i=0;i<512;i++)perm[i]=p[i&255]; })();
@@ -512,18 +603,22 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
     return lerp(lerp(grad(aa,x,y),grad(ba,x-1,y),u), lerp(grad(ab,x,y-1),grad(bb,x-1,y-1),u), v); }
   function resize(){ W=c.width=Math.floor(innerWidth*DPR); H=c.height=Math.floor(innerHeight*DPR);
     c.style.width=innerWidth+'px'; c.style.height=innerHeight+'px';
-    N=Math.max(280,Math.min(1100,Math.floor(innerWidth*innerHeight/1900))); pts=[];
+    N=Math.max(380,Math.min(1500,Math.floor(innerWidth*innerHeight/1500))); pts=[];
     for(var i=0;i<N;i++) pts.push({x:rnd()*W,y:rnd()*H,life:20+rnd()*120});
     ctx.fillStyle='#050505'; ctx.fillRect(0,0,W,H); }
-  function step(){ ctx.fillStyle='rgba(5,5,5,0.038)'; ctx.fillRect(0,0,W,H);
+  function step(){
+    ctx.globalCompositeOperation='source-over';
+    ctx.fillStyle='rgba(5,5,5,0.055)'; ctx.fillRect(0,0,W,H);
+    ctx.globalCompositeOperation='lighter';
     for(var i=0;i<N;i++){ var p=pts[i];
       var a=noise(p.x*SC,p.y*SC)*Math.PI*2.4;
       var nx=p.x+Math.cos(a)*SP*DPR, ny=p.y+Math.sin(a)*SP*DPR;
       var g=(noise(p.x*SC+99,p.y*SC+99)+1)*0.5;
-      ctx.strokeStyle='rgba('+(g>0.5?GREEN:BONE)+','+(0.06+g*0.16).toFixed(3)+')';
-      ctx.lineWidth=DPR*0.95; ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(nx,ny); ctx.stroke();
+      ctx.strokeStyle='rgba('+(g>0.4?GREEN:BONE)+','+(0.045+g*0.11).toFixed(3)+')';
+      ctx.lineWidth=DPR*1.15; ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(nx,ny); ctx.stroke();
       p.x=nx; p.y=ny; p.life--;
-      if(p.life<0||nx<0||nx>W||ny<0||ny>H){ p.x=rnd()*W; p.y=rnd()*H; p.life=20+rnd()*120; } } }
+      if(p.life<0||nx<0||nx>W||ny<0||ny>H){ p.x=rnd()*W; p.y=rnd()*H; p.life=20+rnd()*120; } }
+    ctx.globalCompositeOperation='source-over'; }
   var raf,running=false;
   function loop(){ if(!running) return; step(); raf=requestAnimationFrame(loop); }
   function start(){ if(running||reduce) return; running=true; loop(); }
@@ -534,6 +629,9 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
     document.addEventListener('visibilitychange', function(){ document.hidden?stop():start(); });
     if(reduce){ for(var k=0;k<70;k++) step(); } else { start(); }
   }catch(e){}
+})();
+(function(){ var rb=document.getElementById('routebar'); if(!rb||!rb.animate) return;
+  addEventListener('hashchange', function(){ try{ rb.animate([{transform:'scaleX(0)',opacity:1},{transform:'scaleX(0.92)',opacity:1,offset:.7},{transform:'scaleX(1)',opacity:0}],{duration:620,easing:'cubic-bezier(.23,1,.32,1)'}); }catch(e){} });
 })();
 </script>
 
@@ -596,12 +694,12 @@ function fmtStamp(iso){ if(!iso) return ''; let d; const m=String(iso).match(/^(
 function esc(s){ const d=document.createElement('div'); d.textContent=(s==null?'':s); return d.innerHTML; }
 function itemFallback(it){ return it.type==='audio' ? 'Audio' : (it.type==='file' ? 'File' : (it.type==='video' ? 'Video' : 'Untitled')); }
 function itemTitle(it){ return it.title || it.label || itemFallback(it); }
-function downloadHref(it){ if(it.download_url) return it.download_url; if(it.type==='video' && it.stream_uid) return 'https://'+CONFIG.STREAM_CUSTOMER+'/'+it.stream_uid+'/downloads/default.mp4'; return it.src || ''; }
+function downloadHref(it){ if(it.download_url) return it.download_url; if(it.type==='video' && it.stream_uid){ var fn=(itemTitle(it)||'video').replace(/[^A-Za-z0-9-_]+/g,'_').slice(0,110)||'video'; return 'https://'+CONFIG.STREAM_CUSTOMER+'/'+it.stream_uid+'/downloads/default.mp4?filename='+fn; } return it.src || ''; }
 function absUrl(u){ if(!u) return u; if(/^https?:\/\//i.test(u)) return u; return location.origin + (u.charAt(0)==='/'?'':'/') + u; }
 function previewFor(it, tcSecs){ if(it.type==='image' && it.src) return absUrl(it.src); if(it.type==='video' && it.stream_uid){ let u='https://'+CONFIG.STREAM_CUSTOMER+'/'+it.stream_uid+'/thumbnails/thumbnail.jpg?height=320'; if(tcSecs!=null) u+='&time='+Math.floor(tcSecs)+'s'; return u; } return null; }
 
 function seek(id, seconds){ const p=players[id]; if(p){ try{ p.currentTime=seconds; p.play(); const st=document.getElementById('stage-'+id); if(st) window.scrollTo({top:st.getBoundingClientRect().top+window.scrollY-86, behavior:'smooth'}); }catch(e){} } }
-function chrome(){ document.getElementById('coName').textContent = CONFIG.COMPANY.name; if(CONFIG.COMPANY.logo){ const c=document.getElementById('cobrand'); c.src=CONFIG.COMPANY.logo; c.hidden=false; } }
+function chrome(){ document.getElementById('coName').textContent = CONFIG.COMPANY.name; if(CONFIG.COMPANY.logo){ const c=document.getElementById('cobrand'); c.src=CONFIG.COMPANY.logo; c.hidden=false; const bp=document.getElementById('brandPlus'); if(bp) bp.hidden=false; } }
 
 /* ---------- overlay / lightbox ---------- */
 function openOverlay(html, wide){ const o=document.getElementById('overlay'); o.querySelector('.ov-inner').innerHTML=html; o.classList.toggle('wide', !!wide); o.classList.add('show'); document.body.style.overflow='hidden'; }
@@ -701,8 +799,8 @@ function versionBodyHTML(proj, sec, it){
   const pinTool = it.type==='image' ? '<button class="tool-btn" id="pin-'+it.id+'" type="button">📍 Pin to image</button><span class="pin-ind" id="pin-ind-'+it.id+'"></span>' : '';
   return mediaHTML(it)
     + metaBar
-    + '<div class="notes"><div class="notes-bar"><h3>Notes</h3><span class="count" id="count-'+it.id+'"></span></div>'
-    + '<div id="notes-'+it.id+'"><div class="empty">Loading notes…</div></div>'
+    + '<div class="notes"><div class="notes-bar"><h3>Notes</h3><span class="count" id="count-'+it.id+'"></span><button class="notes-toggle" id="ntog-'+it.id+'" type="button" aria-expanded="true">Hide</button></div>'
+    + '<div id="notes-'+it.id+'" class="notes-list fan"><div class="empty">Loading notes…</div></div>'
     + '<div class="composer"><div class="row"><div class="field f-name"><label>Your name</label><select id="name-'+it.id+'" class="name-select"><option value="">— pick your name —</option></select><input id="nameother-'+it.id+'" class="name-other" placeholder="Type your name" style="display:none"></div>'+tcField+'</div>'
     + '<div class="field"><label>Note</label><textarea id="body-'+it.id+'" placeholder="What should change, or what is working? (or just leave a voice note)"></textarea></div>'
     + '<div class="composer-tools"><button class="tool-btn" id="rec-'+it.id+'" type="button">🎤 Record voice note</button>'+pinTool+'</div>'
@@ -764,6 +862,7 @@ function wireVersion(proj, sec, it){
   if(oEl) oEl.addEventListener('input', ()=>{ setSavedAuthor(nEl?nEl.value:'', oEl.value); gateFor(it); });
   if(bEl) bEl.addEventListener('input', ()=>gateFor(it));
   fillNameSelect(it);
+  const tg=document.getElementById('ntog-'+it.id); if(tg) tg.addEventListener('click', ()=>toggleNotes(it));
   loadNotes(proj,sec,it);
 }
 
@@ -802,6 +901,12 @@ async function uploadVoice(it){
 
 function assetId(proj, sec, it){ return proj.id+':'+sec.id+':'+it.id; }
 
+function toggleNotes(it){
+  const box=document.getElementById('notes-'+it.id), btn=document.getElementById('ntog-'+it.id); if(!box) return;
+  const collapsed=box.classList.toggle('collapsed');
+  if(btn){ btn.textContent=collapsed?'Show':'Hide'; btn.setAttribute('aria-expanded', String(!collapsed)); }
+  if(!collapsed){ box.classList.remove('fan'); void box.offsetWidth; box.classList.add('fan'); }
+}
 async function loadNotes(proj, sec, it){
   const box=document.getElementById('notes-'+it.id); if(!box) return;
   try{
