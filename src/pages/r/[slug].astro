@@ -117,7 +117,8 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
     --ease:cubic-bezier(.2,.7,.2,1);
   }
   *{box-sizing:border-box}
-  html,body{margin:0; background:var(--ink); color:var(--bone)}
+  html{margin:0; background:var(--ink); color:var(--bone)}
+  body{margin:0; background:transparent; color:var(--bone)}
   body{font-family:var(--disp); -webkit-font-smoothing:antialiased; line-height:1.5}
   a{color:inherit; text-decoration:none}
   .wrap{max-width:1140px; margin:0 auto; padding:0 24px}
@@ -524,14 +525,18 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
   /* ===================================================================
      v3.2 — visible mesh, brand "+", fullscreen zoom, collapsible feedback
      =================================================================== */
-  /* mesh fully ON-screen + stronger, darker center for text legibility */
+  /* mesh: bright green ambient across the WHOLE page (no dark-center killer).
+     legibility is handled by the frosted-glass panels, not by darkening the field. */
   body::before{
+    z-index:-3;
     background:
-      radial-gradient(900px 620px at 16% 14%, rgba(186,192,30,.20), transparent 72%),
-      radial-gradient(820px 600px at 88% 26%, rgba(186,192,30,.13), transparent 72%),
-      radial-gradient(1000px 720px at 50% 110%, rgba(150,170,40,.17), transparent 70%),
-      radial-gradient(120% 90% at 50% 42%, transparent 40%, rgba(5,5,5,.55) 100%);}
-  #bg-art{opacity:.9}
+      radial-gradient(1100px 820px at 12% 6%,  rgba(186,192,30,.30), transparent 68%),
+      radial-gradient(1000px 760px at 90% 20%, rgba(150,170,40,.20), transparent 70%),
+      radial-gradient(1200px 900px at 50% 112%, rgba(186,192,30,.26), transparent 68%),
+      radial-gradient(820px 680px at 80% 86%,  rgba(120,150,40,.16), transparent 72%);}
+  /* canvas is now TRANSPARENT (it erases its trails instead of painting black),
+     so it sits ABOVE the mesh and only the green currents glow on top of it. */
+  #bg-art{z-index:-2; opacity:1}
 
   /* header lockup: Supernerd + [company logo] */
   .head-row{gap:20px}
@@ -627,6 +632,24 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
   .notes-toggle:hover{color:var(--green);border-color:rgba(186,192,30,.4)}
   .notes-toggle .ic{width:16px;height:16px;transition:transform .25s var(--ease-out)}
   .notes-toggle.open .ic{transform:rotate(180deg)}
+
+  /* ===================================================================
+     v5 — words on share+collapse, hide empty popovers, bg base on <html>
+     =================================================================== */
+  /* the empty pill between share and collapse was a popover whose display:flex
+     defeated the hidden attribute — force hidden to win everywhere */
+  [hidden]{display:none!important}
+
+  /* Share: labeled button (the icon alone read as "download") */
+  .meta-share{display:inline-flex;align-items:center;gap:7px;width:auto;height:auto;padding:8px 13px;border-radius:9px;border:1px solid var(--line);background:none;color:var(--dim);cursor:pointer;font-family:var(--mono);font-size:12px;letter-spacing:.04em;transition:color .14s var(--ease-out),border-color .14s var(--ease-out),background .14s var(--ease-out)}
+  .meta-share:hover{color:var(--green);border-color:rgba(186,192,30,.4);background:rgba(186,192,30,.06)}
+  .meta-share .ic{width:15px;height:15px}
+
+  /* Collapse: word, not a chevron */
+  .notes-toggle{margin-left:auto;display:inline-flex;align-items:center;width:auto;height:auto;padding:5px 12px;border:1px solid var(--line);border-radius:7px;background:none;color:var(--dim);cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:.04em;transition:color .15s var(--ease-out),border-color .15s var(--ease-out),transform .14s var(--ease-out)}
+  .notes-toggle:hover{color:var(--green);border-color:rgba(186,192,30,.4)}
+  .notes-toggle:active{transform:scale(.96)}
+  .notes-toggle .ic{display:none}
 </style>
 </head>
 <body>
@@ -671,17 +694,18 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
     c.style.width=innerWidth+'px'; c.style.height=innerHeight+'px';
     N=Math.max(380,Math.min(1500,Math.floor(innerWidth*innerHeight/1500))); pts=[];
     for(var i=0;i<N;i++) pts.push({x:rnd()*W,y:rnd()*H,life:20+rnd()*120});
-    ctx.fillStyle='#050505'; ctx.fillRect(0,0,W,H); }
+    ctx.clearRect(0,0,W,H); }
   function step(){
-    ctx.globalCompositeOperation='source-over';
-    ctx.fillStyle='rgba(5,5,5,0.055)'; ctx.fillRect(0,0,W,H);
+    // fade trails by ERASING alpha — canvas stays transparent so the green mesh shows through
+    ctx.globalCompositeOperation='destination-out';
+    ctx.fillStyle='rgba(0,0,0,0.085)'; ctx.fillRect(0,0,W,H);
     ctx.globalCompositeOperation='lighter';
     for(var i=0;i<N;i++){ var p=pts[i];
       var a=noise(p.x*SC,p.y*SC)*Math.PI*2.4;
       var nx=p.x+Math.cos(a)*SP*DPR, ny=p.y+Math.sin(a)*SP*DPR;
       var g=(noise(p.x*SC+99,p.y*SC+99)+1)*0.5;
-      ctx.strokeStyle='rgba('+(g>0.4?GREEN:BONE)+','+(0.045+g*0.11).toFixed(3)+')';
-      ctx.lineWidth=DPR*1.15; ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(nx,ny); ctx.stroke();
+      ctx.strokeStyle='rgba('+(g>0.4?GREEN:BONE)+','+(0.07+g*0.16).toFixed(3)+')';
+      ctx.lineWidth=DPR*1.3; ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(nx,ny); ctx.stroke();
       p.x=nx; p.y=ny; p.life--;
       if(p.life<0||nx<0||nx>W||ny<0||ny>H){ p.x=rnd()*W; p.y=rnd()*H; p.life=20+rnd()*120; } }
     ctx.globalCompositeOperation='source-over'; }
@@ -886,13 +910,13 @@ function versionBodyHTML(proj, sec, it){
   const dl = downloadHref(it);
   const dlBtn = dl ? '<a class="dl-btn" href="'+esc(dl)+'" download target="_blank" rel="noopener">⤓ Download</a>' : '';
   const stamp = it.date ? '<span class="up-stamp">Uploaded '+esc(fmtStamp(it.date))+'</span>' : '';
-  const shareBtn = '<button class="meta-share" id="share-'+it.id+'" type="button" title="Share" aria-label="Share">'+svgIcon('share')+'</button><div class="share-pop" id="sharepop-'+it.id+'" hidden></div>';
+  const shareBtn = '<button class="meta-share" id="share-'+it.id+'" type="button" title="Share">'+svgIcon('share')+'<span>Share</span></button><div class="share-pop" id="sharepop-'+it.id+'" hidden></div>';
   const metaBar = '<div class="meta-bar"><div class="meta-left">'+dlBtn+stamp+'</div><div class="meta-right">'+shareBtn+'</div></div>';
   const tcField = it.type==='video' ? '<div class="field f-tc"><label>Timecode</label><input id="tc-'+it.id+'" placeholder="00:00"></div>' : '';
   const pinTool = it.type==='image' ? '<button class="tool-btn" id="pin-'+it.id+'" type="button">📍 Pin to image</button><span class="pin-ind" id="pin-ind-'+it.id+'"></span>' : '';
   return mediaHTML(it)
     + metaBar
-    + '<div class="notes"><div class="notes-bar"><h3>Notes</h3><span class="count" id="count-'+it.id+'"></span><button class="notes-toggle open" id="ntog-'+it.id+'" type="button" aria-expanded="true" title="Collapse">'+svgIcon('chevron')+'</button></div>'
+    + '<div class="notes"><div class="notes-bar"><h3>Notes</h3><span class="count" id="count-'+it.id+'"></span><button class="notes-toggle" id="ntog-'+it.id+'" type="button" aria-expanded="true">Collapse</button></div>'
     + '<div id="notes-'+it.id+'" class="notes-list fan"><div class="empty">Loading notes…</div></div>'
     + '<div class="composer"><div class="reply-ctx" id="replyctx-'+it.id+'" hidden></div><div class="row"><div class="field f-name"><label>Your name</label><select id="name-'+it.id+'" class="name-select"><option value="">— pick your name —</option></select><input id="nameother-'+it.id+'" class="name-other" placeholder="Type your name" style="display:none"></div>'+tcField+'</div>'
     + '<div class="field comp-body"><label>Note <span class="at-hint">— type @ to mention &amp; notify someone</span></label><textarea id="body-'+it.id+'" placeholder="What should change, or what is working? Type @ to tag someone."></textarea><div class="mention-pop" id="mentionpop-'+it.id+'" hidden></div></div>'
@@ -1005,7 +1029,7 @@ function assetId(proj, sec, it){ return proj.id+':'+sec.id+':'+it.id; }
 function toggleNotes(it){
   const box=document.getElementById('notes-'+it.id), btn=document.getElementById('ntog-'+it.id); if(!box) return;
   const collapsed=box.classList.toggle('collapsed');
-  if(btn){ btn.classList.toggle('open', !collapsed); btn.setAttribute('aria-expanded', String(!collapsed)); btn.title=collapsed?'Expand':'Collapse'; }
+  if(btn){ btn.textContent=collapsed?'Expand':'Collapse'; btn.setAttribute('aria-expanded', String(!collapsed)); }
   if(!collapsed){ box.classList.remove('fan'); void box.offsetWidth; box.classList.add('fan'); }
 }
 async function loadNotes(proj, sec, it){
