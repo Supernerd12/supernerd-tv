@@ -87,6 +87,8 @@ const WORK_JSON = JSON.stringify({ ORDER, PROJECTS });
     letter-spacing:.1em;color:var(--green);opacity:.8}
   .menu .tag{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;
     color:var(--dim);align-self:center}
+  .menu a.client-login{color:var(--green-hi)}
+  .menu a.client-login::before{color:var(--green-hi);opacity:.55}
 
   /* ---------- contact modal ---------- */
   .cmodal{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;
@@ -542,9 +544,10 @@ const WORK_JSON = JSON.stringify({ ORDER, PROJECTS });
   <ol>
     <li><a data-go="0">Home</a></li>
     <li><a data-go="bio">About <span class="tag">bio</span></a></li>
-    <li><a data-go=".work">Work <span class="tag">soon</span></a></li>
-    <li><a data-go=".studio">Studio <span class="tag">soon</span></a></li>
+    <li><a data-go=".work">Work</a></li>
+    <li><a data-go=".studio">Studio</a></li>
     <li><a data-contact>Contact</a></li>
+    <li><a href="/portal" class="client-login">Client Login</a></li>
   </ol>
 </nav>
 
@@ -1021,6 +1024,7 @@ const WORK_JSON = JSON.stringify({ ORDER, PROJECTS });
   addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeContact(); document.body.classList.remove('menu-open','bio-open'); } });
   menu.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{
     document.body.classList.remove('menu-open');
+    if(a.getAttribute('href')){ return; }
     if(a.hasAttribute('data-contact')){ openContact(); return; }
     const g=a.dataset.go; let y=0, dur=900;
     if(g==='0') y=0;
