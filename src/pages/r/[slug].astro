@@ -102,7 +102,8 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#050505">
 <meta name="robots" content="noindex, nofollow">
 <title>Supernerd — Review</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -943,6 +944,47 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
 .cev-del{background:transparent;color:#e5736f;border:1px solid rgba(229,72,77,.35);border-radius:10px;padding:10px 16px;font-size:13px;cursor:pointer}
 .cev-del:hover{background:rgba(229,72,77,.12)}
 .cev-msg{font-family:var(--mono);font-size:11px;color:#e5736f;margin-top:10px;min-height:14px}
+
+/* ===================== v11: review layout, cards, mobile topbar ===================== */
+/* image + composer on the left, notes panel on the right */
+.ver-layout{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(330px,1fr);gap:26px;align-items:start}
+.ver-main{min-width:0}
+.ver-main .composer{margin-top:18px}
+.ver-side{min-width:0;position:sticky;top:96px}
+.ver-side .notes{margin-top:0}
+.ver-side .notes-list{max-height:calc(100vh - 210px);overflow-y:auto;padding-right:6px}
+.ver-side .notes-list::-webkit-scrollbar{width:8px}
+.ver-side .notes-list::-webkit-scrollbar-thumb{background:var(--hair);border-radius:8px}
+@media (max-width:900px){
+  .ver-layout{grid-template-columns:1fr;gap:16px}
+  .ver-side{position:static;top:auto}
+  .ver-side .notes-list{max-height:none;overflow:visible;padding-right:0}
+  .ver-main .composer{margin-top:14px}
+}
+
+/* partner card: rectangular, wide-capable company logo + bigger name */
+.pc-logo{display:inline-flex;align-items:center;height:34px;max-width:160px;flex:0 0 auto}
+.pc-logo img{height:34px;max-width:160px;width:auto;object-fit:contain;display:block}
+.pc-company{font-size:13px}
+
+/* profile detail card: bigger rectangular avatar, logo image, tappable phone */
+.pd-av{width:84px;height:84px;border-radius:18px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:30px;color:#0b0c0d;background-size:cover;background-position:center;box-shadow:inset 0 0 0 2px rgba(255,255,255,.08)}
+.pd-top{display:flex;align-items:center;gap:16px;margin-bottom:4px}
+.pd-id{min-width:0}
+.pd-co{display:flex;align-items:center;gap:10px}
+.pd-colmono{display:inline-flex;align-items:center;height:26px;max-width:120px}
+.pd-colmono img{height:26px;max-width:120px;width:auto;object-fit:contain;display:block}
+.pd-phone{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:2px 0}
+.pd-ph-num{font-family:var(--mono);font-size:13px;color:var(--bone)}
+.pd-ph-act{font-family:var(--mono);font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:#0c0d0e;background:var(--green);border-radius:7px;padding:5px 12px;text-decoration:none;font-weight:800}
+.pd-ph-act:hover{background:var(--green-hi)}
+.pd-email a{color:var(--dim);text-decoration:none}
+.pd-email a:hover{color:var(--bone)}
+
+/* mobile topbar: cover the notch + kill the green bleed-through */
+@media (max-width:760px){
+  header{padding-top:calc(14px + env(safe-area-inset-top,0px));padding-bottom:14px;background:rgba(5,5,6,.96)}
+}
 </style>
 </head>
 <body>
@@ -1065,12 +1107,11 @@ function getSavedAuthor(){ try { return JSON.parse(localStorage.getItem(AUTHOR_K
 function setSavedAuthor(v, other){ try { localStorage.setItem(AUTHOR_KEY, JSON.stringify({ v: v||'', other: other||'' })); } catch (e) {} }
 function personName(email){ const p = INVITES.find(x => x.email === email); return p ? (p.name || p.email) : email; }
 function getAuthor(it){
-  const sel = document.getElementById('name-'+it.id);
-  if(!sel) return { name:'', email:'' };
-  const v = sel.value;
-  if(v === '__you__') return { name: OWNER_NAME, email: OWNER_EMAIL };
-  if(v === '__other__' || v === ''){ const o = document.getElementById('nameother-'+it.id); return { name:(o&&o.value||'').trim(), email:'' }; }
-  return { name: personName(v), email: v };
+  if(AUTH.profile){
+    return { name: AUTH.profile.full_name || (AUTH.user&&AUTH.user.email) || 'Member', email: ((AUTH.user&&AUTH.user.email)||AUTH.profile.email||'').toLowerCase() };
+  }
+  if(AUTH.user){ return { name: AUTH.user.email, email: (AUTH.user.email||'').toLowerCase() }; }
+  return { name:'', email:'' };
 }
 function onNameChange(it){
   const sel = document.getElementById('name-'+it.id), o = document.getElementById('nameother-'+it.id);
@@ -1260,22 +1301,25 @@ function versionBodyHTML(proj, sec, it){
   const metaBar = '<div class="meta-bar"><div class="meta-left">'+dlBtn+stamp+'</div><div class="meta-right">'+shareBtn+'</div></div>';
   const tcField = it.type==='video' ? '<div class="field f-tc"><label>Timecode</label><input id="tc-'+it.id+'" placeholder="00:00"></div>' : '';
   const pinTool = it.type==='image' ? '<button class="tool-btn" id="pin-'+it.id+'" type="button">📍 Pin to image</button><span class="pin-ind" id="pin-ind-'+it.id+'"></span>' : '';
-  return mediaHTML(it)
-    + metaBar
-    + '<div class="notes"><div class="notes-bar"><h3>Notes</h3><span class="count" id="count-'+it.id+'"></span><button class="notes-toggle" id="ntog-'+it.id+'" type="button" aria-expanded="true">Collapse</button></div>'
-    + '<div id="notes-'+it.id+'" class="notes-list fan"><div class="empty">Loading notes…</div></div>'
-    + '<div class="composer"><div class="reply-ctx" id="replyctx-'+it.id+'" hidden></div><div class="row"><div class="field f-name"><label>Your name</label><select id="name-'+it.id+'" class="name-select"><option value="">— pick your name —</option></select><input id="nameother-'+it.id+'" class="name-other" placeholder="Type your name" style="display:none"></div>'+tcField+'</div>'
+  const composer = '<div class="composer"><div class="reply-ctx" id="replyctx-'+it.id+'" hidden></div>'
+    + (tcField?'<div class="row">'+tcField+'</div>':'')
     + '<div class="field comp-body"><label>Note <span class="at-hint">— type @ to mention &amp; notify someone</span></label><textarea id="body-'+it.id+'" placeholder="What should change, or what is working? Type @ to tag someone."></textarea><div class="mention-pop" id="mentionpop-'+it.id+'" hidden></div></div>'
     + '<div class="composer-tools"><button class="tool-btn" id="rec-'+it.id+'" type="button">🎤 Record voice note</button>'+pinTool+'</div>'
     + '<div class="rec-prev" id="rec-prev-'+it.id+'"></div>'
-    + '<div class="composer-foot"><button class="post" id="post-'+it.id+'" disabled>Post note</button><span class="msg" id="msg-'+it.id+'"></span></div></div></div>';
+    + '<div class="composer-foot"><button class="post" id="post-'+it.id+'" disabled>Post note</button><span class="msg" id="msg-'+it.id+'"></span></div></div>';
+  const notes = '<div class="notes"><div class="notes-bar"><h3>Notes</h3><span class="count" id="count-'+it.id+'"></span><button class="notes-toggle" id="ntog-'+it.id+'" type="button" aria-expanded="true">Collapse</button></div>'
+    + '<div id="notes-'+it.id+'" class="notes-list fan"><div class="empty">Loading notes…</div></div></div>';
+  return '<div class="ver-layout">'
+    + '<div class="ver-main">' + mediaHTML(it) + metaBar + composer + '</div>'
+    + '<div class="ver-side">' + notes + '</div>'
+    + '</div>';
 }
 
 function gateFor(it){
   const btn=document.getElementById('post-'+it.id); if(!btn) return;
-  const a=getAuthor(it); const bEl=document.getElementById('body-'+it.id);
+  const bEl=document.getElementById('body-'+it.id);
   const b=(bEl&&bEl.value||'').trim();
-  btn.disabled = !(a.name && (b || pendingAudio[it.id]));
+  btn.disabled = !(b || pendingAudio[it.id]);
 }
 
 function wireVersion(proj, sec, it){
@@ -1323,8 +1367,6 @@ function wireVersion(proj, sec, it){
   const btn=document.getElementById('post-'+it.id);
   if(btn) btn.addEventListener('click', ()=>postNote(proj,sec,it));
   const nEl=document.getElementById('name-'+it.id), oEl=document.getElementById('nameother-'+it.id), bEl=document.getElementById('body-'+it.id);
-  if(nEl) nEl.addEventListener('change', ()=>onNameChange(it));
-  if(oEl) oEl.addEventListener('input', ()=>{ setSavedAuthor(nEl?nEl.value:'', oEl.value); gateFor(it); });
   if(bEl) bEl.addEventListener('input', ()=>{ gateFor(it); mentionInput(it); });
   if(bEl) bEl.addEventListener('keyup', ()=>mentionInput(it));
   if(bEl) bEl.addEventListener('blur', ()=>{ setTimeout(()=>{ const mp=document.getElementById('mentionpop-'+it.id); if(mp){ mp.hidden=true; } }, 150); });
@@ -1332,7 +1374,6 @@ function wireVersion(proj, sec, it){
   if(mp) mp.addEventListener('mousedown', (e)=>{ const b=e.target.closest('.mention-item'); if(b){ e.preventDefault(); pickMention(it, b.dataset.email, b.dataset.name); } });
   const shBtn=document.getElementById('share-'+it.id);
   if(shBtn) shBtn.addEventListener('click', (e)=>{ e.stopPropagation(); shareMenu(proj,sec,it); });
-  fillNameSelect(it);
   const tg=document.getElementById('ntog-'+it.id); if(tg) tg.addEventListener('click', ()=>toggleNotes(it));
   loadNotes(proj,sec,it);
 }
@@ -1396,6 +1437,7 @@ async function loadNotes(proj, sec, it){
     const mineSet=new Set(myComments());
     const children={}; const roots=[];
     data.forEach(c=>{ if(c.parent_id!=null && data.some(p=>p.id===c.parent_id)){ (children[c.parent_id]=children[c.parent_id]||[]).push(c); } else roots.push(c); });
+    roots.reverse(); // newest top-level note first
     const numMap=new Map(); data.forEach((c,i)=>numMap.set(c.id,i+1));
     let html=''; roots.forEach(c=>{ html+=renderComment(it, c, 0, children, pinNum, mineSet, numMap, ''); });
     box.innerHTML=html;
@@ -1457,7 +1499,7 @@ async function postNote(proj, sec, it){
   const msg=document.getElementById('msg-'+it.id), btn=document.getElementById('post-'+it.id);
   const a=getAuthor(it); const tc=(tcEl?tcEl.value:'').trim(), body=(bodyEl.value||'').trim();
   msg.className='msg'; msg.textContent='';
-  if(!a.name){ msg.className='msg err'; msg.textContent='Pick your name first.'; return; }
+  if(!a.name){ msg.className='msg err'; msg.textContent='Please log in to post.'; return; }
   if(!body && !pendingAudio[it.id]){ msg.className='msg err'; msg.textContent='Write a note or record a voice note.'; bodyEl.focus(); return; }
   btn.disabled=true; btn.textContent='Posting…';
   try{
@@ -1467,11 +1509,8 @@ async function postNote(proj, sec, it){
     const preview=previewFor(it, parseTimecode(tc));
     const row={ review_slug:CONFIG.REVIEW_SLUG, asset_id:assetId(proj,sec,it), author_name:a.name, timecode:tc||null, body:body||null };
     if(a.email) row.author_email=a.email;
-    // commenter's avatar (logged-in profile, owner, or known invited person)
-    var _ae=(a.email||'').toLowerCase(), _av='';
-    if(AUTH.profile && AUTH.profile.email && _ae && AUTH.profile.email.toLowerCase()===_ae) _av=AUTH.profile.avatar_url||'';
-    if(!_av && _ae) _av=avatarFor(_ae);
-    if(!_av && _ae===String(OWNER_EMAIL).toLowerCase()) _av=(typeof OWNER!=='undefined' && OWNER && OWNER.avatar_url)||'';
+    // commenter's avatar — the signed-in person's own avatar
+    var _av=(AUTH.profile && AUTH.profile.avatar_url) || (a.email?avatarFor(a.email):'') || '';
     if(_av) row.author_avatar=_av;
     if(audio_url) row.audio_url=audio_url;
     if(pin){ row.pos_x=pin.x; row.pos_y=pin.y; }
@@ -1594,7 +1633,7 @@ async function sendOnboarding(){
 
 async function toggleReaction(proj, sec, it, commentId, emoji){
   const me=reactorIdentity(it); const msg=document.getElementById('msg-'+it.id);
-  if(!me){ if(msg){ msg.className='msg err'; msg.textContent='Pick your name (below) to react.'; } const ns=document.getElementById('name-'+it.id); if(ns) ns.focus(); return; }
+  if(!me){ if(msg){ msg.className='msg err'; msg.textContent='Please log in to react.'; } return; }
   const cur=(REACTIONS[it.id] && REACTIONS[it.id][commentId] && REACTIONS[it.id][commentId][emoji]) || [];
   const mine=cur.some(r=>r.key===me.key);
   try{
@@ -1929,7 +1968,7 @@ function avatarFor(email){ return email ? (AVA_BY_EMAIL[String(email).toLowerCas
 function authRedirect(){ return location.origin+location.pathname+location.hash; }
 function signInGoogle(){ try{ sb.auth.signInWithOAuth({ provider:'google', options:{ redirectTo: authRedirect() } }); }catch(e){} }
 async function signInMagic(email){ return sb.auth.signInWithOtp({ email:email, options:{ emailRedirectTo: authRedirect() } }); }
-async function authSignOut(){ try{ await sb.auth.signOut(); }catch(e){} AUTH.user=null; AUTH.profile=null; renderAuthSlot(); if(currentFolder==='partners') loadPartners(); }
+async function authSignOut(){ try{ await sb.auth.signOut(); }catch(e){} AUTH.user=null; AUTH.profile=null; location.replace('/portal'); }
 async function loadProfile(){
   AUTH.profile=null;
   if(!AUTH.user) return;
@@ -1946,13 +1985,22 @@ async function loadProfile(){
   }
   try{ var r=await sb.from('profiles').select('*').eq('id',AUTH.user.id).maybeSingle(); AUTH.profile=r.data||null; }catch(e){ AUTH.profile=null; }
 }
+function gateOverlay(){ if(document.getElementById('authGate')||!document.body) return; var g=document.createElement('div'); g.id='authGate'; g.setAttribute('style','position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#050505;color:#8a8a86;font-family:var(--mono),monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase'); g.textContent='Verifying access\u2026'; document.body.appendChild(g); }
+function gateClear(){ var g=document.getElementById('authGate'); if(g) g.remove(); }
+function gateRedirect(){ try{ var nxt=encodeURIComponent(location.pathname+location.search+location.hash); location.replace('/portal?next='+nxt); }catch(e){ location.replace('/portal'); } }
+function urlHasAuth(){ var s=(location.hash||'')+(location.search||''); return /access_token=|refresh_token=|[?&]code=|type=(magiclink|recovery|signup|invite)/.test(s); }
 async function authInit(){
+  gateOverlay();
   try{ var s=await sb.auth.getSession(); AUTH.user=(s&&s.data&&s.data.session)?s.data.session.user:null; if(AUTH.user) await loadProfile(); }catch(e){}
+  if(!AUTH.user){
+    if(!urlHasAuth()){ gateRedirect(); return; }       // logged out, no pending sign-in -> bounce to login
+    setTimeout(function(){ if(!AUTH.user) gateRedirect(); }, 4500); // sign-in didn't complete -> bounce
+  } else { gateClear(); }
   AUTH.ready=true; renderAuthSlot(); startPresence();
   sb.auth.onAuthStateChange(function(ev, session){
     AUTH.user = session ? session.user : null;
     setTimeout(async function(){
-      if(AUTH.user){ await loadProfile(); } else { AUTH.profile=null; }
+      if(AUTH.user){ await loadProfile(); gateClear(); } else { AUTH.profile=null; }
       renderAuthSlot(); startPresence();
       if(AUTH.user && !AUTH.profile && !(typeof ADMIN!=='undefined' && ADMIN)) openOnboarding();
       if(currentFolder==='partners') loadPartners();
@@ -2185,7 +2233,9 @@ async function loadPartners(){
 }
 function ppCardHTML(p){
   var c=ppCompany(p.company_id);
-  var logo=c.logo_url?'<span class="logo-mono" style="background:transparent;padding:0;width:34px;height:34px"><img src="'+ppEsc(c.logo_url)+'" alt="" style="width:34px;height:34px;border-radius:7px;object-fit:contain;display:block"></span>':'<span class="logo-mono" style="background:'+c.color+'">'+ppEsc((ppInitials(c.name)[0]||'').toUpperCase())+'</span>';
+  var logo=c.logo_url
+    ? '<span class="pc-logo"><img src="'+ppEsc(c.logo_url)+'" alt=""></span>'
+    : '<span class="logo-mono" style="background:'+c.color+'">'+ppEsc((ppInitials(c.name)[0]||'').toUpperCase())+'</span>';
   var dotKey=p.owner?(p.uid||'__owner__'):p.id;
   var online=PRESENCE.online[dotKey]?' on':'';
   var rm=((typeof ADMIN!=='undefined' && ADMIN) && !p.owner)?'<button class="pc-remove" data-rm="'+ppEsc(p.id)+'" title="Remove from project">\u00d7</button>':'';
@@ -2279,17 +2329,25 @@ function openCard(pid){
 }
 
 /* ---------- read-only detail (others' cards) ---------- */
+function telHref(s){ return String(s||'').replace(/[^+0-9]/g,''); }
 function openPartnerDetail(p){
   var c=ppCompany(p.company_id), online=!!PRESENCE.online[p.owner?(p.uid||'__owner__'):p.id];
   var dot='<span class="pc-dot'+(online?' on':'')+'" style="position:static;display:inline-block;width:9px;height:9px;border-width:0;vertical-align:middle;margin-right:7px"></span>';
   var rm=((typeof ADMIN!=='undefined' && ADMIN) && !p.owner)?'<button class="pd-remove" id="pdRemove">Remove from project</button>':'';
+  var coLogo = c.logo_url
+    ? '<span class="pd-colmono"><img src="'+ppEsc(c.logo_url)+'" alt=""></span>'
+    : '<span class="logo-mono" style="background:'+c.color+'">'+ppEsc((ppInitials(c.name)[0]||'').toUpperCase())+'</span>';
+  var ph=telHref(p.phone);
+  var phoneRow = p.phone
+    ? '<div class="pd-phone"><span class="pd-ph-num">'+ppEsc(p.phone)+'</span><a class="pd-ph-act" href="tel:'+ppEsc(ph)+'">Call</a><a class="pd-ph-act" href="sms:'+ppEsc(ph)+'">Text</a></div>'
+    : '';
   var ov=document.createElement('div'); ov.className='onb show'; ov.id='pdOv';
   ov.innerHTML='<div class="lm-modal" id="pdCard">'
-    +'<div class="pd-top"><div class="avatar pd-av" style="'+ppAvStyle(p)+'">'+(p.avatar_url?'':ppEsc(ppInitials(p.full_name).toUpperCase()))+'</div>'
-    +'<div><div class="pd-name">'+ppEsc(p.full_name)+'</div><div class="pd-role">'+ppEsc(p.position)+'</div></div></div>'
-    +'<div class="pd-meta"><div><span class="logo-mono" style="background:'+c.color+'">'+ppEsc((ppInitials(c.name)[0]||'').toUpperCase())+'</span>'+ppEsc(c.name)+'</div>'
-    +(p.phone?'<div class="pd-email">'+ppEsc(p.phone)+'</div>':'')
-    +(p.email?'<div class="pd-email">'+ppEsc(p.email)+'</div>':'')
+    +'<div class="pd-top"><div class="pd-av" style="'+ppAvStyle(p)+'">'+(p.avatar_url?'':ppEsc(ppInitials(p.full_name).toUpperCase()))+'</div>'
+    +'<div class="pd-id"><div class="pd-name">'+ppEsc(p.full_name)+'</div><div class="pd-role">'+ppEsc(p.position)+'</div></div></div>'
+    +'<div class="pd-meta"><div class="pd-co">'+coLogo+'<span>'+ppEsc(c.name)+'</span></div>'
+    +phoneRow
+    +(p.email?'<div class="pd-email"><a href="mailto:'+ppEsc(p.email)+'">'+ppEsc(p.email)+'</a></div>':'')
     +'<div class="pd-status">'+dot+(online?'Online now':'Offline')+'</div></div>'
     +rm+'<div class="lm-foot"><button id="pdClose">Close</button></div></div>';
   document.body.appendChild(ov);
