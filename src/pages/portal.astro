@@ -3,6 +3,9 @@ const SUPABASE_URL = "https://wvtokocjhtpjrkojxaia.supabase.co";
 const SUPABASE_KEY = "sb_publishable_NOSa5I95dUTHZhVai9dZtQ_8GEM00J6";
 const REVIEW_SLUG  = "trrp-9f3kx2";
 const OWNER_EMAIL  = "hello@supernerd.tv";
+// Accounts that ARE Supernerd (the owner) — these skip onboarding and go straight in.
+// Add any email you sign in with as the owner/admin.
+const OWNER_LOGINS = ["hello@supernerd.tv", "shaun@supernerd.tv"];
 const ADMIN_KEY    = "sn-admin-7yq4";
 ---
 <!doctype html>
@@ -194,12 +197,12 @@ const ADMIN_KEY    = "sn-admin-7yq4";
 </script>
 
 <script is:inline src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script is:inline define:vars={{ SUPABASE_URL, SUPABASE_KEY, REVIEW_SLUG, OWNER_EMAIL, ADMIN_KEY }}>
+<script is:inline define:vars={{ SUPABASE_URL, SUPABASE_KEY, REVIEW_SLUG, OWNER_EMAIL, OWNER_LOGINS, ADMIN_KEY }}>
 (function(){
   var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, flowType:"pkce" } });
   var params = new URLSearchParams(location.search);
   var ADMIN  = params.get("admin") === ADMIN_KEY;
-  var SESSION=null, EMAIL=null, INVITE=null, PROFILE=null, COMPANIES=[], PENDING=null, PENDING_LOGO=null, EDIT=null;
+  var SESSION=null, EMAIL=null, INVITE=null, PROFILE=null, COMPANIES=[], PENDING=null, PENDING_LOGO=null, EDIT=null, RETURN_ENTERED=false;
   var stage=document.getElementById("stage");
 
   function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
@@ -209,7 +212,22 @@ const ADMIN_KEY    = "sn-admin-7yq4";
   function reEmail(e){ return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e); }
 
   async function loadInvite(){ try{ var r=await sb.from("invites").select("*").ilike("email",EMAIL).limit(1); INVITE=(r.data&&r.data[0])||null; }catch(e){ INVITE=null; } }
-  async function loadProfile(){ try{ var r=await sb.from("profiles").select("*").eq("id",SESSION.user.id).maybeSingle(); PROFILE=r.data||null; }catch(e){ PROFILE=null; } }
+  async function loadProfile(){
+    PROFILE=null;
+    if(!(SESSION && SESSION.user)) return;
+    var em=(SESSION.user.email||"").toLowerCase();
+    var ownerEmail = (OWNER_LOGINS||[]).map(function(x){return String(x).toLowerCase();}).indexOf(em)>=0;
+    var ro=null; try{ var q=await sb.from("review_settings").select("*").eq("review_slug",REVIEW_SLUG).maybeSingle(); ro=q.data||null; }catch(e){}
+    var ownerUid = ro && ro.owner_uid && ro.owner_uid===SESSION.user.id;
+    if(ownerEmail || ownerUid){
+      PROFILE={ id:SESSION.user.id, review_slug:REVIEW_SLUG, email:SESSION.user.email,
+        full_name:(ro&&ro.owner_name)||"Supernerd", position:(ro&&ro.owner_position)||"",
+        company_id:(ro&&ro.owner_company_id)||null, avatar_url:(ro&&ro.owner_avatar_url)||null,
+        phone:(ro&&ro.owner_phone)||null, owner:true };
+      return;
+    }
+    try{ var r=await sb.from("profiles").select("*").eq("id",SESSION.user.id).maybeSingle(); PROFILE=r.data||null; }catch(e){ PROFILE=null; }
+  }
   async function loadCompanies(){ try{ var r=await sb.from("companies").select("*").eq("review_slug",slug()).order("sort"); COMPANIES=r.data||[]; }catch(e){ COMPANIES=[]; } }
 
   async function boot(){
@@ -398,18 +416,24 @@ const ADMIN_KEY    = "sn-admin-7yq4";
 
   function renderBack(){
     var c=company(PROFILE.company_id);
-    var av=PROFILE.avatar_url?'background-image:url('+PROFILE.avatar_url+')':'background:linear-gradient(150deg,'+c.color+',#0b0c0d)';
+    var av=PROFILE.avatar_url?'background-image:url('+PROFILE.avatar_url+')':'background:linear-gradient(150deg,'+(c.color||'#BAC01E')+',#0b0c0d)';
+    var first=esc((PROFILE.full_name||'there').split(/\s+/)[0]);
     stage.innerHTML='<div class="panel center"><div class="av-big" style="'+av+'">'+(PROFILE.avatar_url?"":esc(initials(PROFILE.full_name).toUpperCase()))+'</div>'
-      +'<h1 style="text-align:center;font-size:20px">'+esc(PROFILE.full_name||"")+'</h1>'
-      +'<div class="sub" style="text-align:center;margin-bottom:18px">'+esc(PROFILE.position||"")+(c.name?" \u00b7 "+esc(c.name):"")+'</div>'
-      +'<button class="cta" id="enter">Enter the portal</button></div>'
-      +'<div class="foot"><button class="ghost" id="edit">Edit profile</button> &nbsp;\u00b7&nbsp; <button class="ghost" id="out">Sign out</button></div>';
+      +'<h1 style="text-align:center;font-size:21px">Welcome back, '+first+'</h1>'
+      +'<div class="sub" style="text-align:center">Taking you into the portal\u2026</div>'
+      +'<button class="cta" id="enter">Enter now</button></div>'
+      +'<div class="foot">'+(PROFILE.owner?'':'<button class="ghost" id="edit">Edit profile</button> &nbsp;\u00b7&nbsp; ')+'<button class="ghost" id="out">Sign out</button></div>';
     document.getElementById("enter").onclick=goPortal;
-    document.getElementById("edit").onclick=function(){ EDIT=PROFILE; renderOnboard(); };
+    var ed=document.getElementById("edit"); if(ed) ed.onclick=function(){ EDIT=PROFILE; renderOnboard(); };
     document.getElementById("out").onclick=async function(){ await sb.auth.signOut(); location.href="/portal"; };
+    if(!RETURN_ENTERED){ RETURN_ENTERED=true; setTimeout(goPortal, 650); }
   }
 
-  function goPortal(){ location.href="/r/"+slug()+"/"; }
+  function goPortal(){
+    var s=REVIEW_SLUG||slug();
+    var q=(PROFILE&&PROFILE.owner)?("?admin="+encodeURIComponent(ADMIN_KEY)):"";
+    location.href="/r/"+s+"/"+q;
+  }
 
   function renderAdmin(){
     stage.innerHTML='<div class="panel"><div class="admin-tag">Admin \u00b7 Supernerd</div><h1>Invite partners</h1>'
