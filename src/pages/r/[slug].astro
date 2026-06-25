@@ -650,6 +650,44 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
   .notes-toggle:hover{color:var(--green);border-color:rgba(186,192,30,.4)}
   .notes-toggle:active{transform:scale(.96)}
   .notes-toggle .ic{display:none}
+
+  /* ===================================================================
+     v6 — dimmer green, glass side-nav, review grid, full emoji picker
+     =================================================================== */
+  /* green brightness down ~33% */
+  body::before{
+    background:
+      radial-gradient(1100px 820px at 12% 6%,  rgba(186,192,30,.20), transparent 68%),
+      radial-gradient(1000px 760px at 90% 20%, rgba(150,170,40,.13), transparent 70%),
+      radial-gradient(1200px 900px at 50% 112%, rgba(186,192,30,.17), transparent 68%),
+      radial-gradient(820px 680px at 80% 86%,  rgba(120,150,40,.11), transparent 72%);}
+
+  /* side-nav buttons = frosted glass */
+  .nav a{background:rgba(13,14,16,.5); -webkit-backdrop-filter:blur(11px) saturate(135%); backdrop-filter:blur(11px) saturate(135%); border:1px solid var(--hair-2)}
+  .nav a:hover{background:rgba(18,19,16,.58); border-color:rgba(186,192,30,.28)}
+  .nav a.active{background:rgba(186,192,30,.13); border-color:rgba(186,192,30,.38)}
+
+  /* review grid (section = thumbnails; each opens its own page) */
+  .rgrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(238px,1fr)); gap:18px; margin-top:8px}
+  .rcard{display:flex; flex-direction:column; border-radius:15px; overflow:hidden; border:1px solid var(--hair-2); background:rgba(13,14,16,.5); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); box-shadow:var(--inner-hi); transition:transform .26s var(--ease-out), border-color .26s var(--ease-out), box-shadow .26s var(--ease-out); animation:fanIn .4s var(--ease-out) both}
+  .rcard:hover{transform:translateY(-4px); border-color:rgba(186,192,30,.42); box-shadow:0 20px 48px -22px #000}
+  .rc-thumb{position:relative; aspect-ratio:16/10; background-size:cover; background-position:center; background-color:#0c0d0a; display:flex; align-items:center; justify-content:center}
+  .rc-thumb.is-ph{background:radial-gradient(120% 120% at 30% 20%,#16170f,#070707)}
+  .rc-ph{font-size:30px; color:rgba(186,192,30,.5)}
+  .rc-count{position:absolute; left:10px; bottom:10px; font-family:var(--mono); font-size:11px; color:var(--bone); background:rgba(0,0,0,.55); padding:3px 8px; border-radius:999px; -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px)}
+  .rc-count.zero{opacity:.5}
+  .rc-ver{position:absolute; right:10px; top:10px; font-family:var(--mono); font-size:10px; color:#0a0a04; background:var(--green); padding:2px 7px; border-radius:4px; font-weight:700}
+  .rc-kind{position:absolute; left:10px; top:10px; font-family:var(--mono); font-size:9px; letter-spacing:.14em; color:var(--bone); background:rgba(0,0,0,.5); padding:2px 7px; border-radius:4px}
+  .rc-meta{display:flex; flex-direction:column; gap:2px; padding:12px 14px}
+  .rc-title{font-size:15px; font-weight:600; letter-spacing:-.01em}
+  .rc-sub{font-family:var(--mono); font-size:11px; color:var(--dim)}
+  .crumb{font-family:var(--mono); font-size:12px; letter-spacing:.04em; color:var(--green-hi); display:inline-block; margin-bottom:9px}
+  .crumb:hover{color:var(--green)}
+
+  /* full emoji spread in the reaction picker (scrollable grid) */
+  .react-pop{display:grid; grid-template-columns:repeat(8,1fr); gap:1px; width:300px; max-height:214px; overflow-y:auto; padding:8px; left:auto}
+  .react-pop button{font-size:19px; padding:4px 3px}
+  .react-pop::-webkit-scrollbar{width:9px} .react-pop::-webkit-scrollbar-thumb{background:rgba(236,236,234,.16); border-radius:9px; border:2px solid transparent; background-clip:content-box}
 </style>
 </head>
 <body>
@@ -704,7 +742,7 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
       var a=noise(p.x*SC,p.y*SC)*Math.PI*2.4;
       var nx=p.x+Math.cos(a)*SP*DPR, ny=p.y+Math.sin(a)*SP*DPR;
       var g=(noise(p.x*SC+99,p.y*SC+99)+1)*0.5;
-      ctx.strokeStyle='rgba('+(g>0.4?GREEN:BONE)+','+(0.07+g*0.16).toFixed(3)+')';
+      ctx.strokeStyle='rgba('+(g>0.4?GREEN:BONE)+','+(0.05+g*0.12).toFixed(3)+')';
       ctx.lineWidth=DPR*1.3; ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(nx,ny); ctx.stroke();
       p.x=nx; p.y=ny; p.life--;
       if(p.life<0||nx<0||nx>W||ny<0||ny>H){ p.x=rnd()*W; p.y=rnd()*H; p.life=20+rnd()*120; } }
@@ -741,6 +779,7 @@ const OWNER_NAME = 'Supernerd';            // how you appear when you comment
 const OWNER_EMAIL = 'hello@supernerd.tv';  // must match EDIT 3 (owner) in the SQL
 const AUTHOR_KEY = 'sn_author';
 const REACT_EMOJI = ['👍','❤️','🔥','😂','😮','👀','✅'];
+const FULL_EMOJI = ['👍','👎','❤️','🧡','💛','💚','💙','💜','🖤','🤍','🔥','✨','⭐','💯','🎉','🚀','👀','🙌','👏','🙏','💪','🤝','👋','🤙','✌️','🤞','😀','😃','😄','😁','😅','😂','🤣','🙂','😉','😊','😍','🥰','😘','😎','🤩','🥳','🤔','🤨','😐','😴','😮','😯','😲','😳','🥺','😢','😭','😤','😡','🤯','😬','🙃','🤪','😜','🤗','🫶','💖','💔','✅','❌','❓','❗','💡','🎬','🎨','🖼️','📌','⏱️'];
 let replyTo = {};        // itemId -> { id, author_name, author_email, body }
 let mentionState = {};   // itemId -> { emails: { emailLower: name } }
 let REACTIONS = {};      // itemId -> { commentId -> { emoji -> [ {key,name} ] } }
@@ -828,14 +867,18 @@ function findItem(itemId){ for(const p of CONFIG.PROJECTS){ for(const s of p.sec
 
 /* ---------- routing ---------- */
 function route(){
-  const h=new URLSearchParams(location.hash.replace(/^#/,'')); const p=h.get('p'), s=h.get('s'), i=h.get('i');
+  const h=new URLSearchParams(location.hash.replace(/^#/,'')); const p=h.get('p'), s=h.get('s'), i=h.get('i'), k=h.get('k');
   players={}; closeOverlay();
   if(!p){ renderLanding(); return; }
   const proj=CONFIG.PROJECTS.find(x=>x.id===p); if(!proj){ renderLanding(); return; }
   const sec=proj.sections.find(x=>x.id===s) || proj.sections[0];
   if(!sec){ renderLanding(); return; }
-  renderProject(proj, sec);
-  if(i){ const st=sec.stacks.find(x=>x.versions.some(v=>v.id===i)); if(st){ const el=document.getElementById('stack-'+st.id); if(el) setTimeout(()=>{ try{ el.scrollIntoView({behavior:'smooth',block:'start'}); }catch(e){} }, 90); } }
+  let stack=null;
+  if(k) stack=sec.stacks.find(x=>x.id===k)||null;
+  if(!stack && i) stack=sec.stacks.find(x=>x.versions.some(v=>v.id===i))||null;
+  renderProject(proj, sec, stack);
+  if(stack && i){ const v=stack.versions.find(x=>x.id===i); if(v && stack.versions[0] && v.id!==stack.versions[0].id) selectVersion(stack.id, i); }
+  try{ window.scrollTo(0,0); }catch(e){}
 }
 
 /* ---------- landing ---------- */
@@ -851,20 +894,55 @@ function renderLanding(){
 }
 
 /* ---------- project view ---------- */
-function renderProject(proj, sec){
+function renderProject(proj, sec, stack){
   const app=document.getElementById('app');
   const nav=proj.sections.map((s,i)=>{
     const n=s.stacks.reduce((m,st)=>m+st.versions.length,0);
     return '<a href="#p='+encodeURIComponent(proj.id)+'&s='+encodeURIComponent(s.id)+'" class="'+(s.id===sec.id?'active':'')+'"><span class="n-num">'+String(i+1).padStart(2,'0')+'</span><span class="n-name">'+esc(s.name)+'</span><span class="n-ct">'+(n||'')+'</span></a>';
   }).join('');
   const adminHTML = ADMIN ? adminStrip(proj,sec) : '';
-  const body = sec.stacks.length ? sec.stacks.map(st=>stackHTML(proj,sec,st)).join('') : '<div class="sec-empty">Nothing in '+esc(sec.name)+' yet.</div>';
+  let head, body;
+  if(stack){
+    head='<div class="main-head"><a class="crumb" href="#p='+encodeURIComponent(proj.id)+'&s='+encodeURIComponent(sec.id)+'">← '+esc(sec.name)+'</a><h2>'+esc(stack.title)+'</h2></div>';
+    body=stackHTML(proj,sec,stack);
+  } else {
+    head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>'+esc(sec.name)+'</h2></div>';
+    body = sec.stacks.length ? '<div class="rgrid">'+sec.stacks.map(st=>gridCardHTML(proj,sec,st)).join('')+'</div>' : '<div class="sec-empty">Nothing in '+esc(sec.name)+' yet.</div>';
+  }
+  app.innerHTML='<div class="pv"><aside class="side"><a class="back" href="#">← '+esc(CONFIG.COMPANY.name)+'</a><h2 class="pv-title">'+esc(proj.title)+'</h2><nav class="nav">'+nav+'</nav></aside><div class="mainsec">'+head+adminHTML+body+'</div></div>';
 
-  app.innerHTML='<div class="pv"><aside class="side"><a class="back" href="#">← '+esc(CONFIG.COMPANY.name)+'</a><h2 class="pv-title">'+esc(proj.title)+'</h2><nav class="nav">'+nav+'</nav></aside><div class="mainsec"><div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>'+esc(sec.name)+'</h2></div>'+adminHTML+body+'</div></div>';
-
-  sec.stacks.forEach(st=> wireVersion(proj, sec, st.versions[0]));
-  document.querySelectorAll('.ver-chip').forEach(chip=>{ chip.addEventListener('click', ()=> selectVersion(chip.dataset.stack, chip.dataset.v)); });
+  if(stack){
+    wireVersion(proj, sec, stack.versions[0]);
+    document.querySelectorAll('.ver-chip').forEach(chip=>{ chip.addEventListener('click', ()=> selectVersion(chip.dataset.stack, chip.dataset.v)); });
+  } else {
+    loadGridCounts(proj, sec);
+  }
   if(ADMIN){ const ab=document.getElementById('ann-btn-'+sec.id); if(ab) ab.addEventListener('click', ()=>announce(proj.id,sec.id)); }
+}
+
+function gridCardHTML(proj, sec, stack){
+  const sel=stack.versions[0];
+  const thumb=previewFor(sel);
+  const verLabel=sel.version || ('v'+stack.versions.length);
+  const kind=(sel.type||'').toUpperCase();
+  const date=sel.date?fmtDate(sel.date):'';
+  const thumbStyle=thumb?' style="background-image:url('+thumb.replace(/["\\]/g,'')+')"':'';
+  const ph=thumb?'':'<span class="rc-ph">'+(sel.type==='video'?'▶':(sel.type==='audio'?'♪':(sel.type==='file'?'⤓':'▣')))+'</span>';
+  const vbadge=(stack.versions.length>1||sel.version)?'<span class="rc-ver">'+esc(verLabel)+'</span>':'';
+  return '<a class="rcard" href="#p='+encodeURIComponent(proj.id)+'&s='+encodeURIComponent(sec.id)+'&k='+encodeURIComponent(stack.id)+'">'
+    +'<div class="rc-thumb'+(thumb?'':' is-ph')+'"'+thumbStyle+'>'+ph+(kind?'<span class="rc-kind">'+esc(kind)+'</span>':'')+vbadge+'<span class="rc-count" id="rc-count-'+esc(stack.id)+'"></span></div>'
+    +'<div class="rc-meta"><span class="rc-title">'+esc(stack.title)+'</span><span class="rc-sub">'+esc(date||(stack.versions.length+' version'+(stack.versions.length===1?'':'s')))+'</span></div></a>';
+}
+async function loadGridCounts(proj, sec){
+  try{
+    const ids=[], map={};
+    sec.stacks.forEach(st=>st.versions.forEach(v=>{ const aid=assetId(proj,sec,v); ids.push(aid); map[aid]=st.id; }));
+    if(!ids.length) return;
+    const { data, error }=await sb.from('comments').select('asset_id').eq('review_slug',CONFIG.REVIEW_SLUG).in('asset_id', ids);
+    if(error) throw error;
+    const counts={}; (data||[]).forEach(r=>{ const sid=map[r.asset_id]; if(sid) counts[sid]=(counts[sid]||0)+1; });
+    sec.stacks.forEach(st=>{ const el=document.getElementById('rc-count-'+st.id); if(el){ const n=counts[st.id]||0; el.textContent='💬 '+n; el.classList.toggle('zero', n===0); } });
+  }catch(e){ /* counts are best-effort */ }
 }
 
 /* ---------- a stack (deliverable + versions) ---------- */
@@ -1251,7 +1329,7 @@ function reactPopAway(e){ if(!e.target.closest('.react-pop') && !e.target.closes
 function openReactPop(proj, sec, it, anchor){
   closeReactPop();
   const pop=document.createElement('div'); pop.className='react-pop';
-  pop.innerHTML=REACT_EMOJI.map(em=>'<button type="button" data-emoji="'+esc(em)+'">'+em+'</button>').join('');
+  pop.innerHTML=FULL_EMOJI.map(em=>'<button type="button" data-emoji="'+esc(em)+'">'+em+'</button>').join('');
   anchor.parentNode.appendChild(pop);
   pop.addEventListener('click', (e)=>{ const b=e.target.closest('button'); if(!b) return; closeReactPop(); toggleReaction(proj,sec,it, anchor.dataset.c, b.dataset.emoji); });
   setTimeout(()=>document.addEventListener('click', reactPopAway), 0);
