@@ -880,6 +880,27 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
   .ip-link{display:flex;gap:8px;align-items:center;background:#0f1012;border:1px dashed var(--hair-2);border-radius:9px;padding:9px 11px;font-family:var(--mono);font-size:11px;color:var(--dim);word-break:break-all}
   .ip-copy{margin-left:auto;color:var(--green);background:none;border:none;cursor:pointer;font-family:var(--mono);font-size:11px;flex:0 0 auto}
   .ip-msg{font-family:var(--mono);font-size:11px;color:var(--green);margin-top:10px;min-height:13px}
+
+  /* ===================================================================
+     v10 — online presence dots, admin remove, partner detail
+     =================================================================== */
+  .pc-avwrap{position:relative;flex:0 0 auto}
+  .pc-dot{position:absolute;right:-1px;bottom:-1px;width:13px;height:13px;border-radius:50%;background:#5a5e66;border:2.5px solid #16181c;transition:background .2s,box-shadow .2s}
+  .pc-dot.on{background:#3fcf5e;box-shadow:0 0 9px rgba(63,207,94,.65)}
+  .pc-remove{position:absolute;top:10px;right:10px;width:24px;height:24px;border-radius:7px;border:1px solid var(--hair-2);background:rgba(0,0,0,.35);color:var(--dim);cursor:pointer;font-size:15px;line-height:1;z-index:3;opacity:0;transition:opacity .15s,color .15s,border-color .15s}
+  .pcard:hover .pc-remove{opacity:1}
+  .pc-remove:hover{color:#e5757a;border-color:rgba(229,72,77,.5);background:rgba(229,72,77,.12)}
+  .pd-top{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+  .pd-av{width:60px;height:60px;font-size:22px}
+  .pd-name{font-size:19px;font-weight:800;letter-spacing:-.02em}
+  .pd-role{font-family:var(--mono);font-size:12px;color:var(--dim);margin-top:3px}
+  .pd-meta{font-family:var(--mono);font-size:12px;color:var(--bone);display:flex;flex-direction:column;gap:9px;padding:15px 0;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair);margin-bottom:16px}
+  .pd-meta>div{display:flex;align-items:center}
+  .pd-meta .logo-mono{width:20px;height:20px;font-size:10px;margin-right:8px}
+  .pd-email{color:var(--dim)}
+  .pd-status{color:var(--dim)}
+  .pd-remove{width:100%;font-family:var(--mono);font-size:12px;color:#e5757a;background:rgba(229,72,77,.08);border:1px solid rgba(229,72,77,.3);border-radius:10px;padding:12px;cursor:pointer;margin-bottom:6px}
+  .pd-remove:hover{background:rgba(229,72,77,.15)}
 </style>
 </head>
 <body>
@@ -1755,6 +1776,8 @@ var AUTH = { user:null, profile:null, ready:false };
 var PP = { filter:'all' };
 var COMPANIES_CACHE = null;
 var OWNER_PARTNER = { id:'__owner__', full_name:'Shaun Harrison', position:'Creative Director', company_id:'supernerd', avatar_url:null, owner:true };
+var OWNER = Object.assign({}, OWNER_PARTNER);
+var PRESENCE = { online:{}, channel:null, key:null };
 var ppPendingFile = null, ppEditTarget = null;
 
 function ppEsc(s){ return esc(s==null?'':s); }
@@ -1777,12 +1800,12 @@ async function authSignOut(){ try{ await sb.auth.signOut(); }catch(e){} AUTH.use
 async function loadProfile(){ try{ var r=await sb.from('profiles').select('*').eq('id',AUTH.user.id).maybeSingle(); AUTH.profile=r.data||null; }catch(e){ AUTH.profile=null; } }
 async function authInit(){
   try{ var s=await sb.auth.getSession(); AUTH.user=(s&&s.data&&s.data.session)?s.data.session.user:null; if(AUTH.user) await loadProfile(); }catch(e){}
-  AUTH.ready=true; renderAuthSlot();
+  AUTH.ready=true; renderAuthSlot(); startPresence();
   sb.auth.onAuthStateChange(function(ev, session){
     AUTH.user = session ? session.user : null;
     setTimeout(async function(){
       if(AUTH.user){ await loadProfile(); } else { AUTH.profile=null; }
-      renderAuthSlot();
+      renderAuthSlot(); startPresence();
       if(AUTH.user && !AUTH.profile) openOnboarding();
       if(currentFolder==='partners') loadPartners();
     },0);
@@ -1857,7 +1880,8 @@ function wireOnb(){
   fComp.onchange=function(){ otherWrap.style.display=fComp.value==='__other__'?'':'none'; gate(); };
   document.getElementById('cancelBtn').onclick=closeOnboarding;
   joinBtn.onclick=async function(){
-    if(!AUTH.user) return;
+    if(!AUTH.user){ var lg=document.getElementById('onbMsg'); if(lg) lg.textContent='Please log in first to save changes.'; return; }
+    var isOwner = !!(ppEditTarget && ppEditTarget.owner);
     joinBtn.disabled=true; joinBtn.textContent='Saving\u2026';
     var cid=fComp.value, cname='';
     if(cid==='__other__'){ cname=fOther.value.trim(); cid=cname.toLowerCase().replace(/[^a-z0-9]+/g,'_')||('co'+Date.now());
@@ -1866,10 +1890,16 @@ function wireOnb(){
     }
     var avatarUrl = (ppEditTarget&&ppEditTarget.avatar_url) || null;
     if(ppPendingFile){ var u=await ppUploadAvatar(ppPendingFile); if(u) avatarUrl=u; }
-    var row={ id:AUTH.user.id, review_slug:CONFIG.REVIEW_SLUG, email:AUTH.user.email, full_name:fName.value.trim(), position:fRole.value.trim(), company_id:cid, avatar_url:avatarUrl, updated_at:new Date().toISOString() };
-    var err=null; try{ var r=await sb.from('profiles').upsert(row,{onConflict:'id'}); if(r.error) err=r.error; }catch(e){ err=e; }
-    if(err){ var m=document.getElementById('onbMsg'); if(m) m.textContent='Could not save: '+(err.message||'try again'); joinBtn.disabled=false; joinBtn.textContent=ppEditTarget?'Save profile':'Join project'; return; }
-    AUTH.profile=row;
+    var err=null;
+    if(isOwner){
+      try{ var ro=await sb.from('review_settings').upsert({review_slug:CONFIG.REVIEW_SLUG, owner_name:fName.value.trim(), owner_position:fRole.value.trim(), owner_company_id:cid, owner_avatar_url:avatarUrl, updated_at:new Date().toISOString()},{onConflict:'review_slug'}); if(ro.error) err=ro.error; }catch(e){ err=e; }
+      if(!err){ OWNER={ id:'__owner__', full_name:fName.value.trim(), position:fRole.value.trim(), company_id:cid, avatar_url:avatarUrl, owner:true }; }
+    } else {
+      var row={ id:AUTH.user.id, review_slug:CONFIG.REVIEW_SLUG, email:AUTH.user.email, full_name:fName.value.trim(), position:fRole.value.trim(), company_id:cid, avatar_url:avatarUrl, updated_at:new Date().toISOString() };
+      try{ var r=await sb.from('profiles').upsert(row,{onConflict:'id'}); if(r.error) err=r.error; }catch(e){ err=e; }
+      if(!err) AUTH.profile=row;
+    }
+    if(err){ var m=document.getElementById('onbMsg'); if(m) m.textContent='Could not save: '+(err.message||'try again'); joinBtn.disabled=false; joinBtn.textContent='Save'; return; }
     document.getElementById('onbCard').innerHTML='<div class="onb-success"><div class="tick">\u2713</div><h3>'+(ppEditTarget&&ppEditTarget.full_name?'Saved!':'You\u2019re in, '+ppEsc(row.full_name.split(/\s+/)[0])+'!')+'</h3><p>Your card is on the Project Partners page.</p></div>';
     setTimeout(function(){ closeOnboarding(); renderAuthSlot(); if(currentFolder==='partners') loadPartners(); },1100);
   };
@@ -1903,6 +1933,7 @@ function closeProfOnce(e){ var m=document.getElementById('profMenu'); if(m && !m
 async function loadPartners(){
   var m=document.getElementById('ppmount'); if(!m) return;
   await loadCompanies();
+  await loadOwner();
   var profiles=[];
   try{ var r=await sb.from('profiles').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).order('created_at',{ascending:true}); profiles=r.data||[]; }catch(e){ profiles=[]; }
   renderPartners(profiles);
@@ -1910,13 +1941,16 @@ async function loadPartners(){
 function ppCardHTML(p){
   var c=ppCompany(p.company_id);
   var logo=c.logo_url?'<span class="logo-mono" style="background:transparent;padding:0"><img src="'+ppEsc(c.logo_url)+'" alt="" style="width:24px;height:24px;border-radius:6px;object-fit:cover"></span>':'<span class="logo-mono" style="background:'+c.color+'">'+ppEsc((ppInitials(c.name)[0]||'').toUpperCase())+'</span>';
-  return '<div class="pcard"><div class="pc-top"><div class="avatar" style="'+ppAvStyle(p)+'">'+(p.avatar_url?'':ppEsc(ppInitials(p.full_name).toUpperCase()))+'</div>'
+  var online=PRESENCE.online[p.id]?' on':'';
+  var rm=((typeof ADMIN!=='undefined' && ADMIN) && !p.owner)?'<button class="pc-remove" data-rm="'+ppEsc(p.id)+'" title="Remove from project">\u00d7</button>':'';
+  return '<div class="pcard" data-pid="'+ppEsc(p.id)+'">'+rm+'<div class="pc-top"><div class="pc-avwrap"><div class="avatar" style="'+ppAvStyle(p)+'">'+(p.avatar_url?'':ppEsc(ppInitials(p.full_name).toUpperCase()))+'</div><span class="pc-dot'+online+'" data-dot="'+ppEsc(p.id)+'"></span></div>'
     +'<div class="pc-id"><div class="pc-name">'+ppEsc(p.full_name)+'</div><div class="pc-role">'+ppEsc(p.position)+'</div></div></div>'
     +'<div class="pc-foot">'+logo+'<span class="pc-company">'+ppEsc(c.name)+'</span></div></div>';
 }
 function renderPartners(profiles){
   var m=document.getElementById('ppmount'); if(!m) return;
-  var all=[OWNER_PARTNER].concat(profiles||[]);
+  PP.profiles=profiles||[];
+  var all=[OWNER].concat(PP.profiles);
   var used={}; all.forEach(function(p){ used[p.company_id]=1; });
   var chips='<button class="fchip '+(PP.filter==='all'?'on':'')+'" data-ppf="all">All partners</button>'
     +(COMPANIES_CACHE||[]).filter(function(c){return used[c.id];}).map(function(c){ return '<button class="fchip '+(PP.filter===c.id?'on':'')+'" data-ppf="'+ppEsc(c.id)+'"><span class="lm" style="background:'+c.color+'">'+ppEsc((ppInitials(c.name)[0]||'').toUpperCase())+'</span>'+ppEsc(c.name)+'</button>'; }).join('');
@@ -1924,7 +1958,9 @@ function renderPartners(profiles){
   var list=all.filter(function(p){ return PP.filter==='all'||p.company_id===PP.filter; });
   list.sort(function(a,b){ return (b.owner?1:0)-(a.owner?1:0); });
   m.innerHTML='<div class="pp-top"><div class="pp-filter">'+chips+'</div>'+invite+'</div><div class="pgrid">'+list.map(ppCardHTML).join('')+'</div>';
-  m.querySelectorAll('.fchip').forEach(function(b){ b.onclick=function(){ PP.filter=b.dataset.ppf; renderPartners(profiles); }; });
+  m.querySelectorAll('.fchip').forEach(function(b){ b.onclick=function(){ PP.filter=b.dataset.ppf; renderPartners(PP.profiles); }; });
+  m.querySelectorAll('.pcard').forEach(function(card){ card.onclick=function(e){ if(e.target.closest && e.target.closest('.pc-remove')) return; openCard(card.dataset.pid); }; });
+  m.querySelectorAll('.pc-remove').forEach(function(b){ b.onclick=function(e){ e.stopPropagation(); removeFlow(b.dataset.rm); }; });
   if(ADMIN){ var ib=document.getElementById('ppInvite'); if(ib) ib.onclick=function(ev){ ev.stopPropagation(); ppToggleInvite(); }; }
 }
 function ppToggleInvite(){
@@ -1947,6 +1983,79 @@ function ppToggleInvite(){
   setTimeout(function(){ document.addEventListener('click', ppInvAway); },0);
 }
 function ppInvAway(e){ var pop=document.getElementById('ppInvitePop'); if(pop && !pop.hasAttribute('hidden') && !pop.contains(e.target) && !(e.target.closest && e.target.closest('#ppInvite'))){ pop.setAttribute('hidden',''); } document.removeEventListener('click', ppInvAway); }
+
+
+/* ---------- owner card (editable, persisted) ---------- */
+async function loadOwner(){
+  try{
+    var r=await sb.from('review_settings').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).maybeSingle();
+    if(r && r.data){
+      OWNER={ id:'__owner__', full_name:r.data.owner_name||'Shaun Harrison', position:r.data.owner_position||'Creative Director', company_id:r.data.owner_company_id||'supernerd', avatar_url:r.data.owner_avatar_url||null, owner:true };
+    }
+  }catch(e){}
+}
+
+/* ---------- realtime presence (online lights) ---------- */
+function presenceKey(){ if(typeof ADMIN!=='undefined' && ADMIN) return '__owner__'; return AUTH.user?AUTH.user.id:null; }
+function startPresence(){
+  var key=presenceKey();
+  if(PRESENCE.channel && PRESENCE.key===key) return;
+  stopPresence();
+  if(!key) return;
+  PRESENCE.key=key;
+  try{
+    var ch=sb.channel('partners-'+CONFIG.REVIEW_SLUG, { config:{ presence:{ key:key } } });
+    ch.on('presence',{event:'sync'},function(){
+      var st=ch.presenceState(); PRESENCE.online={};
+      Object.keys(st).forEach(function(k){ PRESENCE.online[k]=1; });
+      refreshOnlineDots();
+    });
+    ch.subscribe(function(status){ if(status==='SUBSCRIBED'){ try{ ch.track({ at:Date.now() }); }catch(e){} } });
+    PRESENCE.channel=ch;
+  }catch(e){}
+}
+function stopPresence(){ if(PRESENCE.channel){ try{ sb.removeChannel(PRESENCE.channel); }catch(e){} } PRESENCE.channel=null; PRESENCE.key=null; }
+function refreshOnlineDots(){ document.querySelectorAll('.pc-dot[data-dot]').forEach(function(d){ d.classList.toggle('on', !!PRESENCE.online[d.dataset.dot]); }); }
+
+/* ---------- click a card ---------- */
+function openCard(pid){
+  if(pid==='__owner__'){ if(typeof ADMIN!=='undefined' && ADMIN) openOnboarding(Object.assign({},OWNER)); else openPartnerDetail(OWNER); return; }
+  var p=(PP.profiles||[]).find(function(x){ return x.id===pid; }); if(!p) return;
+  if(AUTH.user && pid===AUTH.user.id) openOnboarding(p);
+  else openPartnerDetail(p);
+}
+
+/* ---------- read-only detail (others' cards) ---------- */
+function openPartnerDetail(p){
+  var c=ppCompany(p.company_id), online=!!PRESENCE.online[p.id];
+  var dot='<span class="pc-dot'+(online?' on':'')+'" style="position:static;display:inline-block;width:9px;height:9px;border-width:0;vertical-align:middle;margin-right:7px"></span>';
+  var rm=((typeof ADMIN!=='undefined' && ADMIN) && !p.owner)?'<button class="pd-remove" id="pdRemove">Remove from project</button>':'';
+  var ov=document.createElement('div'); ov.className='onb show'; ov.id='pdOv';
+  ov.innerHTML='<div class="lm-modal" id="pdCard">'
+    +'<div class="pd-top"><div class="avatar pd-av" style="'+ppAvStyle(p)+'">'+(p.avatar_url?'':ppEsc(ppInitials(p.full_name).toUpperCase()))+'</div>'
+    +'<div><div class="pd-name">'+ppEsc(p.full_name)+'</div><div class="pd-role">'+ppEsc(p.position)+'</div></div></div>'
+    +'<div class="pd-meta"><div><span class="logo-mono" style="background:'+c.color+'">'+ppEsc((ppInitials(c.name)[0]||'').toUpperCase())+'</span>'+ppEsc(c.name)+'</div>'
+    +(p.email?'<div class="pd-email">'+ppEsc(p.email)+'</div>':'')
+    +'<div class="pd-status">'+dot+(online?'Online now':'Offline')+'</div></div>'
+    +rm+'<div class="lm-foot"><button id="pdClose">Close</button></div></div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); });
+  document.getElementById('pdClose').onclick=function(){ ov.remove(); };
+  var rb=document.getElementById('pdRemove'); if(rb) rb.onclick=function(){ removeFlow(p.id); };
+}
+
+/* ---------- admin remove ---------- */
+function removeFlow(id){
+  var p=(PP.profiles||[]).find(function(x){ return x.id===id; }); var nm=p?p.full_name:'this partner';
+  var ov=document.createElement('div'); ov.className='onb show'; ov.id='rmOv';
+  ov.innerHTML='<div class="lm-modal"><div class="lm-title" style="font-size:19px">Remove '+ppEsc(nm)+'?</div><div class="lm-sub">They\u2019ll be taken off this project\u2019s partner list. They can rejoin from a new invite.</div><div class="onb-actions"><button class="onb-join" id="rmYes" style="background:#c0353a;color:#fff">Remove</button><button class="onb-cancel" id="rmNo">Cancel</button></div></div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); });
+  document.getElementById('rmNo').onclick=function(){ ov.remove(); };
+  document.getElementById('rmYes').onclick=async function(){ this.disabled=true; this.textContent='Removing\u2026'; await deleteProfile(id); ov.remove(); var pd=document.getElementById('pdOv'); if(pd) pd.remove(); };
+}
+async function deleteProfile(id){ try{ await sb.from('profiles').delete().eq('id',id); }catch(e){} loadPartners(); }
+
 
 authInit();
 
