@@ -795,6 +795,91 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
   .cal-pop .pmeta{font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:7px;line-height:1.6}
   .cal-pop .ptag{display:inline-block;font-family:var(--mono);font-size:10px;color:var(--bone);background:rgba(255,255,255,.06);border-radius:5px;padding:2px 7px;margin-top:8px}
   @media(max-width:820px){.cal-grid{grid-auto-rows:minmax(82px,1fr)}.fill-label,.evchip{font-size:10px}}
+
+  /* ===================================================================
+     v9 — AUTH (login button, modal, profile) + PROJECT PARTNERS
+     =================================================================== */
+  .auth-slot{position:relative;margin-left:16px;flex:0 0 auto}
+  .auth-btn{font-family:var(--mono);font-size:12px;letter-spacing:.02em;color:#0c0d0e;background:var(--green);border:none;border-radius:9px;padding:9px 16px;cursor:pointer;font-weight:700}
+  .auth-btn:hover{background:var(--green-hi)}
+  .auth-chip{display:inline-flex;align-items:center;gap:9px;background:rgba(22,24,20,.5);border:1px solid var(--hair-2);border-radius:999px;padding:5px 13px 5px 5px;cursor:pointer;color:var(--bone)}
+  .auth-chip:hover{border-color:rgba(186,192,30,.4)}
+  .auth-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#0b0c0d;background-size:cover;background-position:center}
+  .auth-nm{font-family:var(--mono);font-size:12px}
+  .prof-menu{position:absolute;z-index:130;right:0;margin-top:8px;width:232px;background:rgba(18,19,22,.98);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid var(--hair-2);border-radius:13px;box-shadow:0 26px 70px -28px #000;overflow:hidden}
+  .prof-head{padding:14px 15px;border-bottom:1px solid var(--hair)}
+  .prof-head .pn{font-weight:700;font-size:14px}.prof-head .pr{font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:2px}
+  .prof-menu>button{width:100%;text-align:left;background:none;border:none;color:var(--bone);font-family:var(--disp);font-size:13px;padding:11px 15px;cursor:pointer}
+  .prof-menu>button:hover{background:rgba(255,255,255,.05)}
+  .prof-menu .logout{color:#e5757a;border-top:1px solid var(--hair)}
+  /* shared overlay for login + onboarding */
+  .onb{position:fixed;inset:0;z-index:120;display:none;align-items:center;justify-content:center;padding:24px;background:rgba(4,5,4,.86);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+  .onb.show{display:flex}
+  .lm-modal{width:100%;max-width:400px;border-radius:20px;padding:30px;background:linear-gradient(170deg,#191b1f,#0d0e10 84%);border:1px solid rgba(255,255,255,.08);box-shadow:0 40px 120px -40px #000,inset 0 1px 0 rgba(255,255,255,.05)}
+  .lm-title{font-size:23px;font-weight:800;letter-spacing:-.02em;margin:0 0 6px}
+  .lm-sub{font-family:var(--mono);font-size:12px;color:var(--dim);margin-bottom:22px;line-height:1.6}
+  .lm-google{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;background:#fff;color:#1a1a1a;border:none;border-radius:12px;padding:13px;font-family:var(--disp);font-size:15px;font-weight:700;cursor:pointer}
+  .lm-google:hover{background:#f0f0f0}
+  .lm-or{display:flex;align-items:center;gap:12px;margin:18px 0;font-family:var(--mono);font-size:11px;color:var(--dim)}
+  .lm-or::before,.lm-or::after{content:"";flex:1;height:1px;background:var(--hair-2)}
+  .lm-mail{display:flex;gap:8px}
+  .lm-mail input{flex:1;min-width:0;background:#0f1012;border:1px solid var(--hair-2);border-radius:11px;color:var(--bone);font-family:var(--disp);font-size:14px;padding:12px 13px}
+  .lm-mail input:focus{outline:none;border-color:rgba(186,192,30,.5)}
+  .lm-mail button{font-family:var(--mono);font-size:12px;color:#0c0d0e;background:var(--green);border:none;border-radius:11px;padding:0 16px;cursor:pointer;font-weight:700;flex:0 0 auto}
+  .lm-msg{font-family:var(--mono);font-size:11px;color:#e5757a;margin-top:12px;min-height:14px}
+  .lm-foot{margin-top:18px;text-align:center}.lm-foot button{font-family:var(--mono);font-size:11px;color:var(--dim);background:none;border:none;cursor:pointer}
+  .lm-foot button:hover{color:var(--green)}
+  .lm-sent{text-align:center;padding:8px 0 4px}.lm-sent .ic{font-size:34px;margin-bottom:10px}.lm-sent p{font-family:var(--mono);font-size:12px;color:var(--dim);line-height:1.7}
+  .onb-card{width:100%;max-width:540px;border-radius:22px;padding:36px;background:linear-gradient(170deg,#191b1f,#0d0e10 84%);border:1px solid rgba(255,255,255,.08);box-shadow:0 40px 120px -40px #000,inset 0 1px 0 rgba(255,255,255,.05);max-height:92vh;overflow:auto}
+  .onb-eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--green)}
+  .onb-title{font-size:27px;font-weight:800;letter-spacing:-.03em;margin:8px 0 6px}
+  .onb-sub{font-family:var(--mono);font-size:12px;color:var(--dim);margin-bottom:24px;line-height:1.6}
+  .onb-av{display:flex;align-items:center;gap:16px;margin-bottom:22px}
+  .onb-av .drop{width:84px;height:84px;border-radius:50%;border:1.5px dashed var(--hair-2);display:flex;align-items:center;justify-content:center;cursor:pointer;background-size:cover;background-position:center;color:var(--dim);font-family:var(--mono);font-size:10px;text-align:center;flex:0 0 auto;transition:border-color .15s}
+  .onb-av .drop:hover{border-color:rgba(186,192,30,.5);color:var(--green)}
+  .onb-av .av-tx{font-family:var(--mono);font-size:11px;color:var(--dim);line-height:1.5}
+  .onb-field{margin-bottom:16px}
+  .onb-field label{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:7px}
+  .onb-field input,.onb-field select{width:100%;background:#0f1012;border:1px solid var(--hair-2);border-radius:11px;color:var(--bone);font-family:var(--disp);font-size:15px;padding:12px 13px}
+  .onb-field input:focus,.onb-field select:focus{outline:none;border-color:rgba(186,192,30,.5)}
+  .onb-actions{margin-top:26px;display:flex;align-items:center;gap:12px}
+  .onb-join{font-family:var(--disp);font-size:15px;font-weight:700;color:#0c0d0e;background:var(--green);border:none;border-radius:12px;padding:13px 24px;cursor:pointer}
+  .onb-join:hover{background:var(--green-hi)}.onb-join:disabled{opacity:.4;cursor:not-allowed}
+  .onb-cancel{font-family:var(--mono);font-size:12px;color:var(--dim);background:none;border:none;cursor:pointer}
+  .onb-success{text-align:center;padding:20px 0}
+  .onb-success .tick{width:64px;height:64px;border-radius:50%;margin:0 auto 18px;display:flex;align-items:center;justify-content:center;background:rgba(186,192,30,.15);border:1px solid rgba(186,192,30,.5);color:var(--green);font-size:30px}
+  .onb-success h3{font-size:23px;font-weight:800;letter-spacing:-.02em;margin:0 0 8px}
+  .onb-success p{font-family:var(--mono);font-size:12px;color:var(--dim)}
+  /* partners page */
+  .pp-sub{font-family:var(--mono);font-size:12px;color:var(--dim);margin-top:6px}
+  .pp-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:4px 0 20px}
+  .pp-filter{display:inline-flex;gap:6px;flex-wrap:wrap}
+  .fchip{font-family:var(--mono);font-size:11px;color:var(--dim);border:1px solid var(--hair-2);background:#101113;border-radius:999px;padding:7px 13px;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+  .fchip.on{color:var(--bone);border-color:rgba(186,192,30,.45);background:rgba(186,192,30,.1)}
+  .fchip .lm{width:15px;height:15px;border-radius:4px;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#0c0d0e}
+  .pp-invite{margin-left:auto;font-family:var(--mono);font-size:12px;color:#0c0d0e;background:var(--green);border:none;border-radius:9px;padding:9px 15px;cursor:pointer;font-weight:700;position:relative}
+  .pp-invite:hover{background:var(--green-hi)}
+  .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(252px,1fr));gap:16px}
+  .pcard{position:relative;border-radius:16px;padding:18px;background:linear-gradient(165deg,rgba(28,30,34,.66),rgba(13,14,16,.66));-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid var(--hair);box-shadow:0 18px 50px -30px #000,inset 0 1px 0 rgba(255,255,255,.04);transition:transform .18s var(--ease-out),border-color .18s var(--ease-out)}
+  .pcard:hover{transform:translateY(-3px);border-color:rgba(186,192,30,.3)}
+  .pc-top{display:flex;align-items:center;gap:13px}
+  .avatar{width:50px;height:50px;border-radius:50%;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;color:#0b0c0d;background-size:cover;background-position:center;box-shadow:inset 0 0 0 2px rgba(255,255,255,.08)}
+  .pc-id{min-width:0}
+  .pc-name{font-size:16px;font-weight:700;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pc-role{font-size:13px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pc-foot{display:flex;align-items:center;gap:9px;margin-top:16px;padding-top:14px;border-top:1px solid var(--hair)}
+  .logo-mono{width:24px;height:24px;border-radius:6px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#0c0d0e}
+  .pc-company{font-family:var(--mono);font-size:11px;color:var(--bone);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .invite-pop{position:absolute;z-index:30;margin-top:8px;right:0;width:330px;padding:16px;border-radius:14px;background:rgba(18,19,22,.98);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid var(--hair-2);box-shadow:0 26px 70px -28px #000;text-align:left}
+  .invite-pop h4{margin:0 0 4px;font-size:15px;font-weight:700}
+  .invite-pop p{margin:0 0 12px;font-family:var(--mono);font-size:11px;color:var(--dim);line-height:1.5}
+  .ip-row{display:flex;gap:8px;margin-bottom:10px}
+  .ip-row input{flex:1;min-width:0;background:#0f1012;border:1px solid var(--hair-2);border-radius:9px;color:var(--bone);font-family:var(--disp);font-size:13px;padding:9px 11px}
+  .ip-row input:focus{outline:none;border-color:rgba(186,192,30,.5)}
+  .ip-btn{font-family:var(--mono);font-size:11px;color:#0c0d0e;background:var(--green);border:none;border-radius:9px;padding:9px 13px;cursor:pointer;font-weight:700;flex:0 0 auto}
+  .ip-link{display:flex;gap:8px;align-items:center;background:#0f1012;border:1px dashed var(--hair-2);border-radius:9px;padding:9px 11px;font-family:var(--mono);font-size:11px;color:var(--dim);word-break:break-all}
+  .ip-copy{margin-left:auto;color:var(--green);background:none;border:none;cursor:pointer;font-family:var(--mono);font-size:11px;flex:0 0 auto}
+  .ip-msg{font-family:var(--mono);font-size:11px;color:var(--green);margin-top:10px;min-height:13px}
 </style>
 </head>
 <body>
@@ -806,7 +891,7 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
     <a class="logo-link" href="https://supernerd.tv" target="_blank" rel="noopener" title="Visit supernerd.tv"><img class="logo-img" src="/email-logo.png" alt="Supernerd"></a>
     <span class="brand-plus" id="brandPlus" hidden>+</span>
     <img class="cobrand" id="cobrand" alt="" hidden>
-    <div class="head-meta"><div class="eyebrow">Review</div><div class="co" id="coName" onclick="location.hash=''" title="Back to projects">—</div></div>
+    <div class="head-meta"><div class="eyebrow">Review</div><div class="co" id="coName" onclick="location.hash=''" title="Back to projects">—</div></div><div class="auth-slot" id="authSlot"></div>
   </div>
 </header>
 
@@ -874,7 +959,8 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
 <script is:inline src="https://embed.cloudflarestream.com/embed/sdk.latest.js"></script>
 <script is:inline define:vars={{ data, SUPABASE_URL, SUPABASE_KEY, STREAM_CUSTOMER, ADMIN_KEY }}>
 const CONFIG = Object.assign({ SUPABASE_URL, SUPABASE_KEY, STREAM_CUSTOMER, ADMIN_KEY }, data);
-const sb = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
+const sb = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY, { auth: { persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, flowType:"pkce" } });
+var currentFolder=null;
 const ADMIN = !!CONFIG.ADMIN_KEY && new URLSearchParams(location.search).get('admin') === CONFIG.ADMIN_KEY;
 let players = {};
 let recorders = {};      // itemId -> MediaRecorder
@@ -1004,18 +1090,20 @@ function renderLanding(){
 
 /* ---------- project view ---------- */
 function renderProject(proj, sec, stack, folder){
+  currentFolder = folder||null;
   const app=document.getElementById('app');
   const nav=proj.sections.map((s,i)=>{
     const n=s.stacks.reduce((m,st)=>m+st.versions.length,0);
     return '<a href="#p='+encodeURIComponent(proj.id)+'&s='+encodeURIComponent(s.id)+'" class="'+(s.id===sec.id?'active':'')+'"><span class="n-num">'+String(i+1).padStart(2,'0')+'</span><span class="n-name">'+esc(s.name)+'</span><span class="n-ct">'+(n||'')+'</span></a>';
   }).join('');
-  const FOLDERS=[{k:'calendar',name:'Calendar',ico:'cal'},{k:'assets',name:'Client Assets',ico:'pal',soon:true},{k:'partners',name:'Project Partners',ico:'ppl',soon:true}];
+  const FOLDERS=[{k:'calendar',name:'Calendar',ico:'cal'},{k:'assets',name:'Client Assets',ico:'pal',soon:true},{k:'partners',name:'Project Partners',ico:'ppl'}];
   const folderNav=FOLDERS.map(function(ff){ return ff.soon ? '<a class="soon"><span class="n-ico">'+calNavIcon(ff.ico)+'</span><span class="n-name">'+esc(ff.name)+'</span><span class="soon-tag">soon</span></a>' : '<a href="#p='+encodeURIComponent(proj.id)+'&f='+ff.k+'" class="'+(folder===ff.k?'active':'')+'"><span class="n-ico">'+calNavIcon(ff.ico)+'</span><span class="n-name">'+esc(ff.name)+'</span></a>'; }).join('');
   const adminHTML = ADMIN ? adminStrip(proj,sec) : '';
   let head, body;
   if(folder){
     if(folder==='calendar'){ head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>Calendar</h2></div>'; body='<div class="cal" id="calmount"><div class="cal-loading">Loading calendar\u2026</div></div>'; }
-    else { var fnm=folder==='assets'?'Client Assets':'Project Partners'; head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>'+fnm+'</h2></div>'; body='<div class="folder-soon"><p>'+fnm+' is coming soon.</p><p class="fs-sub">'+(folder==='assets'?'Pantone / hex picker, logo uploads, and a brand-guide PDF will live here.':'A moodboard (with Pinterest) and a Canva presentations widget will live here.')+'</p></div>'; }
+    else if(folder==='partners'){ head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>Project Partners</h2><div class="pp-sub">Everyone onboarded to this project.</div></div>'; body='<div id="ppmount"><div class="cal-loading">Loading partners\u2026</div></div>'; }
+    else { head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>Client Assets</h2></div>'; body='<div class="folder-soon"><p>Client Assets is coming soon.</p><p class="fs-sub">Pantone / hex picker, logo uploads, and a brand-guide PDF will live here.</p></div>'; }
   } else if(stack){
     head='<div class="main-head"><a class="crumb" href="#p='+encodeURIComponent(proj.id)+'&s='+encodeURIComponent(sec.id)+'">← '+esc(sec.name)+'</a><h2>'+esc(stack.title)+'</h2></div>';
     body=stackHTML(proj,sec,stack);
@@ -1027,6 +1115,7 @@ function renderProject(proj, sec, stack, folder){
 
   if(folder){
     if(folder==='calendar') calLoad(proj.id);
+    else if(folder==='partners') loadPartners();
   } else if(stack){
     wireVersion(proj, sec, stack.versions[0]);
     document.querySelectorAll('.ver-chip').forEach(chip=>{ chip.addEventListener('click', ()=> selectVersion(chip.dataset.stack, chip.dataset.v)); });
@@ -1660,6 +1749,206 @@ async function calLoad(projId){
   }catch(e){ CAL.EV=[]; }
   calRender();
 }
+
+/* ===================== AUTH + PARTNERS ===================== */
+var AUTH = { user:null, profile:null, ready:false };
+var PP = { filter:'all' };
+var COMPANIES_CACHE = null;
+var OWNER_PARTNER = { id:'__owner__', full_name:'Shaun Harrison', position:'Creative Director', company_id:'supernerd', avatar_url:null, owner:true };
+var ppPendingFile = null, ppEditTarget = null;
+
+function ppEsc(s){ return esc(s==null?'':s); }
+function ppInitials(n){ var p=String(n||'').trim().split(/\s+/); return ((p[0]||'')[0]||'')+((p[1]||'')[0]||''); }
+function ppShade(hex){ var h=String(hex||'#8b8f98').replace('#',''); var r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16); return 'rgb('+Math.round(r*.6)+','+Math.round(g*.6)+','+Math.round(b*.6)+')'; }
+function ppCompany(id){ return (COMPANIES_CACHE||[]).find(function(c){return c.id===id;}) || {id:id,name:id||'\u2014',color:'#8b8f98'}; }
+function ppAvStyle(p){ if(p.avatar_url) return 'background-image:url('+p.avatar_url+')'; var c=ppCompany(p.company_id); return 'background:linear-gradient(150deg,'+c.color+','+ppShade(c.color)+')'; }
+
+async function loadCompanies(){
+  try{ var r=await sb.from('companies').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).order('sort',{ascending:true}); COMPANIES_CACHE=r.data||[]; }
+  catch(e){ COMPANIES_CACHE=COMPANIES_CACHE||[]; }
+  return COMPANIES_CACHE;
+}
+
+/* ---------- auth core ---------- */
+function authRedirect(){ return location.origin+location.pathname+location.hash; }
+function signInGoogle(){ try{ sb.auth.signInWithOAuth({ provider:'google', options:{ redirectTo: authRedirect() } }); }catch(e){} }
+async function signInMagic(email){ return sb.auth.signInWithOtp({ email:email, options:{ emailRedirectTo: authRedirect() } }); }
+async function authSignOut(){ try{ await sb.auth.signOut(); }catch(e){} AUTH.user=null; AUTH.profile=null; renderAuthSlot(); if(currentFolder==='partners') loadPartners(); }
+async function loadProfile(){ try{ var r=await sb.from('profiles').select('*').eq('id',AUTH.user.id).maybeSingle(); AUTH.profile=r.data||null; }catch(e){ AUTH.profile=null; } }
+async function authInit(){
+  try{ var s=await sb.auth.getSession(); AUTH.user=(s&&s.data&&s.data.session)?s.data.session.user:null; if(AUTH.user) await loadProfile(); }catch(e){}
+  AUTH.ready=true; renderAuthSlot();
+  sb.auth.onAuthStateChange(function(ev, session){
+    AUTH.user = session ? session.user : null;
+    setTimeout(async function(){
+      if(AUTH.user){ await loadProfile(); } else { AUTH.profile=null; }
+      renderAuthSlot();
+      if(AUTH.user && !AUTH.profile) openOnboarding();
+      if(currentFolder==='partners') loadPartners();
+    },0);
+  });
+}
+
+/* ---------- header slot ---------- */
+function renderAuthSlot(){
+  var el=document.getElementById('authSlot'); if(!el) return;
+  if(!AUTH.user){ el.innerHTML='<button class="auth-btn" id="loginBtn">Log in</button>'; var b=document.getElementById('loginBtn'); if(b) b.onclick=openLogin; return; }
+  var p=AUTH.profile, nm=(p&&p.full_name)?p.full_name:(AUTH.user.email||'Account'), first=String(nm).split(/\s+/)[0];
+  var av=(p&&p.avatar_url)?('background-image:url('+p.avatar_url+')'):('background:linear-gradient(150deg,#BAC01E,#6e7312)');
+  var ini=(p&&p.avatar_url)?'':ppInitials(nm).toUpperCase();
+  el.innerHTML='<button class="auth-chip" id="profBtn"><span class="auth-av" style="'+av+'">'+ppEsc(ini)+'</span><span class="auth-nm">'+ppEsc(first)+'</span></button>';
+  var pb=document.getElementById('profBtn'); if(pb) pb.onclick=openProfileMenu;
+}
+
+/* ---------- login modal ---------- */
+function gIcon(){ return '<svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.6 2.4 30.2 0 24 0 14.6 0 6.4 5.4 2.6 13.2l7.9 6.1C12.4 13.2 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.1 5.4-4.6 7l7.1 5.5c4.2-3.9 6.6-9.6 6.6-17z"/><path fill="#FBBC05" d="M10.5 28.3a14.5 14.5 0 0 1 0-8.6l-7.9-6.1a24 24 0 0 0 0 20.8l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.5l-7.1-5.5c-2 1.3-4.6 2.1-8.1 2.1-6.3 0-11.6-3.7-13.5-9l-7.9 6.1C6.4 42.6 14.6 48 24 48z"/></svg>'; }
+function openLogin(){ var ov=document.createElement('div'); ov.className='onb show'; ov.id='lmOv'; ov.innerHTML='<div class="lm-modal" id="lmCard"></div>'; document.body.appendChild(ov); ov.addEventListener('click',function(e){ if(e.target===ov) closeLogin(); }); loginStep1(); }
+function closeLogin(){ var ov=document.getElementById('lmOv'); if(ov) ov.remove(); }
+function loginStep1(){
+  document.getElementById('lmCard').innerHTML='<div class="lm-title">Log in</div><div class="lm-sub">Access your partner profile for this project. No password needed.</div>'
+    +'<button class="lm-google" id="lmG">'+gIcon()+' Continue with Google</button><div class="lm-or">or</div>'
+    +'<div class="lm-mail"><input id="lmEmail" type="email" placeholder="you@company.com"><button id="lmSend">Magic link</button></div>'
+    +'<div class="lm-msg" id="lmMsg"></div><div class="lm-foot"><button id="lmCancel">Cancel</button></div>';
+  document.getElementById('lmG').onclick=function(){ signInGoogle(); };
+  document.getElementById('lmSend').onclick=async function(){
+    var em=document.getElementById('lmEmail').value.trim(); if(!em) return;
+    this.disabled=true; this.textContent='Sending\u2026';
+    var res=await signInMagic(em);
+    if(res && res.error){ document.getElementById('lmMsg').textContent=res.error.message||'Could not send link.'; this.disabled=false; this.textContent='Magic link'; return; }
+    document.getElementById('lmCard').innerHTML='<div class="lm-sent"><div class="ic">\u2709\ufe0f</div><div class="lm-title" style="font-size:19px">Check your email</div><p>We sent a magic link to <b>'+ppEsc(em)+'</b>.<br>Tap it to finish logging in.</p></div><div class="lm-foot"><button id="lmCancel2">Close</button></div>';
+    var c2=document.getElementById('lmCancel2'); if(c2) c2.onclick=closeLogin;
+  };
+  document.getElementById('lmCancel').onclick=closeLogin;
+}
+
+/* ---------- onboarding / profile edit ---------- */
+function openOnboarding(prefill){
+  if(!AUTH.user) return;
+  ppEditTarget = prefill || (AUTH.profile||null);
+  ppPendingFile = null;
+  var ov=document.getElementById('onbOv');
+  if(!ov){ ov=document.createElement('div'); ov.className='onb'; ov.id='onbOv'; ov.innerHTML='<div class="onb-card" id="onbCard"></div>'; document.body.appendChild(ov); }
+  ov.classList.add('show');
+  document.getElementById('onbCard').innerHTML=onbFormHTML(ppEditTarget);
+  wireOnb();
+}
+function closeOnboarding(){ var ov=document.getElementById('onbOv'); if(ov) ov.classList.remove('show'); }
+function onbFormHTML(p){
+  var list=(COMPANIES_CACHE||[]);
+  var opts=list.map(function(c){ return '<option value="'+ppEsc(c.id)+'"'+(p&&p.company_id===c.id?' selected':'')+'>'+ppEsc(c.name)+'</option>'; }).join('')+'<option value="__other__">Other company\u2026</option>';
+  var dropStyle=p&&p.avatar_url?'background-image:url('+p.avatar_url+')':'';
+  var nm=p?p.full_name:'', rl=p?p.position:'';
+  return '<div class="onb-eyebrow">'+ppEsc(CONFIG.COMPANY.name)+' \u00d7 review</div><div class="onb-title">'+(p?'Edit your profile':'Join the project')+'</div>'
+    +'<div class="onb-sub">'+(p?'Update how you appear to the team.':'You\u2019ve been invited to review this project. Tell your team who you are so they can tag you in notes and approvals.')+'</div>'
+    +'<div class="onb-av"><div class="drop" id="avDrop" style="'+dropStyle+'">'+(dropStyle?'':'+ Add<br>photo')+'</div><div class="av-tx">A clear headshot helps people<br>recognise you in comments.<br><span style="opacity:.7">Optional \u2014 initials are used otherwise.</span></div><input type="file" id="avFile" accept="image/*" style="display:none"></div>'
+    +'<div class="onb-field"><label>Full name</label><input id="fName" placeholder="Jordan Rivera" value="'+ppEsc(nm)+'"></div>'
+    +'<div class="onb-field"><label>Job position</label><input id="fRole" placeholder="Creative Director" value="'+ppEsc(rl)+'"></div>'
+    +'<div class="onb-field"><label>Company</label><select id="fComp">'+opts+'</select></div>'
+    +'<div class="onb-field" id="otherWrap" style="display:none"><label>Company name</label><input id="fOther" placeholder="Your company"></div>'
+    +'<div class="onb-actions"><button class="onb-join" id="joinBtn"'+(p?'':' disabled')+'>'+(p?'Save profile':'Join project')+'</button><button class="onb-cancel" id="cancelBtn">Cancel</button></div><div class="lm-msg" id="onbMsg"></div>';
+}
+function wireOnb(){
+  var avDrop=document.getElementById('avDrop'),avFile=document.getElementById('avFile');
+  avDrop.onclick=function(){ avFile.click(); };
+  avFile.onchange=function(){ var f=avFile.files[0]; if(!f) return; ppPendingFile=f; var r=new FileReader(); r.onload=function(){ avDrop.style.backgroundImage='url('+r.result+')'; avDrop.innerHTML=''; }; r.readAsDataURL(f); };
+  var fName=document.getElementById('fName'),fRole=document.getElementById('fRole'),fComp=document.getElementById('fComp'),fOther=document.getElementById('fOther'),otherWrap=document.getElementById('otherWrap'),joinBtn=document.getElementById('joinBtn');
+  function gate(){ joinBtn.disabled=!(fName.value.trim()&&fRole.value.trim()&&(fComp.value!=='__other__'||fOther.value.trim())); }
+  [fName,fRole,fOther].forEach(function(el){ el.oninput=gate; });
+  fComp.onchange=function(){ otherWrap.style.display=fComp.value==='__other__'?'':'none'; gate(); };
+  document.getElementById('cancelBtn').onclick=closeOnboarding;
+  joinBtn.onclick=async function(){
+    if(!AUTH.user) return;
+    joinBtn.disabled=true; joinBtn.textContent='Saving\u2026';
+    var cid=fComp.value, cname='';
+    if(cid==='__other__'){ cname=fOther.value.trim(); cid=cname.toLowerCase().replace(/[^a-z0-9]+/g,'_')||('co'+Date.now());
+      try{ await sb.from('companies').upsert({review_slug:CONFIG.REVIEW_SLUG,id:cid,name:cname,color:'#7a8cff',sort:99},{onConflict:'review_slug,id'}); }catch(e){}
+      COMPANIES_CACHE=null; await loadCompanies();
+    }
+    var avatarUrl = (ppEditTarget&&ppEditTarget.avatar_url) || null;
+    if(ppPendingFile){ var u=await ppUploadAvatar(ppPendingFile); if(u) avatarUrl=u; }
+    var row={ id:AUTH.user.id, review_slug:CONFIG.REVIEW_SLUG, email:AUTH.user.email, full_name:fName.value.trim(), position:fRole.value.trim(), company_id:cid, avatar_url:avatarUrl, updated_at:new Date().toISOString() };
+    var err=null; try{ var r=await sb.from('profiles').upsert(row,{onConflict:'id'}); if(r.error) err=r.error; }catch(e){ err=e; }
+    if(err){ var m=document.getElementById('onbMsg'); if(m) m.textContent='Could not save: '+(err.message||'try again'); joinBtn.disabled=false; joinBtn.textContent=ppEditTarget?'Save profile':'Join project'; return; }
+    AUTH.profile=row;
+    document.getElementById('onbCard').innerHTML='<div class="onb-success"><div class="tick">\u2713</div><h3>'+(ppEditTarget&&ppEditTarget.full_name?'Saved!':'You\u2019re in, '+ppEsc(row.full_name.split(/\s+/)[0])+'!')+'</h3><p>Your card is on the Project Partners page.</p></div>';
+    setTimeout(function(){ closeOnboarding(); renderAuthSlot(); if(currentFolder==='partners') loadPartners(); },1100);
+  };
+}
+async function ppUploadAvatar(file){
+  try{
+    var ext=(String(file.name).split('.').pop()||'png').toLowerCase();
+    var path=AUTH.user.id+'/'+Date.now()+'.'+ext;
+    var up=await sb.storage.from('avatars').upload(path, file, {upsert:true, cacheControl:'3600'});
+    if(up.error) return null;
+    var pub=sb.storage.from('avatars').getPublicUrl(path);
+    return pub && pub.data ? pub.data.publicUrl : null;
+  }catch(e){ return null; }
+}
+
+/* ---------- profile menu ---------- */
+function openProfileMenu(e){
+  if(e) e.stopPropagation();
+  var ex=document.getElementById('profMenu'); if(ex){ ex.remove(); return; }
+  var nm=(AUTH.profile&&AUTH.profile.full_name)||AUTH.user.email, rl=(AUTH.profile&&AUTH.profile.position)||'', co=AUTH.profile?ppCompany(AUTH.profile.company_id).name:'';
+  var m=document.createElement('div'); m.className='prof-menu'; m.id='profMenu';
+  m.innerHTML='<div class="prof-head"><div class="pn">'+ppEsc(nm)+'</div><div class="pr">'+ppEsc(rl)+(co?' \u00b7 '+ppEsc(co):'')+'</div></div><button id="pmEdit">Edit profile</button><button id="pmLogout" class="logout">Log out</button>';
+  document.getElementById('authSlot').appendChild(m);
+  document.getElementById('pmEdit').onclick=function(){ m.remove(); openOnboarding(AUTH.profile||{}); };
+  document.getElementById('pmLogout').onclick=function(){ m.remove(); authSignOut(); };
+  setTimeout(function(){ document.addEventListener('click', closeProfOnce); },0);
+}
+function closeProfOnce(e){ var m=document.getElementById('profMenu'); if(m && !m.contains(e.target) && !(e.target.closest && e.target.closest('#profBtn'))) m.remove(); document.removeEventListener('click', closeProfOnce); }
+
+/* ---------- partners page ---------- */
+async function loadPartners(){
+  var m=document.getElementById('ppmount'); if(!m) return;
+  await loadCompanies();
+  var profiles=[];
+  try{ var r=await sb.from('profiles').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).order('created_at',{ascending:true}); profiles=r.data||[]; }catch(e){ profiles=[]; }
+  renderPartners(profiles);
+}
+function ppCardHTML(p){
+  var c=ppCompany(p.company_id);
+  var logo=c.logo_url?'<span class="logo-mono" style="background:transparent;padding:0"><img src="'+ppEsc(c.logo_url)+'" alt="" style="width:24px;height:24px;border-radius:6px;object-fit:cover"></span>':'<span class="logo-mono" style="background:'+c.color+'">'+ppEsc((ppInitials(c.name)[0]||'').toUpperCase())+'</span>';
+  return '<div class="pcard"><div class="pc-top"><div class="avatar" style="'+ppAvStyle(p)+'">'+(p.avatar_url?'':ppEsc(ppInitials(p.full_name).toUpperCase()))+'</div>'
+    +'<div class="pc-id"><div class="pc-name">'+ppEsc(p.full_name)+'</div><div class="pc-role">'+ppEsc(p.position)+'</div></div></div>'
+    +'<div class="pc-foot">'+logo+'<span class="pc-company">'+ppEsc(c.name)+'</span></div></div>';
+}
+function renderPartners(profiles){
+  var m=document.getElementById('ppmount'); if(!m) return;
+  var all=[OWNER_PARTNER].concat(profiles||[]);
+  var used={}; all.forEach(function(p){ used[p.company_id]=1; });
+  var chips='<button class="fchip '+(PP.filter==='all'?'on':'')+'" data-ppf="all">All partners</button>'
+    +(COMPANIES_CACHE||[]).filter(function(c){return used[c.id];}).map(function(c){ return '<button class="fchip '+(PP.filter===c.id?'on':'')+'" data-ppf="'+ppEsc(c.id)+'"><span class="lm" style="background:'+c.color+'">'+ppEsc((ppInitials(c.name)[0]||'').toUpperCase())+'</span>'+ppEsc(c.name)+'</button>'; }).join('');
+  var invite = ADMIN ? '<button class="pp-invite" id="ppInvite">+ Invite partner</button><div class="invite-pop" id="ppInvitePop" hidden></div>' : '';
+  var list=all.filter(function(p){ return PP.filter==='all'||p.company_id===PP.filter; });
+  list.sort(function(a,b){ return (b.owner?1:0)-(a.owner?1:0); });
+  m.innerHTML='<div class="pp-top"><div class="pp-filter">'+chips+'</div>'+invite+'</div><div class="pgrid">'+list.map(ppCardHTML).join('')+'</div>';
+  m.querySelectorAll('.fchip').forEach(function(b){ b.onclick=function(){ PP.filter=b.dataset.ppf; renderPartners(profiles); }; });
+  if(ADMIN){ var ib=document.getElementById('ppInvite'); if(ib) ib.onclick=function(ev){ ev.stopPropagation(); ppToggleInvite(); }; }
+}
+function ppToggleInvite(){
+  var pop=document.getElementById('ppInvitePop'); if(!pop) return;
+  if(!pop.hasAttribute('hidden')){ pop.setAttribute('hidden',''); return; }
+  pop.innerHTML='<h4>Invite a partner</h4><p>Email them a one-tap magic link. They land on the onboarding form, no password.</p>'
+    +'<div class="ip-row"><input id="ppInvEmail" type="email" placeholder="name@company.com"><button class="ip-btn" id="ppInvSend">Send invite</button></div>'
+    +'<div class="ip-link"><span>'+ppEsc(location.origin+location.pathname)+'</span><button class="ip-copy" id="ppInvCopy">Copy link</button></div>'
+    +'<div class="ip-msg" id="ppInvMsg"></div>';
+  pop.removeAttribute('hidden');
+  document.getElementById('ppInvCopy').onclick=function(){ try{ navigator.clipboard.writeText(location.origin+location.pathname); }catch(e){} this.textContent='Copied \u2713'; };
+  document.getElementById('ppInvSend').onclick=async function(){
+    var em=document.getElementById('ppInvEmail').value.trim(); if(!em) return; this.disabled=true; this.textContent='Sending\u2026';
+    try{ await sb.from('invites').upsert({review_slug:CONFIG.REVIEW_SLUG, email:em},{onConflict:'review_slug,email'}); }catch(e){}
+    var res=await signInMagic(em);
+    var msg=document.getElementById('ppInvMsg');
+    if(res && res.error){ if(msg) msg.textContent=res.error.message||'Could not send.'; this.disabled=false; this.textContent='Send invite'; return; }
+    if(msg) msg.textContent='Invite sent to '+em+' \u2713'; this.textContent='Sent \u2713';
+  };
+  setTimeout(function(){ document.addEventListener('click', ppInvAway); },0);
+}
+function ppInvAway(e){ var pop=document.getElementById('ppInvitePop'); if(pop && !pop.hasAttribute('hidden') && !pop.contains(e.target) && !(e.target.closest && e.target.closest('#ppInvite'))){ pop.setAttribute('hidden',''); } document.removeEventListener('click', ppInvAway); }
+
+authInit();
 
 </script>
 </body>
