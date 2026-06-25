@@ -1,6 +1,9 @@
 {
   "key": "animated-psa",
   "company_key": "studio",
+  "client": "trrp",
+  "client_name": "The Reproductive Reality Project",
+  "client_logo": "/work/uploads/screen-shot-2026-06-22-at-9.26.14-pm.png",
   "title": "Animated PSA",
   "tagline": "PSA · 13-day schedule",
   "order": 1,

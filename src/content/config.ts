@@ -37,6 +37,9 @@ const reviewProjects = defineCollection({
   schema: z.object({
     key: z.string(),
     company_key: z.string(),
+    client: z.string().optional().default(''),        // which CLIENT/company this project is for
+    client_name: z.string().optional().default(''),   // display name of that client
+    client_logo: z.string().optional().default(''),   // client logo / hero image
     title: z.string(),
     tagline: z.string().optional().default(''),
     order: z.number().optional().default(100),

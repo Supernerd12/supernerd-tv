@@ -84,10 +84,24 @@ export async function getStaticPaths() {
           return { id: sName, name: sName, stacks };
         });
 
-        return { id: p.data.key, title: p.data.title, tagline: p.data.tagline || '', sections };
+        return { id: p.data.key, title: p.data.title, tagline: p.data.tagline || '', sections,
+                 client: p.data.client || 'studio',
+                 client_name: p.data.client_name || (p.data.client ? p.data.client : co.name),
+                 client_logo: p.data.client_logo || '' };
       });
 
-    const data = { REVIEW_SLUG: co.key, OWNER_LOGINS: ["hello@supernerd.tv","shaun@supernerd.tv"], COMPANY: { name: co.name, logo: co.logo || '' }, PROJECTS };
+    // Group projects into CLIENTS (companies) for the Studio company grid.
+    const cOrder = []; const cMap = new Map();
+    for (const pr of PROJECTS) {
+      const ck = pr.client || 'studio';
+      if (!cMap.has(ck)) { cMap.set(ck, { key: ck, name: pr.client_name || ck, logo: pr.client_logo || '', projects: [] }); cOrder.push(ck); }
+      const cl = cMap.get(ck);
+      if (!cl.logo && pr.client_logo) cl.logo = pr.client_logo;
+      cl.projects.push(pr.id);
+    }
+    const CLIENTS = cOrder.map(k => cMap.get(k));
+
+    const data = { REVIEW_SLUG: co.key, OWNER_LOGINS: ["hello@supernerd.tv","shaun@supernerd.tv"], COMPANY: { name: co.name, logo: co.logo || '' }, CLIENTS, PROJECTS };
     return { params: { slug: co.url_slug }, props: { data } };
   });
 }
@@ -985,6 +999,42 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
 @media (max-width:760px){
   header{padding-top:calc(14px + env(safe-area-inset-top,0px));padding-bottom:14px;background:rgba(5,5,6,.96)}
 }
+
+/* ===================== v12: company grid + per-project access ===================== */
+/* Studio home: company cards with the company logo as the hero */
+.cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px;margin-top:8px}
+.ccard{display:flex;flex-direction:column;border:1px solid var(--hair);border-radius:16px;background:rgba(255,255,255,.018);overflow:hidden;text-decoration:none;color:inherit;transition:border-color .16s var(--ease),transform .16s var(--ease),background .16s var(--ease)}
+.ccard:hover{border-color:rgba(186,192,30,.5);background:rgba(186,192,30,.04);transform:translateY(-2px)}
+.cc-hero{height:150px;display:flex;align-items:center;justify-content:center;padding:24px;background:#fff;border-bottom:1px solid var(--hair)}
+.cc-hero img{max-height:100%;max-width:100%;width:auto;object-fit:contain;display:block}
+.cc-hero-empty{background:linear-gradient(150deg,#1a1c0f,#0c0d07)}
+.cc-hero-empty span{font-family:var(--disp);font-weight:800;font-size:46px;color:var(--green)}
+.cc-body{padding:16px 18px 18px}
+.cc-body h3{margin:6px 0 0;font-family:var(--disp);font-size:20px;font-weight:800;color:var(--bone);line-height:1.1}
+.cc-body .c-foot{margin-top:14px}
+.crumb{display:inline-block;font-family:var(--mono);font-size:12px;letter-spacing:.04em;color:var(--green);text-decoration:none;margin-bottom:18px}
+.crumb:hover{color:var(--green-hi)}
+
+/* invite form: which projects to grant */
+.ob-projs{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin:4px 0 14px}
+.ob-projs-h{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.ob-proj{display:inline-flex;align-items:center;gap:7px;font-family:var(--disp);font-size:14px;color:var(--bone);cursor:pointer}
+.ob-proj input{accent-color:var(--green);width:15px;height:15px}
+
+/* profile card: project access checklist */
+.pd-access{margin:14px 0 4px;padding-top:14px;border-top:1px solid var(--hair)}
+.pa-h{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:10px}
+.pa-group{margin-bottom:12px}
+.pa-group-h{font-family:var(--disp);font-size:12px;font-weight:700;color:var(--green);margin-bottom:6px}
+.pa-proj{display:flex;align-items:center;gap:9px;font-family:var(--disp);font-size:14px;color:var(--bone);cursor:pointer;padding:4px 0}
+.pa-proj input{accent-color:var(--green);width:16px;height:16px}
+.pa-foot{display:flex;align-items:center;gap:12px;margin-top:8px}
+.pa-save{font-family:var(--mono);font-size:11px;letter-spacing:.04em;text-transform:uppercase;font-weight:800;color:#0c0d0e;background:var(--green);border:0;border-radius:8px;padding:8px 14px;cursor:pointer}
+.pa-save:hover{background:var(--green-hi)}
+.pa-save:disabled{opacity:.5;cursor:default}
+.pa-msg{font-family:var(--mono);font-size:12px;color:var(--dim)}
+.pa-msg.ok{color:var(--green)}
+.pa-msg.err{color:#e0676c}
 </style>
 </head>
 <body>
@@ -1151,7 +1201,7 @@ function absUrl(u){ if(!u) return u; if(/^https?:\/\//i.test(u)) return u; retur
 function previewFor(it, tcSecs){ if(it.type==='image' && it.src) return absUrl(it.src); if(it.type==='video' && it.stream_uid){ let u='https://'+CONFIG.STREAM_CUSTOMER+'/'+it.stream_uid+'/thumbnails/thumbnail.jpg?height=320'; if(tcSecs!=null) u+='&time='+Math.floor(tcSecs)+'s'; return u; } return null; }
 
 function seek(id, seconds){ const p=players[id]; if(p){ try{ p.currentTime=seconds; p.play(); const st=document.getElementById('stage-'+id); if(st) window.scrollTo({top:st.getBoundingClientRect().top+window.scrollY-86, behavior:'smooth'}); }catch(e){} } }
-function chrome(){ document.getElementById('coName').textContent = CONFIG.COMPANY.name; if(CONFIG.COMPANY.logo){ const c=document.getElementById('cobrand'); c.src=CONFIG.COMPANY.logo; c.hidden=false; const bp=document.getElementById('brandPlus'); if(bp) bp.hidden=false; } }
+function chrome(){ updateTopbar(null); }
 
 /* ---------- overlay / lightbox ---------- */
 function openOverlay(html, wide){ const o=document.getElementById('overlay'); o.querySelector('.ov-inner').innerHTML=html; o.classList.toggle('wide', !!wide); o.classList.add('show'); document.body.style.overflow='hidden'; }
@@ -1163,33 +1213,124 @@ function findStack(stackId){ for(const p of CONFIG.PROJECTS){ for(const s of p.s
 function findItem(itemId){ for(const p of CONFIG.PROJECTS){ for(const s of p.sections){ for(const st of s.stacks){ for(const v of st.versions){ if(v.id===itemId) return { proj:p, sec:s, it:v }; } } } } return null; }
 
 /* ---------- routing ---------- */
+/* ---------- access + company/project routing ---------- */
+function accessIsOwner(){ return !!(AUTH.profile && AUTH.profile.owner); }
+function visibleProjectIds(){
+  if(accessIsOwner()) return CONFIG.PROJECTS.map(p=>p.id);
+  var em=((AUTH.user&&AUTH.user.email)||'').toLowerCase();
+  var inv=em ? INVITES.find(function(x){return (x.email||'').toLowerCase()===em;}) : null;
+  if(inv && inv.project_keys && inv.project_keys.length){
+    var allow={}; inv.project_keys.forEach(function(k){ allow[k]=1; });
+    return CONFIG.PROJECTS.filter(function(p){ return allow[p.id]; }).map(function(p){ return p.id; });
+  }
+  // no explicit grant yet -> show all current projects (safe while one client; tighten by granting)
+  return CONFIG.PROJECTS.map(p=>p.id);
+}
+function visibleClients(){
+  var pids=visibleProjectIds(); var set={}; pids.forEach(function(id){ set[id]=1; });
+  return (CONFIG.CLIENTS||[]).filter(function(c){ return (c.projects||[]).some(function(pid){ return set[pid]; }); });
+}
+function clientOf(projId){ var p=CONFIG.PROJECTS.find(function(x){return x.id===projId;}); return p?p.client:null; }
+
 function route(){
-  const h=new URLSearchParams(location.hash.replace(/^#/,'')); const p=h.get('p'), s=h.get('s'), i=h.get('i'), k=h.get('k');
   players={}; closeOverlay();
-  if(!p){ renderLanding(); return; }
-  const proj=CONFIG.PROJECTS.find(x=>x.id===p); if(!proj){ renderLanding(); return; }
-  const sec=proj.sections.find(x=>x.id===s) || proj.sections[0];
-  if(!sec){ renderLanding(); return; }
-  const f=h.get('f');
-  if(f){ renderProject(proj, sec, null, f); try{ window.scrollTo(0,0); }catch(e){} return; }
-  let stack=null;
-  if(k) stack=sec.stacks.find(x=>x.id===k)||null;
-  if(!stack && i) stack=sec.stacks.find(x=>x.versions.some(v=>v.id===i))||null;
-  renderProject(proj, sec, stack);
-  if(stack && i){ const v=stack.versions.find(x=>x.id===i); if(v && stack.versions[0] && v.id!==stack.versions[0].id) selectVersion(stack.id, i); }
-  try{ window.scrollTo(0,0); }catch(e){}
+  const hh=new URLSearchParams(location.hash.replace(/^#/,''));
+  const c=hh.get('c'), p=hh.get('p'), s=hh.get('s'), i=hh.get('i'), k=hh.get('k'), f=hh.get('f');
+  const pids=visibleProjectIds(); const allow={}; pids.forEach(function(id){ allow[id]=1; });
+
+  if(p){
+    if(!allow[p]){ routeHome(); return; }
+    const proj=CONFIG.PROJECTS.find(x=>x.id===p); if(!proj){ routeHome(); return; }
+    const sec=proj.sections.find(x=>x.id===s) || proj.sections[0];
+    if(!sec){ routeHome(); return; }
+    updateTopbar(proj.client);
+    if(f){ renderProject(proj, sec, null, f); try{ window.scrollTo(0,0); }catch(e){} return; }
+    let stack=null;
+    if(k) stack=sec.stacks.find(x=>x.id===k)||null;
+    if(!stack && i) stack=sec.stacks.find(x=>x.versions.some(v=>v.id===i))||null;
+    renderProject(proj, sec, stack);
+    if(stack && i){ const v=stack.versions.find(x=>x.id===i); if(v && stack.versions[0] && v.id!==stack.versions[0].id) selectVersion(stack.id, i); }
+    try{ window.scrollTo(0,0); }catch(e){}
+    return;
+  }
+  if(c){
+    const cl=(CONFIG.CLIENTS||[]).find(x=>x.key===c);
+    if(!cl){ routeHome(); return; }
+    updateTopbar(cl.key); renderClientProjects(cl, allow); try{ window.scrollTo(0,0); }catch(e){}
+    return;
+  }
+  routeHome();
+}
+function routeHome(){
+  const clients=visibleClients(); const pids=visibleProjectIds();
+  if(accessIsOwner() || clients.length>1){ updateTopbar(null); renderCompanyGrid(clients); try{ window.scrollTo(0,0); }catch(e){} return; }
+  if(clients.length===1){
+    const cl=clients[0];
+    const mine=(cl.projects||[]).filter(function(pid){ return pids.indexOf(pid)>=0; });
+    if(mine.length===1){ location.hash='p='+encodeURIComponent(mine[0]); return; }
+    const allow={}; pids.forEach(function(id){ allow[id]=1; });
+    updateTopbar(cl.key); renderClientProjects(cl, allow); try{ window.scrollTo(0,0); }catch(e){}
+    return;
+  }
+  updateTopbar(null); renderNoAccess();
 }
 
-/* ---------- landing ---------- */
-function renderLanding(){
+function updateTopbar(clientKey){
+  var cob=document.getElementById('cobrand'), bp=document.getElementById('brandPlus'),
+      co=document.getElementById('coName'), eye=document.querySelector('header .eyebrow');
+  var cl=clientKey?(CONFIG.CLIENTS||[]).find(function(x){return x.key===clientKey;}):null;
+  if(cl){
+    if(cl.logo && cob){ cob.src=cl.logo; cob.hidden=false; if(bp) bp.hidden=false; }
+    else { if(cob) cob.hidden=true; if(bp) bp.hidden=true; }
+    if(eye) eye.textContent='Review';
+    if(co) co.textContent=cl.name;
+  } else {
+    if(cob) cob.hidden=true; if(bp) bp.hidden=true;
+    if(eye) eye.textContent='Studio';
+    if(co) co.textContent='Supernerd';
+  }
+}
+
+/* ---------- company grid (Studio home) ---------- */
+function renderCompanyGrid(clients){
   const app=document.getElementById('app');
-  const cards=CONFIG.PROJECTS.map(p=>{
-    const items=p.sections.reduce((n,sec)=>n+sec.stacks.reduce((m,st)=>m+st.versions.length,0),0);
-    return '<a class="card" href="#p='+encodeURIComponent(p.id)+'" tabindex="0"><div class="c-eye">Project</div><h3>'+esc(p.title)+'</h3><div class="c-tag">'+esc(p.tagline||'')+'</div><div class="c-foot"><span class="c-count">'+p.sections.length+' sections · '+items+' item'+(items===1?'':'s')+'</span><span class="c-go">Open →</span></div></a>';
+  const cards=(clients||[]).map(function(cl){
+    const np=(cl.projects||[]).length;
+    const hero = cl.logo
+      ? '<div class="cc-hero"><img src="'+esc(cl.logo)+'" alt=""></div>'
+      : '<div class="cc-hero cc-hero-empty"><span>'+esc((cl.name||'?').trim().charAt(0).toUpperCase())+'</span></div>';
+    return '<a class="ccard" href="#c='+encodeURIComponent(cl.key)+'" tabindex="0">'+hero
+      +'<div class="cc-body"><div class="c-eye">Company</div><h3>'+esc(cl.name)+'</h3>'
+      +'<div class="c-foot"><span class="c-count">'+np+' project'+(np===1?'':'s')+'</span><span class="c-go">Open →</span></div></div></a>';
   }).join('');
-  const onboard = ADMIN ? '<section class="onboard"><div class="ob-head"><span class="admin-tag">Admin</span><h3>Onboard a client</h3></div><p class="ob-sub">Sends the branded welcome email that explains how the portal works.</p><div class="ob-row"><input id="ob-name" class="ob-input" placeholder="Default name (optional) — used for any line that has no name of its own"></div><div class="ob-row"><textarea id="ob-emails" class="ob-input ob-area" placeholder="One recipient per line. Just an email, or personalize:&#10;margot@email.com&#10;Winnie <winnie@email.com>"></textarea></div><div class="ob-foot"><button class="post" id="ob-send">Send welcome email</button><span class="msg" id="ob-msg"></span></div><div class="ob-list" id="ob-list"></div></section>' : '';
-  app.innerHTML='<section class="landing"><div class="eyebrow">Client review</div><h1 class="co-name">'+esc(CONFIG.COMPANY.name)+'</h1><p class="lead">Open a project to review its work. Leave a note, a voice note, or pin a comment right onto an image.</p>'+onboard+'<div class="grid">'+(cards||'<p class="sec-empty">No projects yet.</p>')+'</div></section>';
-  if(ADMIN){ const b=document.getElementById('ob-send'); if(b) b.addEventListener('click', sendOnboarding); renderOnboardList(); }
+  app.innerHTML='<section class="landing"><div class="eyebrow">Studio</div><h1 class="co-name">Companies</h1><p class="lead">Open a company to review its projects.</p><div class="cgrid">'+(cards||'<p class="sec-empty">No companies yet. Add a project and tag it with a client.</p>')+'</div></section>';
+}
+function renderNoAccess(){
+  const app=document.getElementById('app');
+  app.innerHTML='<section class="landing"><div class="eyebrow">Studio</div><h1 class="co-name">No projects yet</h1><p class="lead">You\u2019re signed in, but you haven\u2019t been added to a project yet. Supernerd will grant you access.</p></section>';
+}
+
+/* ---------- a company\u2019s projects ---------- */
+function renderClientProjects(cl, allow){
+  const app=document.getElementById('app');
+  const owner=accessIsOwner(); const multiCompany=visibleClients().length>1;
+  const back=(owner||multiCompany)?'<a class="crumb" href="#">\u2190 Companies</a>':'';
+  const cards=CONFIG.PROJECTS.filter(function(p){ return p.client===cl.key && allow[p.id]; }).map(function(p){
+    const items=p.sections.reduce((n,sec)=>n+sec.stacks.reduce((m,st)=>m+st.versions.length,0),0);
+    return '<a class="card" href="#p='+encodeURIComponent(p.id)+'" tabindex="0"><div class="c-eye">Project</div><h3>'+esc(p.title)+'</h3><div class="c-tag">'+esc(p.tagline||'')+'</div><div class="c-foot"><span class="c-count">'+p.sections.length+' sections \u00b7 '+items+' item'+(items===1?'':'s')+'</span><span class="c-go">Open \u2192</span></div></a>';
+  }).join('');
+  const onboard = ADMIN ? onboardSectionHTML(cl) : '';
+  app.innerHTML='<section class="landing">'+back+'<div class="eyebrow">Company</div><h1 class="co-name">'+esc(cl.name)+'</h1><p class="lead">Open a project to review its work. Leave a note, a voice note, or pin a comment right onto an image.</p>'+onboard+'<div class="grid">'+(cards||'<p class="sec-empty">No projects yet.</p>')+'</div></section>';
+  if(ADMIN){ const b=document.getElementById('ob-send'); if(b) b.addEventListener('click', ()=>sendOnboarding(cl.key)); renderOnboardList(); }
+}
+function onboardSectionHTML(cl){
+  var projs=CONFIG.PROJECTS.filter(function(p){ return p.client===cl.key; });
+  var checks=projs.map(function(p){ return '<label class="ob-proj"><input type="checkbox" class="ob-proj-cb" value="'+esc(p.id)+'" checked> '+esc(p.title)+'</label>'; }).join('');
+  return '<section class="onboard"><div class="ob-head"><span class="admin-tag">Admin</span><h3>Invite to '+esc(cl.name)+'</h3></div><p class="ob-sub">Sends the branded welcome email and grants access to the ticked projects.</p>'
+    +'<div class="ob-row"><input id="ob-name" class="ob-input" placeholder="Default name (optional)"></div>'
+    +'<div class="ob-row"><textarea id="ob-emails" class="ob-input ob-area" placeholder="One recipient per line. Just an email, or personalize:&#10;margot@email.com&#10;Winnie <winnie@email.com>"></textarea></div>'
+    +'<div class="ob-projs"><span class="ob-projs-h">Access to:</span>'+checks+'</div>'
+    +'<div class="ob-foot"><button class="post" id="ob-send">Send invite</button><span class="msg" id="ob-msg"></span></div><div class="ob-list" id="ob-list"></div></section>';
 }
 
 /* ---------- project view ---------- */
@@ -1573,7 +1714,7 @@ async function announce(projId, secId){
 
 async function loadInvites(){
   try{
-    const { data, error } = await sb.from('invites').select('id,email,name,created_at').eq('review_slug', CONFIG.REVIEW_SLUG).order('created_at',{ascending:true});
+    const { data, error } = await sb.from('invites').select('id,email,name,project_keys,created_at').eq('review_slug', CONFIG.REVIEW_SLUG).order('created_at',{ascending:true});
     if(error) throw error;
     const seen=new Set(); INVITES=(data||[]).filter(r=>{ if(!r.email||seen.has(r.email)) return false; seen.add(r.email); return true; });
   }catch(e){ console.error('invites load failed', e); INVITES=[]; }
@@ -1611,24 +1752,26 @@ function parseRecipient(entry, defName){
   if(m){ const nm=entry.replace(m[1],'').replace(/[<>"']/g,'').trim(); return { email:m[1], name: nm||defName||null }; }
   return null;
 }
-async function sendOnboarding(){
+async function sendOnboarding(clientKey){
   const nameEl=document.getElementById('ob-name'), emEl=document.getElementById('ob-emails'), msg=document.getElementById('ob-msg'), btn=document.getElementById('ob-send');
   const defName=(nameEl&&nameEl.value||'').trim();
   const entries=((emEl&&emEl.value)||'').split(/[\n;,]+/).map(s=>s.trim()).filter(Boolean);
   const parsed=entries.map(e=>parseRecipient(e, defName)).filter(r=>r && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(r.email));
   msg.className='msg'; msg.textContent='';
   if(!parsed.length){ msg.className='msg err'; msg.textContent='Add at least one valid email address.'; return; }
+  var pk=[].slice.call(document.querySelectorAll('.ob-proj-cb:checked')).map(function(c){return c.value;});
+  if(!pk.length){ msg.className='msg err'; msg.textContent='Tick at least one project to grant access to.'; return; }
   btn.disabled=true; btn.textContent='Sending…';
   try{
-    const rows=parsed.map(r=>({ email:r.email, name:r.name||null, review_slug:CONFIG.REVIEW_SLUG }));
-    const { error } = await sb.from('invites').insert(rows);
+    const rows=parsed.map(r=>({ email:r.email, name:r.name||null, review_slug:CONFIG.REVIEW_SLUG, project_keys:pk }));
+    const { error } = await sb.from('invites').upsert(rows, { onConflict:'review_slug,email' });
     if(error) throw error;
     if(emEl) emEl.value=''; if(nameEl) nameEl.value='';
     await loadInvites(); renderOnboardList();
-    msg.className='msg'; msg.textContent='Welcome email sent to '+parsed.length+' '+(parsed.length===1?'person':'people')+'.';
+    msg.className='msg'; msg.textContent='Invite sent to '+parsed.length+' '+(parsed.length===1?'person':'people')+'.';
     setTimeout(()=>{ if(msg) msg.textContent=''; },4000);
   }catch(e){ console.error('onboard failed', e); msg.className='msg err'; msg.textContent='Could not send — run onboarding.sql in Supabase first.'; }
-  finally{ btn.disabled=false; btn.textContent='Send welcome email'; }
+  finally{ btn.disabled=false; btn.textContent='Send invite'; }
 }
 
 async function toggleReaction(proj, sec, it, commentId, emoji){
@@ -1996,13 +2139,14 @@ async function authInit(){
     if(!urlHasAuth()){ gateRedirect(); return; }       // logged out, no pending sign-in -> bounce to login
     setTimeout(function(){ if(!AUTH.user) gateRedirect(); }, 4500); // sign-in didn't complete -> bounce
   } else { gateClear(); }
-  AUTH.ready=true; renderAuthSlot(); startPresence();
+  AUTH.ready=true; renderAuthSlot(); startPresence(); try{ route(); }catch(e){}
   sb.auth.onAuthStateChange(function(ev, session){
     AUTH.user = session ? session.user : null;
     setTimeout(async function(){
       if(AUTH.user){ await loadProfile(); gateClear(); } else { AUTH.profile=null; }
       renderAuthSlot(); startPresence();
       if(AUTH.user && !AUTH.profile && !(typeof ADMIN!=='undefined' && ADMIN)) openOnboarding();
+      try{ route(); }catch(e){}
       if(currentFolder==='partners') loadPartners();
     },0);
   });
@@ -2333,7 +2477,8 @@ function telHref(s){ return String(s||'').replace(/[^+0-9]/g,''); }
 function openPartnerDetail(p){
   var c=ppCompany(p.company_id), online=!!PRESENCE.online[p.owner?(p.uid||'__owner__'):p.id];
   var dot='<span class="pc-dot'+(online?' on':'')+'" style="position:static;display:inline-block;width:9px;height:9px;border-width:0;vertical-align:middle;margin-right:7px"></span>';
-  var rm=((typeof ADMIN!=='undefined' && ADMIN) && !p.owner)?'<button class="pd-remove" id="pdRemove">Remove from project</button>':'';
+  var isAdmin=(typeof ADMIN!=='undefined' && ADMIN);
+  var rm=(isAdmin && !p.owner)?'<button class="pd-remove" id="pdRemove">Remove from all projects</button>':'';
   var coLogo = c.logo_url
     ? '<span class="pd-colmono"><img src="'+ppEsc(c.logo_url)+'" alt=""></span>'
     : '<span class="logo-mono" style="background:'+c.color+'">'+ppEsc((ppInitials(c.name)[0]||'').toUpperCase())+'</span>';
@@ -2341,6 +2486,21 @@ function openPartnerDetail(p){
   var phoneRow = p.phone
     ? '<div class="pd-phone"><span class="pd-ph-num">'+ppEsc(p.phone)+'</span><a class="pd-ph-act" href="tel:'+ppEsc(ph)+'">Call</a><a class="pd-ph-act" href="sms:'+ppEsc(ph)+'">Text</a></div>'
     : '';
+  // admin: per-project access checklist (grant / revoke across companies)
+  var access='';
+  if(isAdmin && !p.owner && p.email){
+    var inv0=INVITES.find(function(x){ return (x.email||'').toLowerCase()===String(p.email).toLowerCase(); });
+    var cur=(inv0 && inv0.project_keys)?inv0.project_keys:[];
+    var groups=(CONFIG.CLIENTS||[]).map(function(cl){
+      var rows=CONFIG.PROJECTS.filter(function(pr){ return pr.client===cl.key; }).map(function(pr){
+        var on=cur.indexOf(pr.id)>=0;
+        return '<label class="pa-proj"><input type="checkbox" class="pa-cb" value="'+ppEsc(pr.id)+'"'+(on?' checked':'')+'> '+ppEsc(pr.title)+'</label>';
+      }).join('');
+      return rows?('<div class="pa-group"><div class="pa-group-h">'+ppEsc(cl.name)+'</div>'+rows+'</div>'):'';
+    }).join('');
+    access='<div class="pd-access"><div class="pa-h">Project access</div>'+groups
+      +'<div class="pa-foot"><button class="pa-save" id="pdSaveAccess" data-email="'+ppEsc(p.email)+'">Save access</button><span class="pa-msg" id="pdAccessMsg"></span></div></div>';
+  }
   var ov=document.createElement('div'); ov.className='onb show'; ov.id='pdOv';
   ov.innerHTML='<div class="lm-modal" id="pdCard">'
     +'<div class="pd-top"><div class="pd-av" style="'+ppAvStyle(p)+'">'+(p.avatar_url?'':ppEsc(ppInitials(p.full_name).toUpperCase()))+'</div>'
@@ -2349,11 +2509,24 @@ function openPartnerDetail(p){
     +phoneRow
     +(p.email?'<div class="pd-email"><a href="mailto:'+ppEsc(p.email)+'">'+ppEsc(p.email)+'</a></div>':'')
     +'<div class="pd-status">'+dot+(online?'Online now':'Offline')+'</div></div>'
-    +rm+'<div class="lm-foot"><button id="pdClose">Close</button></div></div>';
+    +access+rm+'<div class="lm-foot"><button id="pdClose">Close</button></div></div>';
   document.body.appendChild(ov);
   ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); });
   document.getElementById('pdClose').onclick=function(){ ov.remove(); };
   var rb=document.getElementById('pdRemove'); if(rb) rb.onclick=function(){ removeFlow(p.id); };
+  var sv=document.getElementById('pdSaveAccess');
+  if(sv) sv.onclick=async function(){
+    var em=sv.dataset.email, keys=[].slice.call(ov.querySelectorAll('.pa-cb:checked')).map(function(x){ return x.value; });
+    var m=document.getElementById('pdAccessMsg'); if(m){ m.className='pa-msg'; m.textContent='Saving…'; }
+    sv.disabled=true;
+    try{
+      var r=await sb.from('invites').upsert({ review_slug:CONFIG.REVIEW_SLUG, email:em, project_keys:keys }, { onConflict:'review_slug,email' });
+      if(r.error) throw r.error;
+      await loadInvites();
+      if(m){ m.className='pa-msg ok'; m.textContent=keys.length?('Saved — '+keys.length+' project'+(keys.length===1?'':'s')):'Saved — no projects'; }
+    }catch(e){ console.error('save access failed', e); if(m){ m.className='pa-msg err'; m.textContent='Could not save — run project-access.sql'; } }
+    finally{ sv.disabled=false; }
+  };
 }
 
 /* ---------- admin remove ---------- */
