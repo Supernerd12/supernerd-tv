@@ -107,7 +107,7 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
 <title>Supernerd — Review</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style is:global>
 
   :root{
@@ -348,9 +348,135 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
   .notify-chip{cursor:pointer}
   .notify-chip .chip-name{border-bottom:1px dotted rgba(236,236,234,.35)}
   .notify-chip .chip-email{margin-left:7px; padding-left:7px; border-left:1px solid var(--line); font-size:11px; color:var(--dim)}
+
+  /* ===================================================================
+     v3 POLISH LAYER — "Ethereal Glass" (appended; overrides above)
+     Standards: Emil Kowalski easing/duration, redesign + high-end-visual
+     =================================================================== */
+  :root{
+    --ease-out:cubic-bezier(.23,1,.32,1);
+    --ease-io:cubic-bezier(.77,0,.175,1);
+    --ease-drawer:cubic-bezier(.32,.72,0,1);
+    --ease:var(--ease-out);
+    --hair:rgba(236,236,234,.10);
+    --hair-2:rgba(236,236,234,.16);
+    --panel-2:#101011;
+    --shadow-card:0 24px 56px -34px rgba(0,0,0,.92), 0 6px 16px -10px rgba(0,0,0,.6);
+    --glow-green:0 22px 56px -28px rgba(186,192,30,.4);
+    --inner-hi:inset 0 1px 0 rgba(236,236,234,.06);
+    --r-lg:18px; --r-md:12px; --r-sm:9px;
+  }
+
+  /* ---- ambient backdrop: seeded flow-field canvas + mesh + grain ---- */
+  #bg-art{position:fixed; inset:0; width:100%; height:100%; z-index:-2; display:block; opacity:.82; pointer-events:none}
+  body::before{content:""; position:fixed; inset:0; z-index:-1; pointer-events:none;
+    background:
+      radial-gradient(58vw 48vh at 10% -10%, rgba(186,192,30,.16), transparent 62%),
+      radial-gradient(46vw 46vh at 102% 6%, rgba(186,192,30,.09), transparent 58%),
+      radial-gradient(80vw 60vh at 50% 122%, rgba(150,170,40,.10), transparent 64%);}
+  .grain{position:fixed; inset:0; z-index:4; pointer-events:none; opacity:.045; mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size:140px 140px}
+  header, main, footer{position:relative; z-index:1}
+
+  /* ---- type polish ---- */
+  h1,h2,h3,.co-name,.pv-title,.deliv-title{text-wrap:balance}
+  .landing .co-name{letter-spacing:-.045em; font-weight:800}
+  .count,.c-count,.note-time,.deliv-date,.up-stamp,.n-ct,.deliv-ver{font-variant-numeric:tabular-nums}
+
+  /* ---- header: refined glass + green hairline ---- */
+  header{background:rgba(6,6,7,.66); border-bottom:1px solid var(--hair);
+    -webkit-backdrop-filter:saturate(150%) blur(16px); backdrop-filter:saturate(150%) blur(16px)}
+  header::after{content:""; position:absolute; left:0; right:0; bottom:-1px; height:1px;
+    background:linear-gradient(90deg,transparent,rgba(186,192,30,.5),transparent); opacity:.55}
+
+  /* ---- landing: eyebrow as pill + staggered reveal ---- */
+  .landing{padding-top:72px}
+  .landing>.eyebrow{display:inline-block; padding:5px 12px; border:1px solid rgba(186,192,30,.3);
+    border-radius:999px; background:rgba(186,192,30,.06)}
+  .landing>.eyebrow,.landing .co-name,.landing .lead{animation:riseIn .6s var(--ease-out) both}
+  .landing .co-name{animation-delay:.05s} .landing .lead{animation-delay:.1s}
+
+  /* ---- cards: double-bezel + lift + arrow nudge ---- */
+  .card{background:linear-gradient(180deg,var(--panel-2),var(--panel)); border:1px solid var(--hair);
+    border-radius:var(--r-lg); box-shadow:var(--shadow-card),var(--inner-hi);
+    transition:transform .3s var(--ease-out),border-color .3s var(--ease-out),box-shadow .3s var(--ease-out)}
+  .card .c-go{transition:transform .2s var(--ease-out),color .2s var(--ease-out)}
+  .grid .card{animation:riseIn .55s var(--ease-out) both}
+  .grid .card:nth-child(2){animation-delay:.05s} .grid .card:nth-child(3){animation-delay:.1s}
+  .grid .card:nth-child(4){animation-delay:.15s} .grid .card:nth-child(5){animation-delay:.2s}
+  .grid .card:nth-child(6){animation-delay:.25s} .grid .card:nth-child(n+7){animation-delay:.3s}
+
+  /* ---- project view + side nav ---- */
+  .pv{animation:riseIn .45s var(--ease-out) both}
+  .nav a{position:relative; border-radius:var(--r-sm)}
+  .nav a.active::before{content:""; position:absolute; left:3px; top:50%; transform:translateY(-50%);
+    width:3px; height:15px; border-radius:2px; background:var(--green)}
+  .main-head h2{letter-spacing:-.035em}
+
+  /* ---- deliverable: stage as machined tray ---- */
+  .deliv{animation:riseIn .5s var(--ease-out) both}
+  .stage{border-radius:var(--r-md); border:1px solid var(--hair);
+    box-shadow:0 0 0 6px rgba(236,236,234,.02), var(--shadow-card), var(--inner-hi)}
+  .deliv-kind{border-radius:5px}
+
+  /* ---- notes: staggered rise, squircle avatar ---- */
+  .ava{border-radius:30%; box-shadow:var(--inner-hi)}
+  .notes .note{animation:riseIn .45s var(--ease-out) both}
+  .notes .note:nth-child(2){animation-delay:.04s} .notes .note:nth-child(3){animation-delay:.08s}
+  .notes .note:nth-child(4){animation-delay:.12s} .notes .note:nth-child(n+5){animation-delay:.16s}
+
+  /* ---- composer: nested glass + focus glow + crisp inputs ---- */
+  .composer{background:linear-gradient(180deg,var(--panel-2),var(--panel)); border:1px solid var(--hair);
+    border-radius:var(--r-md); box-shadow:var(--shadow-card),var(--inner-hi);
+    transition:border-color .25s var(--ease-out),box-shadow .25s var(--ease-out)}
+  .composer:focus-within{border-color:rgba(186,192,30,.4); box-shadow:var(--glow-green),var(--inner-hi)}
+  .composer input,.composer textarea,.name-select,.name-other{background:#070708; border:1px solid var(--hair);
+    border-radius:var(--r-sm); transition:border-color .18s var(--ease-out),box-shadow .18s var(--ease-out)}
+  .composer input:focus,.composer textarea:focus,.name-select:focus,.name-other:focus{
+    border-color:rgba(186,192,30,.5); box-shadow:0 0 0 3px rgba(186,192,30,.12); outline:none}
+
+  /* ---- buttons: press feedback + lift ---- */
+  .post,.tool-btn,.admin-btn,.dl-btn,.archive-toggle,.ver-chip,.notify-all,.ob-rm,.note-del{
+    transition:transform .14s var(--ease-out),background .18s var(--ease-out),color .18s var(--ease-out),border-color .18s var(--ease-out),box-shadow .18s var(--ease-out)}
+  .post{border-radius:var(--r-sm); box-shadow:var(--glow-green)}
+  .post:active,.tool-btn:active,.admin-btn:active,.dl-btn:active,.ver-chip:active,.archive-toggle:active{transform:scale(.97)}
+  .ov-close{transition:transform .14s var(--ease-out),color .18s var(--ease-out),border-color .18s var(--ease-out)}
+  .ov-close:active{transform:scale(.94)}
+
+  /* ---- chips / notify polish ---- */
+  .notify-box{border-radius:var(--r-md)}
+  .notify-chip{transition:border-color .15s var(--ease-out),background .15s var(--ease-out),transform .12s var(--ease-out)}
+  .notify-chip:active{transform:scale(.98)}
+
+  /* ---- overlay (lightbox) pop ---- */
+  #overlay{transition:opacity .25s var(--ease-out)}
+  .ov-inner,.ov-img,.ov-deliv{animation:popIn .32s var(--ease-out) both}
+
+  /* ---- hover motion gated to real pointers ---- */
+  @media (hover:hover) and (pointer:fine){
+    .card:hover{transform:translateY(-4px); border-color:rgba(186,192,30,.42); box-shadow:var(--shadow-card),var(--glow-green),var(--inner-hi)}
+    .card:hover .c-go{transform:translateX(3px); color:var(--green-hi)}
+    .post:hover{transform:translateY(-1px)}
+    .ar-card:hover{transform:translateY(-3px)}
+  }
+
+  @keyframes riseIn{from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:translateY(0)}}
+  @keyframes popIn{from{opacity:0; transform:scale(.97)} to{opacity:1; transform:scale(1)}}
+
+  @media (prefers-reduced-motion:reduce){
+    #bg-art{display:none}
+    *{animation:none!important}
+    .card,.deliv,.note,.pv,.landing>.eyebrow,.landing .co-name,.landing .lead{opacity:1!important; transform:none!important}
+  }
+
+  /* ---- mobile spacing breathe ---- */
+  @media (max-width:760px){ .landing{padding-top:48px} }
 </style>
 </head>
 <body>
+<canvas id="bg-art" aria-hidden="true"></canvas>
+<div class="grain" aria-hidden="true"></div>
 <header>
   <div class="wrap head-row">
     <a class="logo-link" href="https://supernerd.tv" target="_blank" rel="noopener" title="Visit supernerd.tv"><img class="logo-img" src="/email-logo.png" alt="Supernerd"></a>
@@ -364,6 +490,52 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
 <div id="overlay" onclick="if(event.target===this)closeOverlay()"><button class="ov-close" onclick="closeOverlay()" aria-label="Close">×</button><div class="ov-inner"></div></div>
 
 <footer><div class="wrap"><a class="mk" href="https://supernerd.tv" target="_blank" rel="noopener">Crafted by <b>Supernerd</b></a></div></footer>
+
+<script is:inline>
+/* Ambient backdrop — "Field Dynamics": a seeded Perlin flow-field of fine
+   currents in Supernerd greens over OLED black. Subtle, GPU-light, pauses
+   when hidden, and holds a single static frame under reduced-motion. */
+(function(){
+  var c=document.getElementById('bg-art'); if(!c||!c.getContext) return;
+  var ctx=c.getContext('2d'); if(!ctx) return;
+  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var DPR=Math.min(window.devicePixelRatio||1,1.25), W=0,H=0,N=0,pts=[];
+  var GREEN='186,192,30', BONE='236,236,234', SC=0.0016, SP=0.5;
+  var seed=20231, perm=new Uint8Array(512);
+  function rnd(){ seed=(seed*1664525+1013904223)>>>0; return ((seed>>>8)&0xffffff)/0xffffff; }
+  (function(){ var p=[],i,j,t; for(i=0;i<256;i++)p[i]=i; for(i=255;i>0;i--){ j=(rnd()*(i+1))|0; t=p[i];p[i]=p[j];p[j]=t; } for(i=0;i<512;i++)perm[i]=p[i&255]; })();
+  function fade(t){ return t*t*t*(t*(t*6-15)+10); }
+  function lerp(a,b,t){ return a+(b-a)*t; }
+  function grad(h,x,y){ switch(h&3){ case 0:return x+y; case 1:return -x+y; case 2:return x-y; default:return -x-y; } }
+  function noise(x,y){ var X=Math.floor(x)&255,Y=Math.floor(y)&255; x-=Math.floor(x); y-=Math.floor(y);
+    var u=fade(x),v=fade(y), aa=perm[perm[X]+Y],ab=perm[perm[X]+Y+1],ba=perm[perm[X+1]+Y],bb=perm[perm[X+1]+Y+1];
+    return lerp(lerp(grad(aa,x,y),grad(ba,x-1,y),u), lerp(grad(ab,x,y-1),grad(bb,x-1,y-1),u), v); }
+  function resize(){ W=c.width=Math.floor(innerWidth*DPR); H=c.height=Math.floor(innerHeight*DPR);
+    c.style.width=innerWidth+'px'; c.style.height=innerHeight+'px';
+    N=Math.max(280,Math.min(1100,Math.floor(innerWidth*innerHeight/1900))); pts=[];
+    for(var i=0;i<N;i++) pts.push({x:rnd()*W,y:rnd()*H,life:20+rnd()*120});
+    ctx.fillStyle='#050505'; ctx.fillRect(0,0,W,H); }
+  function step(){ ctx.fillStyle='rgba(5,5,5,0.038)'; ctx.fillRect(0,0,W,H);
+    for(var i=0;i<N;i++){ var p=pts[i];
+      var a=noise(p.x*SC,p.y*SC)*Math.PI*2.4;
+      var nx=p.x+Math.cos(a)*SP*DPR, ny=p.y+Math.sin(a)*SP*DPR;
+      var g=(noise(p.x*SC+99,p.y*SC+99)+1)*0.5;
+      ctx.strokeStyle='rgba('+(g>0.5?GREEN:BONE)+','+(0.06+g*0.16).toFixed(3)+')';
+      ctx.lineWidth=DPR*0.95; ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(nx,ny); ctx.stroke();
+      p.x=nx; p.y=ny; p.life--;
+      if(p.life<0||nx<0||nx>W||ny<0||ny>H){ p.x=rnd()*W; p.y=rnd()*H; p.life=20+rnd()*120; } } }
+  var raf,running=false;
+  function loop(){ if(!running) return; step(); raf=requestAnimationFrame(loop); }
+  function start(){ if(running||reduce) return; running=true; loop(); }
+  function stop(){ running=false; if(raf) cancelAnimationFrame(raf); }
+  try{
+    resize();
+    var rt; addEventListener('resize', function(){ clearTimeout(rt); rt=setTimeout(resize,200); });
+    document.addEventListener('visibilitychange', function(){ document.hidden?stop():start(); });
+    if(reduce){ for(var k=0;k<70;k++) step(); } else { start(); }
+  }catch(e){}
+})();
+</script>
 
 <script is:inline src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script is:inline src="https://embed.cloudflarestream.com/embed/sdk.latest.js"></script>
