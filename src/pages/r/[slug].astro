@@ -688,6 +688,20 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
   .react-pop{display:grid; grid-template-columns:repeat(8,1fr); gap:1px; width:300px; max-height:214px; overflow-y:auto; padding:8px; left:auto}
   .react-pop button{font-size:19px; padding:4px 3px}
   .react-pop::-webkit-scrollbar{width:9px} .react-pop::-webkit-scrollbar-thumb{background:rgba(236,236,234,.16); border-radius:9px; border:2px solid transparent; background-clip:content-box}
+
+  /* ===================================================================
+     v7 — emoji picker floats above cards · stronger glass nav · no footer line
+     =================================================================== */
+  /* the picker now lives on <body> so no comment card can clip it */
+  .react-pop.react-pop-float{position:fixed; z-index:200; margin:0}
+
+  /* glass that actually reads as glass — more see-through + stronger blur */
+  .nav a{background:rgba(22,24,20,.30); -webkit-backdrop-filter:blur(16px) saturate(155%); backdrop-filter:blur(16px) saturate(155%); border:1px solid rgba(236,236,234,.14); box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+  .nav a:hover{background:rgba(30,32,24,.40); border-color:rgba(186,192,30,.30)}
+  .nav a.active{background:rgba(186,192,30,.18); border-color:rgba(186,192,30,.42)}
+
+  /* drop the divider line above the footer */
+  footer{border-top:none; margin-top:44px}
 </style>
 </head>
 <body>
@@ -1328,9 +1342,14 @@ function closeReactPop(){ document.querySelectorAll('.react-pop').forEach(p=>p.r
 function reactPopAway(e){ if(!e.target.closest('.react-pop') && !e.target.closest('.react-add')) closeReactPop(); }
 function openReactPop(proj, sec, it, anchor){
   closeReactPop();
-  const pop=document.createElement('div'); pop.className='react-pop';
+  const pop=document.createElement('div'); pop.className='react-pop react-pop-float';
   pop.innerHTML=FULL_EMOJI.map(em=>'<button type="button" data-emoji="'+esc(em)+'">'+em+'</button>').join('');
-  anchor.parentNode.appendChild(pop);
+  document.body.appendChild(pop);
+  const r=anchor.getBoundingClientRect();
+  const pw=pop.offsetWidth||300, ph=pop.offsetHeight||214;
+  let left=Math.min(Math.max(8, r.left), Math.max(8, innerWidth-pw-8));
+  let top=r.bottom+6; if(top+ph>innerHeight-8) top=Math.max(8, r.top-ph-6);
+  pop.style.left=left+'px'; pop.style.top=top+'px';
   pop.addEventListener('click', (e)=>{ const b=e.target.closest('button'); if(!b) return; closeReactPop(); toggleReaction(proj,sec,it, anchor.dataset.c, b.dataset.emoji); });
   setTimeout(()=>document.addEventListener('click', reactPopAway), 0);
 }
