@@ -916,6 +916,11 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
   .cr-zoomrow span{font-family:var(--mono);color:var(--dim);font-size:16px;width:14px;text-align:center}
   .cr-zoomrow input[type=range]{flex:1;accent-color:var(--green)}
   .cr-actions{margin-top:18px;display:flex;gap:12px;justify-content:center}
+/* v12 — onboarding company logo upload */
+.logo-row{display:flex;align-items:center;gap:13px}
+.logo-prev{width:54px;height:54px;flex:0 0 auto;border-radius:11px;border:1.5px dashed var(--line);background:#0c0d0e;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:18px}
+.logo-up{background:rgba(236,236,234,.06);border:1px solid var(--line);color:var(--bone);font-family:var(--mono);font-size:11px;letter-spacing:.04em;border-radius:10px;padding:10px 15px;cursor:pointer;transition:border-color .15s,background .15s}
+.logo-up:hover{border-color:rgba(186,192,30,.55);color:var(--green);background:rgba(186,192,30,.08)}
 </style>
 </head>
 <body>
@@ -1353,6 +1358,7 @@ function toggleNotes(it){
 }
 async function loadNotes(proj, sec, it){
   const box=document.getElementById('notes-'+it.id); if(!box) return;
+  if(!AVA_LOADED){ try{ await loadAvatars(); }catch(e){} }
   try{
     const { data, error } = await sb.from('comments').select('*').eq('review_slug', CONFIG.REVIEW_SLUG).eq('asset_id', assetId(proj,sec,it)).order('created_at', { ascending:true });
     if(error) throw error;
@@ -1401,9 +1407,13 @@ function renderComment(it, c, depth, children, pinNum, mineSet, numMap, parentNa
   const head='<div class="note-head">'+pin+'<span class="note-name'+((ADMIN&&c.author_email)?' has-email':'')+'"'+((ADMIN&&c.author_email)?' title="'+esc(c.author_email)+'"':'')+'>'+esc(c.author_name||'Anonymous')+'</span>'+tc+'<span class="note-time" title="'+esc(fmtTime(c.created_at))+'">'+esc(relTime(c.created_at))+'</span>'+del+'</div>';
   let kids='';
   (children[c.id]||[]).forEach(k=>{ kids+=renderComment(it, k, depth+1, children, pinNum, mineSet, numMap, c.author_name); });
+  const avUrl=c.author_avatar||avatarFor(c.author_email)||'';
+  const avaEl=avUrl
+    ? '<div class="ava" style="background-image:url('+esc(avUrl)+');background-size:cover;background-position:center;color:transparent"></div>'
+    : '<div class="ava">'+esc((c.author_name||'?').trim().charAt(0)||'?')+'</div>';
   return '<div class="note'+(depth>0?' is-reply':'')+'" id="note-'+it.id+'-'+c.id+'">'
     + bridge
-    + '<div class="note-row"><div class="ava">'+esc((c.author_name||'?').trim().charAt(0)||'?')+'</div><div class="note-main">'+head+bodyHtml+audio+react+actions+'</div></div>'
+    + '<div class="note-row">'+avaEl+'<div class="note-main">'+head+bodyHtml+audio+react+actions+'</div></div>'
     + (kids?'<div class="reply-thread">'+kids+'</div>':'')
     + '</div>';
 }
@@ -1435,6 +1445,12 @@ async function postNote(proj, sec, it){
     const preview=previewFor(it, parseTimecode(tc));
     const row={ review_slug:CONFIG.REVIEW_SLUG, asset_id:assetId(proj,sec,it), author_name:a.name, timecode:tc||null, body:body||null };
     if(a.email) row.author_email=a.email;
+    // commenter's avatar (logged-in profile, owner, or known invited person)
+    var _ae=(a.email||'').toLowerCase(), _av='';
+    if(AUTH.profile && AUTH.profile.email && _ae && AUTH.profile.email.toLowerCase()===_ae) _av=AUTH.profile.avatar_url||'';
+    if(!_av && _ae) _av=avatarFor(_ae);
+    if(!_av && _ae===String(OWNER_EMAIL).toLowerCase()) _av=(typeof OWNER!=='undefined' && OWNER && OWNER.avatar_url)||'';
+    if(_av) row.author_avatar=_av;
     if(audio_url) row.audio_url=audio_url;
     if(pin){ row.pos_x=pin.x; row.pos_y=pin.y; }
     if(preview) row.preview_url=preview;
@@ -1793,7 +1809,7 @@ var COMPANIES_CACHE = null;
 var OWNER_PARTNER = { id:'__owner__', full_name:'Shaun Harrison', position:'Creative Director', company_id:'supernerd', avatar_url:null, owner:true };
 var OWNER = Object.assign({}, OWNER_PARTNER);
 var PRESENCE = { online:{}, channel:null, key:null };
-var ppPendingFile = null, ppEditTarget = null;
+var ppPendingFile = null, ppPendingLogo = null, ppEditTarget = null;
 
 function ppEsc(s){ return esc(s==null?'':s); }
 function ppInitials(n){ var p=String(n||'').trim().split(/\s+/); return ((p[0]||'')[0]||'')+((p[1]||'')[0]||''); }
@@ -1806,6 +1822,22 @@ async function loadCompanies(){
   catch(e){ COMPANIES_CACHE=COMPANIES_CACHE||[]; }
   return COMPANIES_CACHE;
 }
+
+/* ---------- avatars for comments (email -> avatar_url) ---------- */
+var AVA_BY_EMAIL={}, AVA_LOADED=false;
+async function loadAvatars(){
+  try{
+    var r=await sb.from('profiles').select('email,avatar_url').eq('review_slug',CONFIG.REVIEW_SLUG);
+    (r.data||[]).forEach(function(p){ if(p.email && p.avatar_url) AVA_BY_EMAIL[String(p.email).toLowerCase()]=p.avatar_url; });
+  }catch(e){}
+  try{
+    var ro=await sb.from('review_settings').select('owner_avatar_url').eq('review_slug',CONFIG.REVIEW_SLUG).maybeSingle();
+    if(ro && ro.data && ro.data.owner_avatar_url) AVA_BY_EMAIL[String(OWNER_EMAIL).toLowerCase()]=ro.data.owner_avatar_url;
+  }catch(e){}
+  AVA_LOADED=true;
+  return AVA_BY_EMAIL;
+}
+function avatarFor(email){ return email ? (AVA_BY_EMAIL[String(email).toLowerCase()]||'') : ''; }
 
 /* ---------- auth core ---------- */
 function authRedirect(){ return location.origin+location.pathname+location.hash; }
@@ -1864,6 +1896,7 @@ async function openOnboarding(prefill){
   if(!AUTH.user) return;
   ppEditTarget = prefill || (AUTH.profile||null);
   ppPendingFile = null;
+  ppPendingLogo = null;
   if(!COMPANIES_CACHE || !COMPANIES_CACHE.length){ try{ await loadCompanies(); }catch(e){} }
   var ov=document.getElementById('onbOv');
   if(!ov){ ov=document.createElement('div'); ov.className='onb'; ov.id='onbOv'; ov.innerHTML='<div class="onb-card" id="onbCard"></div>'; document.body.appendChild(ov); }
@@ -1874,8 +1907,12 @@ async function openOnboarding(prefill){
 function closeOnboarding(){ var ov=document.getElementById('onbOv'); if(ov) ov.classList.remove('show'); }
 function onbFormHTML(p){
   var list=(COMPANIES_CACHE||[]);
-  var opts=list.map(function(c){ return '<option value="'+ppEsc(c.id)+'"'+(p&&p.company_id===c.id?' selected':'')+'>'+ppEsc(c.name)+'</option>'; }).join('')+'<option value="__other__">Other company\u2026</option>';
+  var sugg=list.map(function(c){ return '<option value="'+ppEsc(c.name)+'">'; }).join('');
+  var curCo=(p&&p.company_id)?ppCompany(p.company_id):null;
+  var cname=curCo?(curCo.name||p.company_id||''):'';
+  var curLogo=(curCo&&curCo.logo_url)||'';
   var dropStyle=p&&p.avatar_url?'background-image:url('+p.avatar_url+')':'';
+  var logoStyle=curLogo?'background-image:url('+curLogo+')':'';
   var nm=p?(p.full_name||''):'', rl=p?(p.position||''):'', ph=p?(p.phone||''):'';
   return '<div class="onb-eyebrow">'+ppEsc(CONFIG.COMPANY.name)+' \u00d7 review</div><div class="onb-title">'+(p?'Edit your profile':'Join the project')+'</div>'
     +'<div class="onb-sub">'+(p?'Update how you appear to the team.':'You\u2019ve been invited to review this project. Tell your team who you are so they can tag you in notes and approvals.')+'</div>'
@@ -1883,41 +1920,49 @@ function onbFormHTML(p){
     +'<div class="onb-field"><label>Full name</label><input id="fName" placeholder="Jordan Rivera" value="'+ppEsc(nm)+'"></div>'
     +'<div class="onb-field"><label>Job position</label><input id="fRole" placeholder="Creative Director" value="'+ppEsc(rl)+'"></div>'
     +'<div class="onb-field"><label>Phone <span style="opacity:.45;text-transform:none;letter-spacing:0">optional</span></label><input id="fPhone" type="tel" placeholder="(917) 555-0148" value="'+ppEsc(ph)+'"></div>'
-    +'<div class="onb-field"><label>Company</label><select id="fComp">'+opts+'</select></div>'
-    +'<div class="onb-field" id="otherWrap" style="display:none"><label>Company name</label><input id="fOther" placeholder="Your company"></div>'
+    +'<div class="onb-field"><label>Company</label><input id="fComp" list="compList" autocomplete="off" placeholder="Your company" value="'+ppEsc(cname)+'"><datalist id="compList">'+sugg+'</datalist></div>'
+    +'<div class="onb-field"><label>Company logo <span style="opacity:.45;text-transform:none;letter-spacing:0">optional</span></label><div class="logo-row"><div class="logo-prev" id="logoPrev" style="'+logoStyle+'">'+(logoStyle?'':'\u25a2')+'</div><button type="button" class="logo-up" id="logoBtn">'+(logoStyle?'Replace logo':'Upload logo')+'</button><input type="file" id="logoFile" accept="image/*" style="display:none"></div></div>'
     +'<div class="onb-actions"><button class="onb-join" id="joinBtn"'+(p?'':' disabled')+'>'+(p?'Save profile':'Join project')+'</button><button class="onb-cancel" id="cancelBtn">Cancel</button></div><div class="lm-msg" id="onbMsg"></div>';
 }
 function wireOnb(){
   var avDrop=document.getElementById('avDrop'),avFile=document.getElementById('avFile');
   avDrop.onclick=function(){ avFile.click(); };
   avFile.onchange=function(){ var f=avFile.files[0]; if(!f) return; openCropper(f, function(file,url){ ppPendingFile=file; avDrop.style.backgroundImage='url('+url+')'; avDrop.innerHTML=''; }); avFile.value=''; };
-  var fName=document.getElementById('fName'),fRole=document.getElementById('fRole'),fPhone=document.getElementById('fPhone'),fComp=document.getElementById('fComp'),fOther=document.getElementById('fOther'),otherWrap=document.getElementById('otherWrap'),joinBtn=document.getElementById('joinBtn');
-  function gate(){ joinBtn.disabled=!(fName.value.trim()&&fRole.value.trim()&&(fComp.value!=='__other__'||fOther.value.trim())); }
-  [fName,fRole,fOther].forEach(function(el){ el.oninput=gate; });
-  fComp.onchange=function(){ otherWrap.style.display=fComp.value==='__other__'?'':'none'; gate(); };
+  var logoPrev=document.getElementById('logoPrev'),logoBtn=document.getElementById('logoBtn'),logoFile=document.getElementById('logoFile');
+  if(logoBtn&&logoFile){
+    logoBtn.onclick=function(){ logoFile.click(); };
+    logoFile.onchange=function(){ var f=logoFile.files[0]; if(!f) return; ppPendingLogo=f; var u=URL.createObjectURL(f); logoPrev.style.backgroundImage='url('+u+')'; logoPrev.style.backgroundSize='cover'; logoPrev.style.backgroundPosition='center'; logoPrev.textContent=''; logoBtn.textContent='Replace logo'; logoFile.value=''; };
+  }
+  var fName=document.getElementById('fName'),fRole=document.getElementById('fRole'),fPhone=document.getElementById('fPhone'),fComp=document.getElementById('fComp'),joinBtn=document.getElementById('joinBtn');
+  function gate(){ joinBtn.disabled=!(fName.value.trim()&&fRole.value.trim()&&fComp.value.trim()); }
+  [fName,fRole,fComp].forEach(function(el){ if(el) el.oninput=gate; });
   document.getElementById('cancelBtn').onclick=closeOnboarding;
   joinBtn.onclick=async function(){
     if(!AUTH.user){ var lg=document.getElementById('onbMsg'); if(lg) lg.textContent='Please log in first to save changes.'; return; }
     var isOwner = !!(ppEditTarget && ppEditTarget.owner);
     joinBtn.disabled=true; joinBtn.textContent='Saving\u2026';
-    var cid=fComp.value, cname='';
-    if(cid==='__other__'){ cname=fOther.value.trim(); cid=cname.toLowerCase().replace(/[^a-z0-9]+/g,'_')||('co'+Date.now());
-      try{ await sb.from('companies').upsert({review_slug:CONFIG.REVIEW_SLUG,id:cid,name:cname,color:'#7a8cff',sort:99},{onConflict:'review_slug,id'}); }catch(e){}
-      COMPANIES_CACHE=null; await loadCompanies();
-    }
+    var cname=fComp.value.trim();
+    var existing=(COMPANIES_CACHE||[]).find(function(c){ return (c.name||'').toLowerCase()===cname.toLowerCase(); });
+    var cid=existing?existing.id:(cname.toLowerCase().replace(/[^a-z0-9]+/g,'_')||('co'+Date.now()));
+    var logoUrl=null;
+    if(ppPendingLogo){ try{ logoUrl=await ppUploadLogo(ppPendingLogo, cid); }catch(e){} }
+    var coRow={ review_slug:CONFIG.REVIEW_SLUG, id:cid, name:cname };
+    if(logoUrl) coRow.logo_url=logoUrl;
+    try{ await sb.from('companies').upsert(coRow,{onConflict:'review_slug,id'}); }catch(e){}
+    COMPANIES_CACHE=null; await loadCompanies();
     var avatarUrl = (ppEditTarget&&ppEditTarget.avatar_url) || null;
     if(ppPendingFile){ var u=await ppUploadAvatar(ppPendingFile); if(u) avatarUrl=u; }
-    var err=null;
+    var err=null, savedName=fName.value.trim();
     if(isOwner){
-      try{ var ro=await sb.from('review_settings').upsert({review_slug:CONFIG.REVIEW_SLUG, owner_name:fName.value.trim(), owner_position:fRole.value.trim(), owner_company_id:cid, owner_avatar_url:avatarUrl, owner_phone:fPhone?fPhone.value.trim():null, owner_uid:AUTH.user.id, updated_at:new Date().toISOString()},{onConflict:'review_slug'}); if(ro.error) err=ro.error; }catch(e){ err=e; }
-      if(!err){ OWNER={ id:'__owner__', uid:AUTH.user.id, full_name:fName.value.trim(), position:fRole.value.trim(), company_id:cid, avatar_url:avatarUrl, phone:fPhone?fPhone.value.trim():null, owner:true }; }
+      try{ var ro=await sb.from('review_settings').upsert({review_slug:CONFIG.REVIEW_SLUG, owner_name:savedName, owner_position:fRole.value.trim(), owner_company_id:cid, owner_avatar_url:avatarUrl, owner_phone:fPhone?fPhone.value.trim():null, owner_uid:AUTH.user.id, updated_at:new Date().toISOString()},{onConflict:'review_slug'}); if(ro.error) err=ro.error; }catch(e){ err=e; }
+      if(!err){ OWNER={ id:'__owner__', uid:AUTH.user.id, full_name:savedName, position:fRole.value.trim(), company_id:cid, avatar_url:avatarUrl, phone:fPhone?fPhone.value.trim():null, owner:true }; if(avatarUrl) AVA_BY_EMAIL[String(OWNER_EMAIL).toLowerCase()]=avatarUrl; }
     } else {
-      var row={ id:AUTH.user.id, review_slug:CONFIG.REVIEW_SLUG, email:AUTH.user.email, full_name:fName.value.trim(), position:fRole.value.trim(), phone:fPhone?fPhone.value.trim():null, company_id:cid, avatar_url:avatarUrl, updated_at:new Date().toISOString() };
+      var row={ id:AUTH.user.id, review_slug:CONFIG.REVIEW_SLUG, email:AUTH.user.email, full_name:savedName, position:fRole.value.trim(), phone:fPhone?fPhone.value.trim():null, company_id:cid, avatar_url:avatarUrl, updated_at:new Date().toISOString() };
       try{ var r=await sb.from('profiles').upsert(row,{onConflict:'id'}); if(r.error) err=r.error; }catch(e){ err=e; }
-      if(!err) AUTH.profile=row;
+      if(!err){ AUTH.profile=row; if(avatarUrl && AUTH.user.email) AVA_BY_EMAIL[String(AUTH.user.email).toLowerCase()]=avatarUrl; }
     }
     if(err){ var m=document.getElementById('onbMsg'); if(m) m.textContent='Could not save: '+(err.message||'try again'); joinBtn.disabled=false; joinBtn.textContent='Save'; return; }
-    document.getElementById('onbCard').innerHTML='<div class="onb-success"><div class="tick">\u2713</div><h3>'+(ppEditTarget&&ppEditTarget.full_name?'Saved!':'You\u2019re in, '+ppEsc(row.full_name.split(/\s+/)[0])+'!')+'</h3><p>Your card is on the Project Partners page.</p></div>';
+    document.getElementById('onbCard').innerHTML='<div class="onb-success"><div class="tick">\u2713</div><h3>'+(ppEditTarget&&ppEditTarget.full_name?'Saved!':'You\u2019re in, '+ppEsc(savedName.split(/\s+/)[0])+'!')+'</h3><p>Your card is on the Project Partners page.</p></div>';
     setTimeout(function(){ closeOnboarding(); renderAuthSlot(); if(currentFolder==='partners') loadPartners(); },1100);
   };
 }
@@ -1925,6 +1970,17 @@ async function ppUploadAvatar(file){
   try{
     var ext='png'; if(file.name && file.name.indexOf('.')>=0){ ext=file.name.split('.').pop().toLowerCase(); } else if(file.type && file.type.indexOf('/')>=0){ ext=file.type.split('/')[1]; }
     var path=AUTH.user.id+'/'+Date.now()+'.'+ext;
+    var up=await sb.storage.from('avatars').upload(path, file, {upsert:true, cacheControl:'3600'});
+    if(up.error) return null;
+    var pub=sb.storage.from('avatars').getPublicUrl(path);
+    return pub && pub.data ? pub.data.publicUrl : null;
+  }catch(e){ return null; }
+}
+async function ppUploadLogo(file, cid){
+  try{
+    var ext='png'; if(file.name && file.name.indexOf('.')>=0){ ext=file.name.split('.').pop().toLowerCase(); } else if(file.type && file.type.indexOf('/')>=0){ ext=file.type.split('/')[1]; }
+    var safe=String(cid||'co').replace(/[^a-z0-9_-]+/gi,'_');
+    var path='company-logos/'+safe+'/'+Date.now()+'.'+ext;
     var up=await sb.storage.from('avatars').upload(path, file, {upsert:true, cacheControl:'3600'});
     if(up.error) return null;
     var pub=sb.storage.from('avatars').getPublicUrl(path);
@@ -1989,17 +2045,20 @@ function openCropper(file, cb){
 
 /* ---------- profile menu ---------- */
 function openProfileMenu(e){
-  if(e) e.stopPropagation();
-  var ex=document.getElementById('profMenu'); if(ex){ ex.remove(); return; }
+  if(e){ e.preventDefault(); e.stopPropagation(); }
+  if(document.getElementById('profMenu')){ closeProfMenu(); return; }
+  var btn=document.getElementById('profBtn');
   var nm=(AUTH.profile&&AUTH.profile.full_name)||AUTH.user.email, rl=(AUTH.profile&&AUTH.profile.position)||'', co=AUTH.profile?ppCompany(AUTH.profile.company_id).name:'';
   var m=document.createElement('div'); m.className='prof-menu'; m.id='profMenu';
-  m.innerHTML='<div class="prof-head"><div class="pn">'+ppEsc(nm)+'</div><div class="pr">'+ppEsc(rl)+(co?' \u00b7 '+ppEsc(co):'')+'</div></div><button id="pmEdit">Edit profile</button><button id="pmLogout" class="logout">Log out</button>';
-  document.getElementById('authSlot').appendChild(m);
-  document.getElementById('pmEdit').onclick=function(){ m.remove(); openOnboarding(AUTH.profile||{}); };
-  document.getElementById('pmLogout').onclick=function(){ m.remove(); authSignOut(); };
-  setTimeout(function(){ document.addEventListener('click', closeProfOnce); },0);
+  m.innerHTML='<div class="prof-head"><div class="pn">'+ppEsc(nm)+'</div><div class="pr">'+ppEsc(rl)+(co?' \u00b7 '+ppEsc(co):'')+'</div></div><button type="button" id="pmEdit">Edit profile</button><button type="button" id="pmLogout" class="logout">Log out</button>';
+  document.body.appendChild(m);
+  if(btn){ var r=btn.getBoundingClientRect(); m.style.position='fixed'; m.style.top=(r.bottom+8)+'px'; m.style.right=Math.max(8,(window.innerWidth-r.right))+'px'; m.style.left='auto'; m.style.marginTop='0'; m.style.zIndex='200'; }
+  m.querySelector('#pmEdit').addEventListener('click', function(ev){ ev.preventDefault(); ev.stopPropagation(); closeProfMenu(); openOnboarding(AUTH.profile||{}); });
+  m.querySelector('#pmLogout').addEventListener('click', function(ev){ ev.preventDefault(); ev.stopPropagation(); closeProfMenu(); authSignOut(); });
+  setTimeout(function(){ document.addEventListener('click', closeProfOnce, true); window.addEventListener('resize', closeProfMenu); window.addEventListener('scroll', closeProfMenu, true); },0);
 }
-function closeProfOnce(e){ var m=document.getElementById('profMenu'); if(m && !m.contains(e.target) && !(e.target.closest && e.target.closest('#profBtn'))) m.remove(); document.removeEventListener('click', closeProfOnce); }
+function closeProfMenu(){ var m=document.getElementById('profMenu'); if(m) m.remove(); document.removeEventListener('click', closeProfOnce, true); window.removeEventListener('resize', closeProfMenu); window.removeEventListener('scroll', closeProfMenu, true); }
+function closeProfOnce(e){ var m=document.getElementById('profMenu'); if(!m){ document.removeEventListener('click', closeProfOnce, true); return; } if(m.contains(e.target)) return; if(e.target.closest && e.target.closest('#profBtn')) return; closeProfMenu(); }
 
 /* ---------- partners page ---------- */
 async function loadPartners(){

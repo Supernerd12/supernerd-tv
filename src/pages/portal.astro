@@ -11,62 +11,71 @@ const ADMIN_KEY    = "sn-admin-7yq4";
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Client Portal — Supernerd</title>
-<meta name="robots" content="noindex">
+<meta name="robots" content="noindex,nofollow">
 <link rel="icon" href="/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-<style>
+<style is:global>
   :root{
     --ink:#050505; --green:#BAC01E; --green-hi:#D6DC3A; --bone:#ECECEA;
-    --dim:rgba(236,236,234,.55); --line:rgba(236,236,234,.12); --hair:rgba(236,236,234,.08);
-    --panel:rgba(20,21,24,.62); --field:#0f1012;
+    --dim:rgba(236,236,234,.55); --line:rgba(236,236,234,.13); --hair:rgba(236,236,234,.07);
+    --panel:rgba(18,19,22,.55); --field:rgba(10,11,12,.7);
     --disp:"Bricolage Grotesque",system-ui,sans-serif; --mono:"Space Mono",ui-monospace,monospace;
     --ease:cubic-bezier(.2,.7,.2,1);
   }
   *{box-sizing:border-box}
   html,body{margin:0;height:100%}
   body{background:var(--ink);color:var(--bone);font-family:var(--disp);-webkit-font-smoothing:antialiased;
-    min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px;overflow-x:hidden}
-  /* ambient field */
-  .bg{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
-  .bg::before{content:"";position:absolute;width:120vmax;height:120vmax;left:50%;top:8%;transform:translateX(-50%);
-    background:radial-gradient(circle at 50% 30%, rgba(186,192,30,.16), rgba(186,192,30,.04) 32%, transparent 60%)}
-  .bg .flask{position:absolute;right:-6vw;bottom:-8vh;height:78vh;width:auto;opacity:.06;mix-blend-mode:screen;filter:saturate(0)}
-  .bg .grain{position:absolute;inset:0;opacity:.04;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>")}
-  .wrap{position:relative;z-index:2;width:100%;max-width:430px}
-  .brand{display:flex;flex-direction:column;align-items:center;text-align:center;margin-bottom:22px}
-  .brand img{height:30px;width:auto;margin-bottom:18px;opacity:.96}
-  .brand .eye{font-family:var(--mono);font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:var(--green)}
-  .card{background:var(--panel);-webkit-backdrop-filter:blur(20px) saturate(150%);backdrop-filter:blur(20px) saturate(150%);
-    border:1px solid var(--line);border-radius:22px;padding:30px;box-shadow:0 40px 120px -50px #000, inset 0 1px 0 rgba(255,255,255,.05)}
-  h1{font-size:25px;font-weight:800;letter-spacing:-.03em;margin:0 0 6px}
-  .sub{font-family:var(--mono);font-size:12px;color:var(--dim);line-height:1.65;margin-bottom:22px}
-  .gbtn{width:100%;display:flex;align-items:center;justify-content:center;gap:11px;background:#fff;color:#1a1a1a;border:none;
-    border-radius:13px;padding:14px;font-family:var(--disp);font-size:15px;font-weight:700;cursor:pointer;transition:transform .12s var(--ease),background .15s}
-  .gbtn:hover{background:#f1f1f1;transform:translateY(-1px)}
-  .or{display:flex;align-items:center;gap:12px;margin:18px 0;font-family:var(--mono);font-size:11px;color:var(--dim)}
+    min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:26px;overflow:hidden}
+  #art{position:fixed;inset:0;z-index:0;display:block}
+  .flask{position:fixed;right:-7vw;bottom:-9vh;height:84vh;width:auto;opacity:.05;mix-blend-mode:screen;filter:saturate(0);z-index:1;pointer-events:none}
+  .scrim{position:fixed;inset:0;z-index:2;pointer-events:none;
+    background:radial-gradient(120% 90% at 50% 36%, rgba(5,5,5,.12), rgba(5,5,5,.66) 56%, rgba(5,5,5,.92) 100%)}
+  .grain{position:fixed;inset:0;z-index:2;opacity:.05;pointer-events:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>")}
+  .wrap{position:relative;z-index:5;width:100%;max-width:392px;text-align:center}
+  .brand{display:flex;flex-direction:column;align-items:center;margin-bottom:26px}
+  .mark{width:160px;height:auto;margin-bottom:18px;filter:drop-shadow(0 10px 40px rgba(0,0,0,.6))}
+  .eye{font-family:var(--mono);font-size:11px;letter-spacing:.42em;text-transform:uppercase;color:var(--green);padding-left:.42em}
+  .tagline{font-family:var(--mono);font-size:12px;color:var(--dim);line-height:1.6;margin-top:14px;max-width:300px}
+  .stage{margin-top:4px}
+  .gbtn{width:100%;display:flex;align-items:center;justify-content:center;gap:11px;background:rgba(22,23,27,.66);
+    color:var(--bone);border:1px solid var(--line);border-radius:13px;padding:15px;font-family:var(--disp);font-size:15px;
+    font-weight:600;cursor:pointer;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);transition:border-color .15s,background .15s,transform .12s var(--ease)}
+  .gbtn+.gbtn{margin-top:10px}
+  .gbtn:hover{border-color:rgba(255,255,255,.26);background:rgba(30,32,36,.78);transform:translateY(-1px)}
+  .or{display:flex;align-items:center;gap:12px;margin:18px 2px;font-family:var(--mono);font-size:11px;color:var(--dim)}
   .or::before,.or::after{content:"";flex:1;height:1px;background:var(--line)}
+  .mailrow{display:flex;gap:9px}
+  .mailrow input{flex:1;min-width:0;background:var(--field);border:1px solid var(--line);border-radius:12px;color:var(--bone);
+    font-family:var(--disp);font-size:15px;padding:14px;text-align:center;transition:border-color .15s}
+  .mailrow input::placeholder{color:rgba(236,236,234,.4)}
+  .mailrow input:focus{outline:none;border-color:rgba(186,192,30,.55)}
+  .mailrow button{flex:0 0 auto;width:52px;background:var(--green);border:none;border-radius:12px;color:#0c0d0e;font-size:19px;
+    font-weight:700;cursor:pointer;transition:background .15s}
+  .mailrow button:hover{background:var(--green-hi)}
+  .mailrow button:disabled{opacity:.5;cursor:not-allowed}
+  .lock{display:flex;align-items:center;justify-content:center;gap:7px;font-family:var(--mono);font-size:10.5px;
+    letter-spacing:.06em;color:rgba(236,236,234,.42);margin-top:22px}
+  .lock svg{width:11px;height:11px;opacity:.7}
+  .msg{font-family:var(--mono);font-size:11px;line-height:1.5;margin-top:13px;min-height:14px}
+  .msg.err{color:#e5757a}.msg.ok{color:var(--green)}
+  a.link{color:var(--green);text-decoration:none}a.link:hover{text-decoration:underline}
+  .panel{background:var(--panel);-webkit-backdrop-filter:blur(22px) saturate(150%);backdrop-filter:blur(22px) saturate(150%);
+    border:1px solid var(--line);border-radius:20px;padding:28px;box-shadow:0 40px 120px -52px #000, inset 0 1px 0 rgba(255,255,255,.05);text-align:left}
+  h1{font-size:23px;font-weight:800;letter-spacing:-.03em;margin:0 0 7px}
+  .sub{font-family:var(--mono);font-size:12px;color:var(--dim);line-height:1.65;margin-bottom:20px}
+  .cta{width:100%;font-family:var(--disp);font-size:15px;font-weight:700;color:#0c0d0e;background:var(--green);border:none;
+    border-radius:13px;padding:15px;cursor:pointer;transition:background .15s,transform .12s var(--ease)}
+  .cta:hover{background:var(--green-hi);transform:translateY(-1px)}
+  .ghost{background:none;border:none;color:var(--dim);font-family:var(--mono);font-size:11px;cursor:pointer;padding:8px}
+  .ghost:hover{color:var(--green)}
+  .foot{margin-top:18px;text-align:center}
   label{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin-bottom:8px}
   input,select{width:100%;background:var(--field);border:1px solid var(--line);border-radius:12px;color:var(--bone);
     font-family:var(--disp);font-size:15px;padding:13px 14px;transition:border-color .15s}
   input:focus,select:focus{outline:none;border-color:rgba(186,192,30,.55)}
-  .row{display:flex;gap:9px}
-  .row input{flex:1;min-width:0}
-  .gn{font-family:var(--mono);font-size:12px;font-weight:700;color:#0c0d0e;background:var(--green);border:none;border-radius:12px;
-    padding:0 18px;cursor:pointer;flex:0 0 auto;transition:background .15s}
-  .gn:hover{background:var(--green-hi)}
-  .gn:disabled{opacity:.45;cursor:not-allowed}
-  .cta{width:100%;font-family:var(--disp);font-size:15px;font-weight:700;color:#0c0d0e;background:var(--green);border:none;
-    border-radius:13px;padding:14px;cursor:pointer;transition:background .15s,transform .12s var(--ease)}
-  .cta:hover{background:var(--green-hi);transform:translateY(-1px)}
-  .ghost{background:none;border:none;color:var(--dim);font-family:var(--mono);font-size:11px;cursor:pointer;padding:8px}
-  .ghost:hover{color:var(--green)}
-  .msg{font-family:var(--mono);font-size:11px;line-height:1.5;margin-top:13px;min-height:14px}
-  .msg.err{color:#e5757a}.msg.ok{color:var(--green)}
-  .note{font-family:var(--mono);font-size:11px;color:var(--dim);text-align:center;margin-top:18px;line-height:1.6}
-  .foot{text-align:center;margin-top:20px}
-  /* onboarding */
   .av{display:flex;align-items:center;gap:15px;margin-bottom:18px}
   .av .drop{width:80px;height:80px;border-radius:50%;border:1.5px dashed var(--line);display:flex;align-items:center;justify-content:center;
     cursor:pointer;background-size:cover;background-position:center;color:var(--dim);font-family:var(--mono);font-size:10px;text-align:center;flex:0 0 auto;transition:border-color .15s}
@@ -78,19 +87,21 @@ const ADMIN_KEY    = "sn-admin-7yq4";
     background:rgba(186,192,30,.14);border:1px solid rgba(186,192,30,.5);color:var(--green);font-size:28px}
   .av-big{width:74px;height:74px;border-radius:50%;margin:0 auto 14px;background-size:cover;background-position:center;
     display:flex;align-items:center;justify-content:center;font-weight:700;font-size:26px;color:#0b0c0d;box-shadow:inset 0 0 0 2px rgba(255,255,255,.1)}
-  .spin{width:30px;height:30px;border:2px solid var(--line);border-top-color:var(--green);border-radius:50%;margin:30px auto;animation:sp 1s linear infinite}
+  .spin{width:28px;height:28px;border:2px solid var(--line);border-top-color:var(--green);border-radius:50%;margin:26px auto;animation:sp 1s linear infinite}
   @keyframes sp{to{transform:rotate(360deg)}}
-  /* admin */
-  .admin-tag{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#0c0d0e;background:var(--green);
-    border-radius:6px;padding:3px 8px;display:inline-block;margin-bottom:14px}
+  .admin-tag{font-family:var(--mono);font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#0c0d0e;background:var(--green);border-radius:6px;padding:3px 8px;display:inline-block;margin-bottom:14px}
   textarea{width:100%;min-height:120px;background:var(--field);border:1px solid var(--line);border-radius:12px;color:var(--bone);
     font-family:var(--mono);font-size:13px;line-height:1.7;padding:13px 14px;resize:vertical}
   textarea:focus{outline:none;border-color:rgba(186,192,30,.55)}
-  .ilog{font-family:var(--mono);font-size:11px;line-height:1.8;margin-top:14px;max-height:180px;overflow:auto}
+  .ilog{font-family:var(--mono);font-size:11px;line-height:1.8;margin-top:14px;max-height:170px;overflow:auto;text-align:left}
   .ilog .ok{color:var(--green)}.ilog .er{color:#e5757a}.ilog .pend{color:var(--dim)}
-  a.link{color:var(--green);text-decoration:none}a.link:hover{text-decoration:underline}
-  .cr-ov{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(4,5,4,.9);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
-  .cr-card{width:100%;max-width:330px;border-radius:22px;padding:26px;background:var(--panel);-webkit-backdrop-filter:blur(20px) saturate(150%);backdrop-filter:blur(20px) saturate(150%);border:1px solid var(--line);box-shadow:0 40px 120px -40px #000;text-align:center}
+  .note{font-family:var(--mono);font-size:11px;color:var(--dim);text-align:center;margin-top:18px;line-height:1.6}
+.logo-row{display:flex;align-items:center;gap:13px}
+  .logo-prev{width:54px;height:54px;flex:0 0 auto;border-radius:11px;border:1.5px dashed var(--line);background:#0c0d0e;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:18px}
+  .logo-up{background:rgba(236,236,234,.06);border:1px solid var(--line);color:var(--bone);font-family:var(--mono);font-size:11px;letter-spacing:.04em;border-radius:10px;padding:11px 15px;cursor:pointer;transition:border-color .15s,background .15s}
+  .logo-up:hover{border-color:rgba(186,192,30,.55);color:var(--green);background:rgba(186,192,30,.08)}
+    .cr-ov{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(4,5,4,.92);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+  .cr-card{width:100%;max-width:330px;border-radius:22px;padding:26px;background:var(--panel);-webkit-backdrop-filter:blur(22px) saturate(150%);backdrop-filter:blur(22px) saturate(150%);border:1px solid var(--line);box-shadow:0 40px 120px -40px #000;text-align:center}
   .cr-title{font-size:19px;font-weight:800;letter-spacing:-.02em}
   .cr-sub{font-family:var(--mono);font-size:11px;color:var(--dim);margin:5px 0 18px}
   .cr-stage{position:relative;width:264px;height:264px;margin:0 auto;border-radius:50%;overflow:hidden;background:#0b0c0d;cursor:grab;touch-action:none;box-shadow:0 0 0 1px rgba(255,255,255,.08)}
@@ -102,15 +113,51 @@ const ADMIN_KEY    = "sn-admin-7yq4";
   .cr-zoomrow input[type=range]{flex:1;accent-color:var(--green)}
   .cr-actions{margin-top:18px;display:flex;gap:12px;justify-content:center}
   .cr-actions .cta{width:auto;padding:12px 22px}
+  @media (max-width:440px){ .mark{width:138px} }
 </style>
 </head>
 <body>
-  <div class="bg"><img class="flask" src="/hero/flask_mark.png" alt=""><div class="grain"></div></div>
+  <canvas id="art"></canvas>
+  <img class="flask" src="/hero/flask_mark.png" alt="">
+  <div class="scrim"></div>
+  <div class="grain"></div>
+
   <div class="wrap">
-    <div class="brand"><img src="/email-logo.png" alt="Supernerd"><div class="eye">Client Portal</div></div>
-    <div class="card" id="stage"><div class="spin"></div></div>
-    <div class="foot" id="foot"></div>
+    <div class="brand">
+      <img class="mark" src="/portal-logo.png" alt="Supernerd">
+      <div class="eye">Client Portal</div>
+    </div>
+    <div class="stage" id="stage"><div class="spin"></div></div>
   </div>
+
+<script is:inline>
+(function(){
+  var cv=document.getElementById('art'); if(!cv) return; var ctx=cv.getContext('2d');
+  var reduce=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var W,H,DPR,parts=[],N;
+  var perm=new Uint8Array(512);(function(){var p=[];for(var i=0;i<256;i++)p[i]=i;for(var i=255;i>0;i--){var j=(Math.random()*(i+1))|0;var t=p[i];p[i]=p[j];p[j]=t;}for(var i=0;i<512;i++)perm[i]=p[i&255];})();
+  function fade(t){return t*t*t*(t*(t*6-15)+10);}
+  function lerp(a,b,t){return a+(b-a)*t;}
+  function grad(h,x,y){var u=(h&1)?x:-x,v=(h&2)?y:-y;return u+v;}
+  function noise(x,y){var X=Math.floor(x)&255,Y=Math.floor(y)&255;x-=Math.floor(x);y-=Math.floor(y);var u=fade(x),v=fade(y);var A=perm[X]+Y,B=perm[X+1]+Y;return lerp(lerp(grad(perm[A],x,y),grad(perm[B],x-1,y),u),lerp(grad(perm[A+1],x,y-1),grad(perm[B+1],x-1,y-1),u),v);}
+  function resize(){DPR=Math.min(window.devicePixelRatio||1,2);W=cv.width=Math.floor(innerWidth*DPR);H=cv.height=Math.floor(innerHeight*DPR);cv.style.width=innerWidth+'px';cv.style.height=innerHeight+'px';ctx.fillStyle='#070806';ctx.fillRect(0,0,W,H);N=reduce?0:Math.min(900,Math.floor(innerWidth*innerHeight/1700));parts=[];for(var i=0;i<N;i++)parts.push({x:Math.random()*W,y:Math.random()*H,p:Math.random(),life:Math.random()*500|0});}
+  resize(); addEventListener('resize',resize,{passive:true});
+  var SCALE=0.0015, SPEED=0.42;
+  function frame(t){
+    ctx.fillStyle='rgba(7,8,6,0.055)'; ctx.fillRect(0,0,W,H);
+    var sp=SPEED*DPR;
+    for(var i=0;i<parts.length;i++){var q=parts[i];
+      var a=noise(q.x*SCALE,q.y*SCALE+t*0.000035)*6.2831853*1.6;
+      q.x+=Math.cos(a)*sp; q.y+=Math.sin(a)*sp; q.life++;
+      if(q.x<0||q.x>W||q.y<0||q.y>H||q.life>520){q.x=Math.random()*W;q.y=Math.random()*H;q.life=0;}
+      ctx.fillStyle='rgba('+(150+(q.p*46|0))+','+(160+(q.p*44|0))+',34,0.34)';
+      ctx.fillRect(q.x,q.y,1.15*DPR,1.15*DPR);
+    }
+    requestAnimationFrame(frame);
+  }
+  if(!reduce) requestAnimationFrame(frame);
+})();
+</script>
 
 <script is:inline src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script is:inline define:vars={{ SUPABASE_URL, SUPABASE_KEY, REVIEW_SLUG, OWNER_EMAIL, ADMIN_KEY }}>
@@ -118,7 +165,7 @@ const ADMIN_KEY    = "sn-admin-7yq4";
   var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, flowType:"pkce" } });
   var params = new URLSearchParams(location.search);
   var ADMIN  = params.get("admin") === ADMIN_KEY;
-  var SESSION=null, EMAIL=null, INVITE=null, PROFILE=null, COMPANIES=[], PENDING=null, EDIT=null;
+  var SESSION=null, EMAIL=null, INVITE=null, PROFILE=null, COMPANIES=[], PENDING=null, PENDING_LOGO=null, EDIT=null;
   var stage=document.getElementById("stage");
 
   function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];}); }
@@ -148,21 +195,22 @@ const ADMIN_KEY    = "sn-admin-7yq4";
 
   function render(){
     if(ADMIN) return renderAdmin();
-    if(!EMAIL) return renderLogin();
+    if(!EMAIL) return renderGate();
     if(!INVITE && !PROFILE) return renderBlocked();
     if(!PROFILE) return renderOnboard();
     return renderBack();
   }
 
-  /* ---------- logged out ---------- */
   function gsvg(){ return '<svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.6 2.4 30.2 0 24 0 14.6 0 6.4 5.4 2.6 13.2l7.9 6.1C12.4 13.2 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.1 5.4-4.6 7l7.1 5.5c4.2-3.9 6.6-9.6 6.6-17z"/><path fill="#FBBC05" d="M10.5 28.3a14.5 14.5 0 0 1 0-8.6l-7.9-6.1a24 24 0 0 0 0 20.8l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.5l-7.1-5.5c-2 1.3-4.6 2.1-8.1 2.1-6.3 0-11.6-3.7-13.5-9l-7.9 6.1C6.4 42.6 14.6 48 24 48z"/></svg>'; }
-  function renderLogin(){
-    stage.innerHTML='<h1>Welcome back</h1><div class="sub">Sign in to review your projects. Access is by invitation \u2014 use the email Supernerd invited.</div>'
+  function locksvg(){ return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>'; }
+
+  function renderGate(){
+    stage.innerHTML='<div class="tagline" style="margin:0 auto 26px">Private review access for Supernerd clients. Entry is by invitation only.</div>'
       +'<button class="gbtn" id="g">'+gsvg()+' Continue with Google</button>'
-      +'<div class="or">or with your invited email</div>'
-      +'<div class="row"><input id="em" type="email" placeholder="you@company.com" autocomplete="email"><button class="gn" id="send">Send link</button></div>'
+      +'<div class="or">or</div>'
+      +'<div class="mailrow"><input id="em" type="email" placeholder="the email you were invited with" autocomplete="email"><button id="send" aria-label="Send link">\u2192</button></div>'
       +'<div class="msg" id="m"></div>'
-      +'<div class="note">No invite yet? Email <a class="link" href="mailto:'+esc(OWNER_EMAIL)+'">'+esc(OWNER_EMAIL)+'</a> to request access.</div>';
+      +'<div class="lock">'+locksvg()+' Invitation only \u00b7 access granted by Supernerd</div>';
     document.getElementById("g").onclick=function(){ sb.auth.signInWithOAuth({ provider:"google", options:{ redirectTo: location.origin+"/portal" } }); };
     var send=document.getElementById("send"), em=document.getElementById("em"), m=document.getElementById("m");
     send.onclick=async function(){
@@ -170,88 +218,102 @@ const ADMIN_KEY    = "sn-admin-7yq4";
       if(!reEmail(v)){ m.className="msg err"; m.textContent="Enter a valid email."; return; }
       send.disabled=true; send.textContent="\u2026";
       var inv=null; try{ var r=await sb.from("invites").select("email").ilike("email",v).limit(1); inv=(r.data&&r.data[0])||null; }catch(e){}
-      if(!inv){ m.className="msg err"; m.textContent="That email isn\u2019t on the invite list. Ask Supernerd for access."; send.disabled=false; send.textContent="Send link"; return; }
+      if(!inv){ m.className="msg err"; m.textContent="That email isn\u2019t on the invite list. Ask Supernerd for access."; send.disabled=false; send.textContent="\u2192"; return; }
       var res=await sb.auth.signInWithOtp({ email:v, options:{ emailRedirectTo: location.origin+"/portal" } });
-      if(res && res.error){ m.className="msg err"; m.textContent=res.error.message||"Could not send."; send.disabled=false; send.textContent="Send link"; return; }
-      stage.innerHTML='<div class="center"><div class="tick">\u2709\ufe0f</div><h1 style="font-size:21px">Check your email</h1><div class="sub" style="margin-top:8px">We sent a magic link to <b style="color:var(--bone)">'+esc(v)+'</b>. Tap it to log in and start onboarding.</div></div>';
+      if(res && res.error){ m.className="msg err"; m.textContent=res.error.message||"Could not send."; send.disabled=false; send.textContent="\u2192"; return; }
+      stage.innerHTML='<div class="center"><div class="tick">\u2709\ufe0f</div><h1 style="font-size:20px;text-align:center">Check your email</h1><div class="sub" style="text-align:center;margin:8px 0 0">We sent a sign-in link to <b style="color:var(--bone)">'+esc(v)+'</b>. Tap it to enter the portal and finish onboarding.</div></div>';
     };
     em.addEventListener("keydown",function(e){ if(e.key==="Enter") send.click(); });
   }
 
-  /* ---------- blocked ---------- */
   function renderBlocked(){
-    stage.innerHTML='<h1>Invitation needed</h1><div class="sub">You\u2019re signed in as <b style="color:var(--bone)">'+esc(EMAIL)+'</b>, but that email hasn\u2019t been invited to a project yet. The client portal is invite-only.</div>'
-      +'<div class="note" style="margin-top:0;text-align:left">Ask Supernerd to send an invite to this exact email, then open the link they send you.</div>'
+    stage.innerHTML='<div class="panel"><h1>Private area</h1><div class="sub">You\u2019re signed in as <b style="color:var(--bone)">'+esc(EMAIL)+'</b>, but this email hasn\u2019t been invited to a project. The client portal is invitation-only.</div>'
+      +'<div class="note" style="margin-top:0;text-align:left">Ask Supernerd to send an invite to this exact address, then open the link in that email.</div></div>'
       +'<div class="foot"><button class="ghost" id="out">Sign out</button></div>';
-    document.getElementById("out").onclick=async function(){ await sb.auth.signOut(); location.reload(); };
+    document.getElementById("out").onclick=async function(){ await sb.auth.signOut(); location.href="/portal"; };
   }
 
-  /* ---------- welcome back ---------- */
-  function renderBack(){
-    var c=company(PROFILE.company_id);
-    var av=PROFILE.avatar_url?'background-image:url('+PROFILE.avatar_url+')':'background:linear-gradient(150deg,'+c.color+',#0b0c0d)';
-    stage.innerHTML='<div class="center"><div class="av-big" style="'+av+'">'+(PROFILE.avatar_url?"":esc(initials(PROFILE.full_name).toUpperCase()))+'</div>'
-      +'<h1>Welcome back, '+esc(String(PROFILE.full_name||"").split(/\s+/)[0])+'</h1>'
-      +'<div class="sub" style="margin-top:8px">'+esc(PROFILE.position||"")+(c.name?" \u00b7 "+esc(c.name):"")+'</div></div>'
-      +'<button class="cta" id="enter">Enter the portal</button>'
-      +'<div class="foot"><button class="ghost" id="edit">Edit profile</button> &nbsp;\u00b7&nbsp; <button class="ghost" id="out">Sign out</button></div>';
-    document.getElementById("enter").onclick=goPortal;
-    document.getElementById("edit").onclick=function(){ EDIT=PROFILE; renderOnboard(); };
-    document.getElementById("out").onclick=async function(){ await sb.auth.signOut(); location.reload(); };
-  }
-
-  /* ---------- onboarding ---------- */
   function renderOnboard(){
     var p=EDIT||{};
-    var opts=COMPANIES.map(function(c){ return '<option value="'+esc(c.id)+'"'+(p.company_id===c.id?" selected":"")+'>'+esc(c.name)+'</option>'; }).join('')+'<option value="__other__">Other company\u2026</option>';
+    var sugg=COMPANIES.map(function(c){ return '<option value="'+esc(c.name)+'">'; }).join('');
+    var curCo=p.company_id?company(p.company_id):null;
+    var cname=curCo?(curCo.name||p.company_id||""):"";
+    var curLogo=(curCo&&curCo.logo_url)||"";
     var drop=p.avatar_url?'background-image:url('+p.avatar_url+')':'';
-    stage.innerHTML='<h1>'+(EDIT?"Edit your profile":"You\u2019re invited")+'</h1>'
-      +'<div class="sub">'+(EDIT?"Update how you appear to the team.":"Tell the team who you are so they can tag you in notes and approvals.")+'</div>'
+    var logoStyle=curLogo?'background-image:url('+curLogo+');background-size:cover;background-position:center':'';
+    stage.innerHTML='<div class="panel"><h1>'+(EDIT?"Edit your profile":"Finish onboarding")+'</h1>'
+      +'<div class="sub">'+(EDIT?"Update how you appear to the team.":"You\u2019ve opened your invite link \u2014 add your details so the team can tag you in notes and approvals.")+'</div>'
       +'<div class="av"><div class="drop" id="drop" style="'+drop+'">'+(drop?"":"+ Add<br>photo")+'</div><div class="tx">A clear headshot helps people recognise you in comments.<br><span style="opacity:.7">Optional \u2014 initials are used otherwise.</span></div><input type="file" id="file" accept="image/*" hidden></div>'
       +'<div class="fld"><label>Full name</label><input id="nm" placeholder="Jordan Rivera" value="'+esc(p.full_name||"")+'"></div>'
       +'<div class="fld"><label>Job position</label><input id="rl" placeholder="Creative Director" value="'+esc(p.position||"")+'"></div>'
       +'<div class="fld"><label>Phone <span style="opacity:.5">optional</span></label><input id="ph" type="tel" placeholder="(917) 555-0148" value="'+esc(p.phone||"")+'"></div>'
-      +'<div class="fld"><label>Company</label><select id="co">'+opts+'</select></div>'
-      +'<div class="fld" id="otherWrap" style="display:none"><label>Company name</label><input id="other" placeholder="Your company"></div>'
-      +'<button class="cta" id="save"'+(EDIT?"":" disabled")+'>'+(EDIT?"Save profile":"Join project")+'</button>'
-      +'<div class="msg" id="m"></div>';
+      +'<div class="fld"><label>Company</label><input id="co" list="coList" autocomplete="off" placeholder="Your company" value="'+esc(cname)+'"><datalist id="coList">'+sugg+'</datalist></div>'
+      +'<div class="fld"><label>Company logo <span style="opacity:.5">optional</span></label><div class="logo-row"><div class="logo-prev" id="logoPrev" style="'+logoStyle+'">'+(logoStyle?"":"\u25a2")+'</div><button type="button" class="logo-up" id="logoBtn">'+(logoStyle?"Replace logo":"Upload logo")+'</button><input type="file" id="logoFile" accept="image/*" hidden></div></div>'
+      +'<button class="cta" id="save"'+(EDIT?"":" disabled")+'>'+(EDIT?"Save profile":"Join the project")+'</button>'
+      +'<div class="msg" id="m"></div></div>';
     var drz=document.getElementById("drop"), file=document.getElementById("file");
     drz.onclick=function(){ file.click(); };
     file.onchange=function(){ var f=file.files[0]; if(!f) return; openCropper(f,function(out,purl){ PENDING=out; drz.style.backgroundImage="url("+purl+")"; drz.innerHTML=""; }); file.value=""; };
-    var nm=document.getElementById("nm"), rl=document.getElementById("rl"), co=document.getElementById("co"), other=document.getElementById("other"), ow=document.getElementById("otherWrap"), save=document.getElementById("save"), m=document.getElementById("m");
-    function gate(){ save.disabled=!(nm.value.trim()&&rl.value.trim()&&(co.value!=="__other__"||other.value.trim())); }
-    [nm,rl,other].forEach(function(el){ el.oninput=gate; });
-    co.onchange=function(){ ow.style.display=co.value==="__other__"?"":"none"; gate(); };
+    var logoPrev=document.getElementById("logoPrev"), logoBtn=document.getElementById("logoBtn"), logoFile=document.getElementById("logoFile");
+    logoBtn.onclick=function(){ logoFile.click(); };
+    logoFile.onchange=function(){ var f=logoFile.files[0]; if(!f) return; PENDING_LOGO=f; var u=URL.createObjectURL(f); logoPrev.style.backgroundImage="url("+u+")"; logoPrev.style.backgroundSize="cover"; logoPrev.style.backgroundPosition="center"; logoPrev.textContent=""; logoBtn.textContent="Replace logo"; logoFile.value=""; };
+    var nm=document.getElementById("nm"), rl=document.getElementById("rl"), co=document.getElementById("co"), save=document.getElementById("save"), m=document.getElementById("m");
+    function gate(){ save.disabled=!(nm.value.trim()&&rl.value.trim()&&co.value.trim()); }
+    [nm,rl,co].forEach(function(el){ el.oninput=gate; });
     save.onclick=async function(){
       save.disabled=true; save.textContent="Saving\u2026"; m.className="msg";
-      var cid=co.value, cname="";
-      if(cid==="__other__"){ cname=other.value.trim(); cid=cname.toLowerCase().replace(/[^a-z0-9]+/g,"_")||("co"+Date.now());
-        try{ await sb.from("companies").upsert({review_slug:slug(),id:cid,name:cname,color:"#7a8cff",sort:99},{onConflict:"review_slug,id"}); }catch(e){}
-      }
+      var cname=co.value.trim();
+      var existing=COMPANIES.find(function(c){ return (c.name||"").toLowerCase()===cname.toLowerCase(); });
+      var cid=existing?existing.id:(cname.toLowerCase().replace(/[^a-z0-9]+/g,"_")||("co"+Date.now()));
+      var logoUrl=null;
+      if(PENDING_LOGO){ logoUrl=await ppUploadLogo(PENDING_LOGO, cid); }
+      var coRow={review_slug:slug(),id:cid,name:cname}; if(logoUrl) coRow.logo_url=logoUrl;
+      try{ await sb.from("companies").upsert(coRow,{onConflict:"review_slug,id"}); }catch(e){}
       var avatarUrl=(EDIT&&EDIT.avatar_url)||null;
-      if(PENDING){ try{ var ext=(PENDING.name.split(".").pop()||"png").toLowerCase(); var path=SESSION.user.id+"/"+Date.now()+"."+ext; var up=await sb.storage.from("avatars").upload(path,PENDING,{upsert:true,cacheControl:"3600"}); if(!up.error){ avatarUrl=sb.storage.from("avatars").getPublicUrl(path).data.publicUrl; } }catch(e){} }
+      if(PENDING){ try{ var ext=(PENDING.name&&PENDING.name.indexOf(".")>=0)?PENDING.name.split(".").pop().toLowerCase():"png"; var path=SESSION.user.id+"/"+Date.now()+"."+ext; var up=await sb.storage.from("avatars").upload(path,PENDING,{upsert:true,cacheControl:"3600"}); if(!up.error){ avatarUrl=sb.storage.from("avatars").getPublicUrl(path).data.publicUrl; } }catch(e){} }
       var phEl=document.getElementById("ph");
       var row={ id:SESSION.user.id, review_slug:slug(), email:SESSION.user.email, full_name:nm.value.trim(), position:rl.value.trim(), phone:phEl?phEl.value.trim():null, company_id:cid, avatar_url:avatarUrl, updated_at:new Date().toISOString() };
       var err=null; try{ var r=await sb.from("profiles").upsert(row,{onConflict:"id"}); if(r.error) err=r.error; }catch(e){ err=e; }
-      if(err){ m.className="msg err"; m.textContent=(/row-level|policy/i.test(err.message||"")?"This email isn\u2019t invited to onboard. Ask Supernerd for an invite.":"Could not save: "+(err.message||"try again")); save.disabled=false; save.textContent=EDIT?"Save profile":"Join project"; return; }
+      if(err){ m.className="msg err"; m.textContent=(/row-level|policy/i.test(err.message||"")?"This email isn\u2019t invited to onboard. Ask Supernerd for an invite.":"Could not save: "+(err.message||"try again")); save.disabled=false; save.textContent=EDIT?"Save profile":"Join the project"; return; }
       PROFILE=row; EDIT=null;
-      stage.innerHTML='<div class="center"><div class="tick">\u2713</div><h1>You\u2019re in, '+esc(row.full_name.split(/\s+/)[0])+'!</h1><div class="sub" style="margin-top:8px">Your partner card is live. Supernerd has been notified.</div></div><button class="cta" id="enter">Enter the portal</button>';
+      stage.innerHTML='<div class="panel center"><div class="tick">\u2713</div><h1 style="text-align:center">You\u2019re in, '+esc(row.full_name.split(/\s+/)[0])+'!</h1><div class="sub" style="text-align:center">Your partner card is live. Supernerd has been notified.</div><button class="cta" id="enter">Enter the portal</button></div>';
       document.getElementById("enter").onclick=goPortal;
     };
+  }
+  async function ppUploadLogo(file, cid){
+    try{
+      var ext=(file.name&&file.name.indexOf(".")>=0)?file.name.split(".").pop().toLowerCase():"png";
+      var safe=String(cid||"co").replace(/[^a-z0-9_-]+/gi,"_");
+      var path="company-logos/"+safe+"/"+Date.now()+"."+ext;
+      var up=await sb.storage.from("avatars").upload(path,file,{upsert:true,cacheControl:"3600"});
+      if(up.error) return null;
+      return sb.storage.from("avatars").getPublicUrl(path).data.publicUrl;
+    }catch(e){ return null; }
+  }
+
+  function renderBack(){
+    var c=company(PROFILE.company_id);
+    var av=PROFILE.avatar_url?'background-image:url('+PROFILE.avatar_url+')':'background:linear-gradient(150deg,'+c.color+',#0b0c0d)';
+    stage.innerHTML='<div class="panel center"><div class="av-big" style="'+av+'">'+(PROFILE.avatar_url?"":esc(initials(PROFILE.full_name).toUpperCase()))+'</div>'
+      +'<h1 style="text-align:center;font-size:20px">'+esc(PROFILE.full_name||"")+'</h1>'
+      +'<div class="sub" style="text-align:center;margin-bottom:18px">'+esc(PROFILE.position||"")+(c.name?" \u00b7 "+esc(c.name):"")+'</div>'
+      +'<button class="cta" id="enter">Enter the portal</button></div>'
+      +'<div class="foot"><button class="ghost" id="edit">Edit profile</button> &nbsp;\u00b7&nbsp; <button class="ghost" id="out">Sign out</button></div>';
+    document.getElementById("enter").onclick=goPortal;
+    document.getElementById("edit").onclick=function(){ EDIT=PROFILE; renderOnboard(); };
+    document.getElementById("out").onclick=async function(){ await sb.auth.signOut(); location.href="/portal"; };
   }
 
   function goPortal(){ location.href="/r/"+slug()+"/"; }
 
-  /* ---------- admin: bulk invite ---------- */
   function renderAdmin(){
-    document.getElementById("foot").innerHTML='';
-    stage.innerHTML='<div class="admin-tag">Admin \u00b7 Supernerd</div><h1>Invite partners</h1>'
-      +'<div class="sub">Paste emails (commas, spaces, or new lines). Each person gets a magic link that drops them straight into onboarding for this project.</div>'
+    stage.innerHTML='<div class="panel"><div class="admin-tag">Admin \u00b7 Supernerd</div><h1>Invite partners</h1>'
+      +'<div class="sub">Paste emails (commas, spaces, or new lines). Each person gets a link that drops them into onboarding for this project.</div>'
       +'<div class="fld"><label>Project</label><input id="aslug" value="'+esc(REVIEW_SLUG)+'"></div>'
       +'<div class="fld"><label>Emails</label><textarea id="emails" placeholder="ada@studio.com&#10;winnie@funkychild.co&#10;margot@trrp.org"></textarea></div>'
       +'<button class="cta" id="go">Send invites</button>'
       +'<div class="ilog" id="log"></div>'
-      +'<div class="note">Already invited people just get a fresh link \u2014 no duplicates created.<br><a class="link" href="/r/'+esc(REVIEW_SLUG)+'/?admin='+esc(ADMIN_KEY)+'">Open the portal \u2192</a></div>';
+      +'<div class="note">Re-inviting just resends \u2014 no duplicates. <a class="link" href="/r/'+esc(REVIEW_SLUG)+'/?admin='+esc(ADMIN_KEY)+'">Open the portal \u2192</a></div></div>';
     var go=document.getElementById("go"), log=document.getElementById("log");
     go.onclick=async function(){
       var sl=document.getElementById("aslug").value.trim()||REVIEW_SLUG;
@@ -273,7 +335,6 @@ const ADMIN_KEY    = "sn-admin-7yq4";
     };
   }
 
-  /* ---------- avatar cropper ---------- */
   function openCropper(file, cb){
     var url=URL.createObjectURL(file), img=new Image();
     img.onload=function(){
@@ -299,11 +360,11 @@ const ADMIN_KEY    = "sn-admin-7yq4";
       document.getElementById("crCancel").onclick=clean;
       document.getElementById("crApply").onclick=function(){
         var OUT=400, f=OUT/S, sc=cover*z, w=iw*sc, h=ih*sc;
-        var cv=document.createElement("canvas"); cv.width=OUT; cv.height=OUT; var ctx=cv.getContext("2d");
-        ctx.fillStyle="#0b0c0d"; ctx.fillRect(0,0,OUT,OUT);
-        ctx.save(); ctx.beginPath(); ctx.arc(OUT/2,OUT/2,OUT/2,0,Math.PI*2); ctx.closePath(); ctx.clip();
-        ctx.drawImage(img,(S/2-w/2+tx)*f,(S/2-h/2+ty)*f,w*f,h*f); ctx.restore();
-        cv.toBlob(function(blob){ var out=blob?new File([blob],"avatar.png",{type:"image/png"}):file; cb(out, URL.createObjectURL(blob||file)); clean(); },"image/png",0.92);
+        var cvn=document.createElement("canvas"); cvn.width=OUT; cvn.height=OUT; var c2=cvn.getContext("2d");
+        c2.fillStyle="#0b0c0d"; c2.fillRect(0,0,OUT,OUT);
+        c2.save(); c2.beginPath(); c2.arc(OUT/2,OUT/2,OUT/2,0,Math.PI*2); c2.closePath(); c2.clip();
+        c2.drawImage(img,(S/2-w/2+tx)*f,(S/2-h/2+ty)*f,w*f,h*f); c2.restore();
+        cvn.toBlob(function(blob){ var out=blob?new File([blob],"avatar.png",{type:"image/png"}):file; cb(out, URL.createObjectURL(blob||file)); clean(); },"image/png",0.92);
       };
     };
     img.onerror=function(){ cb(file,url); };
