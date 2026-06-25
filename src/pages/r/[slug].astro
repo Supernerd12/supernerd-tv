@@ -87,7 +87,7 @@ export async function getStaticPaths() {
         return { id: p.data.key, title: p.data.title, tagline: p.data.tagline || '', sections };
       });
 
-    const data = { REVIEW_SLUG: co.key, COMPANY: { name: co.name, logo: co.logo || '' }, PROJECTS };
+    const data = { REVIEW_SLUG: co.key, OWNER_LOGINS: ["hello@supernerd.tv","shaun@supernerd.tv"], COMPANY: { name: co.name, logo: co.logo || '' }, PROJECTS };
     return { params: { slug: co.url_slug }, props: { data } };
   });
 }
@@ -859,16 +859,16 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
   .fchip .lm{width:15px;height:15px;border-radius:4px;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#0c0d0e}
   .pp-invite{margin-left:auto;font-family:var(--mono);font-size:12px;color:#0c0d0e;background:var(--green);border:none;border-radius:9px;padding:9px 15px;cursor:pointer;font-weight:700;position:relative}
   .pp-invite:hover{background:var(--green-hi)}
-  .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(252px,1fr));gap:16px}
-  .pcard{position:relative;border-radius:16px;padding:18px;background:linear-gradient(165deg,rgba(28,30,34,.66),rgba(13,14,16,.66));-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid var(--hair);box-shadow:0 18px 50px -30px #000,inset 0 1px 0 rgba(255,255,255,.04);transition:transform .18s var(--ease-out),border-color .18s var(--ease-out)}
+  .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
+  .pcard{position:relative;border-radius:18px;padding:22px;background:linear-gradient(165deg,rgba(28,30,34,.66),rgba(13,14,16,.66));-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid var(--hair);box-shadow:0 18px 50px -30px #000,inset 0 1px 0 rgba(255,255,255,.04);transition:transform .18s var(--ease-out),border-color .18s var(--ease-out)}
   .pcard:hover{transform:translateY(-3px);border-color:rgba(186,192,30,.3)}
   .pc-top{display:flex;align-items:center;gap:13px}
-  .avatar{width:50px;height:50px;border-radius:50%;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;color:#0b0c0d;background-size:cover;background-position:center;box-shadow:inset 0 0 0 2px rgba(255,255,255,.08)}
+  .avatar{width:58px;height:58px;border-radius:50%;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:21px;color:#0b0c0d;background-size:cover;background-position:center;box-shadow:inset 0 0 0 2px rgba(255,255,255,.08)}
   .pc-id{min-width:0}
-  .pc-name{font-size:16px;font-weight:700;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pc-name{font-size:17px;font-weight:700;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .pc-role{font-size:13px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .pc-foot{display:flex;align-items:center;gap:9px;margin-top:16px;padding-top:14px;border-top:1px solid var(--hair)}
-  .logo-mono{width:24px;height:24px;border-radius:6px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#0c0d0e}
+  .pc-foot{display:flex;align-items:center;gap:11px;margin-top:18px;padding-top:16px;border-top:1px solid var(--hair)}
+  .logo-mono{width:34px;height:34px;border-radius:7px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#0c0d0e;overflow:hidden}
   .pc-company{font-family:var(--mono);font-size:11px;color:var(--bone);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .invite-pop{position:absolute;z-index:30;margin-top:8px;right:0;width:330px;padding:16px;border-radius:14px;background:rgba(18,19,22,.98);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid var(--hair-2);box-shadow:0 26px 70px -28px #000;text-align:left}
   .invite-pop h4{margin:0 0 4px;font-size:15px;font-weight:700}
@@ -896,7 +896,7 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
   .pd-role{font-family:var(--mono);font-size:12px;color:var(--dim);margin-top:3px}
   .pd-meta{font-family:var(--mono);font-size:12px;color:var(--bone);display:flex;flex-direction:column;gap:9px;padding:15px 0;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair);margin-bottom:16px}
   .pd-meta>div{display:flex;align-items:center}
-  .pd-meta .logo-mono{width:20px;height:20px;font-size:10px;margin-right:8px}
+  .pd-meta .logo-mono{width:34px;height:34px;font-size:14px;margin-right:2px}
   .pd-email{color:var(--dim)}
   .pd-status{color:var(--dim)}
   .pd-remove{width:100%;font-family:var(--mono);font-size:12px;color:#e5757a;background:rgba(229,72,77,.08);border:1px solid rgba(229,72,77,.3);border-radius:10px;padding:12px;cursor:pointer;margin-bottom:6px}
@@ -921,6 +921,28 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
 .logo-prev{width:54px;height:54px;flex:0 0 auto;border-radius:11px;border:1.5px dashed var(--line);background-color:#0c0d0e;background-size:contain;background-repeat:no-repeat;background-position:center;background-origin:content-box;padding:7px;display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:18px}
 .logo-up{background:rgba(236,236,234,.06);border:1px solid var(--line);color:var(--bone);font-family:var(--mono);font-size:11px;letter-spacing:.04em;border-radius:10px;padding:10px 15px;cursor:pointer;transition:border-color .15s,background .15s}
 .logo-up:hover{border-color:rgba(186,192,30,.55);color:var(--green);background:rgba(186,192,30,.08)}
+
+/* ---- calendar: add-event button + event editor (v10) ---- */
+.cal-addev{font-family:var(--mono);font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:#0c0d0e;background:var(--green);border:0;border-radius:9px;padding:8px 13px;font-weight:800;cursor:pointer;margin-right:10px;transition:background .15s var(--ease-out)}
+.cal-addev:hover{background:var(--green-hi)}
+.cev-card{width:min(440px,94vw);background:linear-gradient(168deg,#161719,#0d0e10);border:1px solid var(--hair);border-radius:18px;padding:22px 22px 18px;box-shadow:0 40px 120px -40px #000}
+.cev-h{display:flex;align-items:center;justify-content:space-between;font-family:var(--disp);font-size:19px;font-weight:700;color:var(--bone);margin-bottom:14px}
+.cev-x{background:none;border:0;color:var(--dim);font-size:22px;line-height:1;cursor:pointer;padding:0 2px}
+.cev-x:hover{color:var(--bone)}
+.cev-l{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);margin:12px 0 5px}
+.cev-in{width:100%;box-sizing:border-box;background:#0b0c0d;border:1px solid var(--hair);border-radius:10px;padding:10px 12px;color:var(--bone);font-family:var(--disp);font-size:14px;outline:none}
+.cev-in:focus{border-color:rgba(186,192,30,.5)}
+.cev-area{min-height:64px;resize:vertical;font-family:var(--disp)}
+.cev-row{display:flex;gap:12px}.cev-row>div{flex:1;min-width:0}
+.cev-foot{display:flex;align-items:center;justify-content:space-between;margin-top:18px}
+.cev-actions{display:flex;gap:9px}
+.cev-save{background:var(--green);color:#0c0d0e;border:0;border-radius:10px;padding:10px 18px;font-weight:800;font-size:13px;cursor:pointer}
+.cev-save:hover{background:var(--green-hi)}
+.cev-cancel{background:transparent;color:var(--dim);border:1px solid var(--hair);border-radius:10px;padding:10px 16px;font-size:13px;cursor:pointer}
+.cev-cancel:hover{color:var(--bone)}
+.cev-del{background:transparent;color:#e5736f;border:1px solid rgba(229,72,77,.35);border-radius:10px;padding:10px 16px;font-size:13px;cursor:pointer}
+.cev-del:hover{background:rgba(229,72,77,.12)}
+.cev-msg{font-family:var(--mono);font-size:11px;color:#e5736f;margin-top:10px;min-height:14px}
 </style>
 </head>
 <body>
@@ -1654,10 +1676,9 @@ loadInvites().finally(route);
 /* ===================== CALENDAR ===================== */
 var CAL = { view:'month', cursor:null, filter:'all', day:null, editing:false, pendingDel:null, TYPES:{}, ORDER:[], EV:[], projId:null };
 var CAL_DEFAULT_TYPES = [
- ['deposit','Deposit','#8b8f98'],['visdir','Visual direction','#8e6fe0'],['assets','Assets','#4a90d9'],
- ['storyboard','Storyboard','#46b758'],['animatic','VO + Animatic','#2bb3b3'],['rough','Rough animation','#e08a3c'],
- ['final','Final animation','#d9b23c'],['review','Review','#e5484d'],['delivery','Delivery','#d6489e'],
- ['approval','Final approval','#BAC01E'],['meeting','Meeting','#c9cdd2'] ];
+ ['milestone','Milestone','#8e6fe0'],['meeting','Meeting','#4a90d9'],['deadline','Deadline','#e5484d'],
+ ['shoot','Shoot day','#46b758'],['review','Review','#d9b23c'],['delivery','Delivery','#d6489e'],
+ ['note','Note','#8b8f98'] ];
 var CAL_DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 var CAL_DOWF=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 var CAL_MON=['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -1681,7 +1702,7 @@ function calHexA(hex,a){ var h=hex.replace('#',''); return 'rgba('+parseInt(h.sl
 function calLighten(hex){ var h=hex.replace('#',''); var r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16); r=Math.round(r+(255-r)*.45);g=Math.round(g+(255-g)*.45);b=Math.round(b+(255-b)*.45); return 'rgb('+r+','+g+','+b+')'; }
 function calEvOn(dt){ var k=calKey(dt); return CAL.EV.filter(function(e){ return e.d===k && (CAL.filter==='all'||e.proj===CAL.filter); }); }
 function calProjs(){ var seen={},out=[]; CAL.EV.forEach(function(e){ if(e.proj && !seen[e.proj]){ seen[e.proj]=1; out.push(e.proj); } }); return out; }
-function calEvAttrs(e){ return 'data-ttl="'+esc(e.title)+'" data-type="'+esc(e.type)+'" data-proj="'+esc(calProjName(e.proj))+'" data-date="'+e.d+'" data-time="'+esc(e.time||'')+'" data-col="'+calEvColor(e)+'" data-notes="'+esc(e.notes||'')+'"'; }
+function calEvAttrs(e){ return 'data-eid="'+esc(e.id||'')+'" data-ttl="'+esc(e.title)+'" data-type="'+esc(e.type)+'" data-proj="'+esc(calProjName(e.proj))+'" data-date="'+e.d+'" data-time="'+esc(e.time||'')+'" data-col="'+calEvColor(e)+'" data-notes="'+esc(e.notes||'')+'"'; }
 function calMajorKeyOn(dt){ var e=calEvOn(dt).filter(function(x){return x.kind!=='meeting';}); return e.length===1?(e[0].type+'|'+e[0].proj):null; }
 
 function calRender(){
@@ -1691,7 +1712,8 @@ function calRender(){
   var seg=['month','week','day'].map(function(v){return '<button class="'+(CAL.view===v?'on':'')+'" data-cv="'+v+'">'+v.charAt(0).toUpperCase()+v.slice(1)+'</button>';}).join('');
   var chips='<button class="cal-chip '+(CAL.filter==='all'?'on':'')+'" data-cf="all">All projects</button>'+calProjs().map(function(p){return '<button class="cal-chip '+(CAL.filter===p?'on':'')+'" data-cf="'+esc(p)+'"><span class="dot" style="background:'+(CAL.EV.filter(function(e){return e.proj===p;})[0]?calEvColor(CAL.EV.filter(function(e){return e.proj===p;})[0]):'#888')+'"></span>'+esc(p)+'</button>';}).join('');
   var body=CAL.view==='month'?calMonthHTML():CAL.view==='week'?calWeekHTML():calDayHTML(CAL.day||CAL.cursor);
-  c.innerHTML='<div class="cal-top"><div class="cal-nav"><button class="cal-arrow" data-cnav="-1">\u2039</button><button class="cal-arrow" data-cnav="1">\u203a</button></div><div class="cal-title">'+esc(title)+'</div><button class="cal-today" data-ctoday>Today</button><div class="spacer"></div><div class="seg">'+seg+'</div></div><div class="cal-projs">'+chips+'</div>'+calLegendHTML()+body;
+  var addBtn=(typeof ADMIN!=='undefined' && ADMIN)?'<button class="cal-addev" data-cnew>+ Add event</button>':'';
+  c.innerHTML='<div class="cal-top"><div class="cal-nav"><button class="cal-arrow" data-cnav="-1">\u2039</button><button class="cal-arrow" data-cnav="1">\u203a</button></div><div class="cal-title">'+esc(title)+'</div><button class="cal-today" data-ctoday>Today</button><div class="spacer"></div>'+addBtn+'<div class="seg">'+seg+'</div></div><div class="cal-projs">'+chips+'</div>'+calLegendHTML()+body;
   calWire();
 }
 function calLegendHTML(){
@@ -1768,6 +1790,66 @@ function calPosPop(ev){ var p=calPopEl(),pw=p.offsetWidth,ph=p.offsetHeight,x=ev
 function calPretty(s){ var d=calParse(s); return CAL_DOW[d.getDay()]+', '+CAL_MON[d.getMonth()].slice(0,3)+' '+d.getDate(); }
 function calUpsertType(t){ try{ sb.from('calendar_types').upsert({review_slug:CONFIG.REVIEW_SLUG,key:t,label:CAL.TYPES[t].l,color:CAL.TYPES[t].c,sort:CAL.ORDER.indexOf(t)},{onConflict:'review_slug,key'}).then(function(){},function(){}); }catch(e){} }
 function calDeleteTypeDB(t){ try{ sb.from('calendar_types').delete().eq('review_slug',CONFIG.REVIEW_SLUG).eq('key',t).then(function(){},function(){}); }catch(e){} }
+function calReloadEv(){
+  return sb.from('calendar_events').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).order('date',{ascending:true}).then(function(re){
+    CAL.EV=((re&&re.data)||[]).map(function(r){ return { id:r.id, d:r.date, type:r.type, title:r.title, proj:r.project_id||'project', kind:r.kind||'major', time:r.time||'', notes:r.notes||'', frozen:r.frozen_color||null }; });
+    calRender();
+  },function(){ calRender(); });
+}
+function calEvClose(){ var ov=document.getElementById('calEvOv'); if(ov) ov.classList.remove('show'); CAL.editEv=null; }
+function calEvOpen(ev, dayKey){
+  if(!(typeof ADMIN!=='undefined' && ADMIN)) return;
+  CAL.editEv=ev||null; calHidePop();
+  var ov=document.getElementById('calEvOv');
+  if(!ov){ ov=document.createElement('div'); ov.className='onb'; ov.id='calEvOv'; ov.innerHTML='<div class="cev-card" id="cevCard"></div>'; document.body.appendChild(ov); ov.addEventListener('click',function(e){ if(e.target===ov) calEvClose(); }); }
+  ov.classList.add('show');
+  var e=ev||{}, dflt=ev?ev.d:(dayKey||calTodayK());
+  var firstType=CAL.ORDER.filter(function(t){return CAL.TYPES[t];})[0]||'note';
+  var curType=e.type||firstType;
+  var typeOpts=CAL.ORDER.filter(function(t){return CAL.TYPES[t];}).map(function(t){return '<option value="'+esc(t)+'"'+(curType===t?' selected':'')+'>'+esc(CAL.TYPES[t].l)+'</option>';}).join('');
+  document.getElementById('cevCard').innerHTML=
+    '<div class="cev-h">'+(ev?'Edit event':'New event')+'<button class="cev-x" data-cevx>\u00d7</button></div>'
+   +'<label class="cev-l">Title</label><input id="cevTitle" class="cev-in" value="'+esc(e.title||'')+'" placeholder="What\u2019s happening">'
+   +'<div class="cev-row"><div><label class="cev-l">Date</label><input id="cevDate" class="cev-in" type="date" value="'+esc(dflt)+'"></div>'
+   +'<div><label class="cev-l">Time \u00b7 optional</label><input id="cevTime" class="cev-in" type="time" value="'+esc(e.time||'')+'"></div></div>'
+   +'<div class="cev-row"><div><label class="cev-l">Type</label><select id="cevType" class="cev-in">'+typeOpts+'</select></div>'
+   +'<div><label class="cev-l">Style</label><select id="cevKind" class="cev-in"><option value="major"'+((e.kind||'major')==='major'?' selected':'')+'>Full-day block</option><option value="meeting"'+(e.kind==='meeting'?' selected':'')+'>Meeting \u00b7 small</option></select></div></div>'
+   +'<label class="cev-l">Project \u00b7 optional</label><input id="cevProj" class="cev-in" value="'+esc(e.proj&&e.proj!=='project'?e.proj:(CAL.projId||''))+'" placeholder="'+esc(CAL.projId||'project')+'">'
+   +'<label class="cev-l">Notes \u00b7 optional</label><textarea id="cevNotes" class="cev-in cev-area" placeholder="Anything to add">'+esc(e.notes||'')+'</textarea>'
+   +'<div class="cev-foot">'+(ev?'<button type="button" class="cev-del" data-cevdel>Delete</button>':'<span></span>')+'<div class="cev-actions"><button type="button" class="cev-cancel" data-cevx>Cancel</button><button type="button" class="cev-save" data-cevsave>'+(ev?'Save':'Add event')+'</button></div></div>'
+   +'<div class="cev-msg" id="cevMsg"></div>';
+  document.querySelectorAll('[data-cevx]').forEach(function(b){b.onclick=calEvClose;});
+  var sv=document.querySelector('[data-cevsave]'); if(sv) sv.onclick=calEvSave;
+  var dl=document.querySelector('[data-cevdel]'); if(dl) dl.onclick=calEvDelete;
+  setTimeout(function(){ try{ document.getElementById('cevTitle').focus(); }catch(_){} },60);
+}
+async function calEvSave(){
+  var msg=document.getElementById('cevMsg');
+  var title=(document.getElementById('cevTitle').value||'').trim();
+  var date=document.getElementById('cevDate').value;
+  var type=document.getElementById('cevType').value;
+  var kind=document.getElementById('cevKind').value;
+  var time=document.getElementById('cevTime').value||null;
+  var proj=(document.getElementById('cevProj').value||'').trim()||CAL.projId||'project';
+  var notes=(document.getElementById('cevNotes').value||'').trim()||null;
+  if(!title){ msg.textContent='Add a title.'; return; }
+  if(!date){ msg.textContent='Pick a date.'; return; }
+  var rec={ review_slug:CONFIG.REVIEW_SLUG, project_id:proj, date:date, type:type, title:title, kind:kind, time:time, notes:notes };
+  msg.textContent='Saving\u2026';
+  try{
+    var res = (CAL.editEv && CAL.editEv.id)
+      ? await sb.from('calendar_events').update(rec).eq('id',CAL.editEv.id)
+      : await sb.from('calendar_events').insert(rec);
+    if(res && res.error){ msg.textContent=(res.error.message||'Could not save')+' \u2014 run calendar-write.sql in Supabase.'; return; }
+  }catch(e){ msg.textContent='Could not save.'; return; }
+  calEvClose(); await calReloadEv();
+}
+async function calEvDelete(){
+  if(!(CAL.editEv && CAL.editEv.id)) return;
+  if(!confirm('Delete this event? This can\u2019t be undone.')) return;
+  try{ var res=await sb.from('calendar_events').delete().eq('id',CAL.editEv.id); if(res&&res.error){ var m=document.getElementById('cevMsg'); if(m) m.textContent=res.error.message||'Could not delete.'; return; } }catch(e){ return; }
+  calEvClose(); await calReloadEv();
+}
 function calWire(){
   var c=document.getElementById('calmount'); if(!c) return;
   c.querySelectorAll('.seg button').forEach(function(b){b.onclick=function(){CAL.view=b.dataset.cv;calRender();};});
@@ -1784,6 +1866,10 @@ function calWire(){
   c.querySelectorAll('.etdel').forEach(function(b){b.onclick=function(){var t=b.closest('.etrow').dataset.ct;var up=CAL.EV.filter(function(e){return e.type===t&&!calIsPast(e);}).length;if(up>0){CAL.pendingDel=t;calRender();}else{calDel(t);}};});
   c.querySelectorAll('[data-cconfirmdel]').forEach(function(b){b.onclick=function(){calDel(b.dataset.cconfirmdel);};});
   var cc=c.querySelector('[data-ccancel]'); if(cc) cc.onclick=function(){CAL.pendingDel=null;calRender();};
+  var nb=c.querySelector('[data-cnew]'); if(nb) nb.onclick=function(){ var dk=(CAL.view==='day'&&CAL.day)?calKey(CAL.day):calTodayK(); calEvOpen(null, dk); };
+  if(typeof ADMIN!=='undefined' && ADMIN){
+    c.querySelectorAll('.cal-ev').forEach(function(el){ el.addEventListener('click', function(ev){ ev.stopPropagation(); var id=el.dataset.eid; var found=CAL.EV.filter(function(x){return String(x.id)===String(id);})[0]; if(found) calEvOpen(found); }); });
+  }
   var ab=c.querySelector('[data-cadd]'); if(ab) ab.onclick=function(){var nm=document.getElementById('calnewN').value.trim(),col=document.getElementById('calnewC').value;if(!nm)return;var slug=nm.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'')||('type'+Date.now());if(CAL.TYPES[slug])slug=slug+'x';CAL.TYPES[slug]={l:nm,c:col};CAL.ORDER.push(slug);calUpsertType(slug);calRender();};
 }
 async function calLoad(projId){
@@ -1844,7 +1930,22 @@ function authRedirect(){ return location.origin+location.pathname+location.hash;
 function signInGoogle(){ try{ sb.auth.signInWithOAuth({ provider:'google', options:{ redirectTo: authRedirect() } }); }catch(e){} }
 async function signInMagic(email){ return sb.auth.signInWithOtp({ email:email, options:{ emailRedirectTo: authRedirect() } }); }
 async function authSignOut(){ try{ await sb.auth.signOut(); }catch(e){} AUTH.user=null; AUTH.profile=null; renderAuthSlot(); if(currentFolder==='partners') loadPartners(); }
-async function loadProfile(){ try{ var r=await sb.from('profiles').select('*').eq('id',AUTH.user.id).maybeSingle(); AUTH.profile=r.data||null; }catch(e){ AUTH.profile=null; } }
+async function loadProfile(){
+  AUTH.profile=null;
+  if(!AUTH.user) return;
+  // Owner/lead first — their identity is in review_settings, and it must win over
+  // any leftover partner row so onboarding never pops and they don't get duplicated.
+  var em=(AUTH.user.email||'').toLowerCase();
+  var ownerEmail=(CONFIG.OWNER_LOGINS||[]).some(function(x){return String(x).toLowerCase()===em;});
+  var d=null;
+  try{ var ro=await sb.from('review_settings').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).maybeSingle(); d=ro&&ro.data; }catch(e){}
+  var ownerUid=d&&d.owner_uid&&d.owner_uid===AUTH.user.id;
+  if(ownerEmail||ownerUid){
+    AUTH.profile={ id:AUTH.user.id, owner:true, full_name:(d&&d.owner_name)||'Supernerd', position:(d&&d.owner_position)||'', company_id:(d&&d.owner_company_id)||'supernerd', avatar_url:(d&&d.owner_avatar_url)||null, phone:(d&&d.owner_phone)||null };
+    return;
+  }
+  try{ var r=await sb.from('profiles').select('*').eq('id',AUTH.user.id).maybeSingle(); AUTH.profile=r.data||null; }catch(e){ AUTH.profile=null; }
+}
 async function authInit(){
   try{ var s=await sb.auth.getSession(); AUTH.user=(s&&s.data&&s.data.session)?s.data.session.user:null; if(AUTH.user) await loadProfile(); }catch(e){}
   AUTH.ready=true; renderAuthSlot(); startPresence();
@@ -1853,7 +1954,7 @@ async function authInit(){
     setTimeout(async function(){
       if(AUTH.user){ await loadProfile(); } else { AUTH.profile=null; }
       renderAuthSlot(); startPresence();
-      if(AUTH.user && !AUTH.profile) openOnboarding();
+      if(AUTH.user && !AUTH.profile && !(typeof ADMIN!=='undefined' && ADMIN)) openOnboarding();
       if(currentFolder==='partners') loadPartners();
     },0);
   });
@@ -2084,7 +2185,7 @@ async function loadPartners(){
 }
 function ppCardHTML(p){
   var c=ppCompany(p.company_id);
-  var logo=c.logo_url?'<span class="logo-mono" style="background:transparent;padding:0"><img src="'+ppEsc(c.logo_url)+'" alt="" style="width:24px;height:24px;border-radius:6px;object-fit:contain"></span>':'<span class="logo-mono" style="background:'+c.color+'">'+ppEsc((ppInitials(c.name)[0]||'').toUpperCase())+'</span>';
+  var logo=c.logo_url?'<span class="logo-mono" style="background:transparent;padding:0;width:34px;height:34px"><img src="'+ppEsc(c.logo_url)+'" alt="" style="width:34px;height:34px;border-radius:7px;object-fit:contain;display:block"></span>':'<span class="logo-mono" style="background:'+c.color+'">'+ppEsc((ppInitials(c.name)[0]||'').toUpperCase())+'</span>';
   var dotKey=p.owner?(p.uid||'__owner__'):p.id;
   var online=PRESENCE.online[dotKey]?' on':'';
   var rm=((typeof ADMIN!=='undefined' && ADMIN) && !p.owner)?'<button class="pc-remove" data-rm="'+ppEsc(p.id)+'" title="Remove from project">\u00d7</button>':'';
@@ -2101,7 +2202,7 @@ function renderPartners(profiles){
     +(COMPANIES_CACHE||[]).filter(function(c){return used[c.id];}).map(function(c){ return '<button class="fchip '+(PP.filter===c.id?'on':'')+'" data-ppf="'+ppEsc(c.id)+'"><span class="lm" style="background:'+c.color+'">'+ppEsc((ppInitials(c.name)[0]||'').toUpperCase())+'</span>'+ppEsc(c.name)+'</button>'; }).join('');
   var invite = ADMIN ? '<button class="pp-invite" id="ppInvite">+ Invite partner</button><div class="invite-pop" id="ppInvitePop" hidden></div>' : '';
   var list=all.filter(function(p){ return PP.filter==='all'||p.company_id===PP.filter; });
-  list.sort(function(a,b){ return (b.owner?1:0)-(a.owner?1:0); });
+  list.sort(function(a,b){ return (b.owner?1:0)-(a.owner?1:0) || String(a.full_name||'').localeCompare(String(b.full_name||'')); });
   m.innerHTML='<div class="pp-top"><div class="pp-filter">'+chips+'</div>'+invite+'</div><div class="pgrid">'+list.map(ppCardHTML).join('')+'</div>';
   m.querySelectorAll('.fchip').forEach(function(b){ b.onclick=function(){ PP.filter=b.dataset.ppf; renderPartners(PP.profiles); }; });
   m.querySelectorAll('.pcard').forEach(function(card){ card.onclick=function(e){ if(e.target.closest && e.target.closest('.pc-remove')) return; openCard(card.dataset.pid); }; });
