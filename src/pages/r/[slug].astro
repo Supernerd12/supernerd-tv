@@ -918,7 +918,7 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
   .cr-actions{margin-top:18px;display:flex;gap:12px;justify-content:center}
 /* v12 — onboarding company logo upload */
 .logo-row{display:flex;align-items:center;gap:13px}
-.logo-prev{width:54px;height:54px;flex:0 0 auto;border-radius:11px;border:1.5px dashed var(--line);background:#0c0d0e;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:18px}
+.logo-prev{width:54px;height:54px;flex:0 0 auto;border-radius:11px;border:1.5px dashed var(--line);background-color:#0c0d0e;background-size:contain;background-repeat:no-repeat;background-position:center;background-origin:content-box;padding:7px;display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:18px}
 .logo-up{background:rgba(236,236,234,.06);border:1px solid var(--line);color:var(--bone);font-family:var(--mono);font-size:11px;letter-spacing:.04em;border-radius:10px;padding:10px 15px;cursor:pointer;transition:border-color .15s,background .15s}
 .logo-up:hover{border-color:rgba(186,192,30,.55);color:var(--green);background:rgba(186,192,30,.08)}
 </style>
@@ -1931,7 +1931,7 @@ function wireOnb(){
   var logoPrev=document.getElementById('logoPrev'),logoBtn=document.getElementById('logoBtn'),logoFile=document.getElementById('logoFile');
   if(logoBtn&&logoFile){
     logoBtn.onclick=function(){ logoFile.click(); };
-    logoFile.onchange=function(){ var f=logoFile.files[0]; if(!f) return; ppPendingLogo=f; var u=URL.createObjectURL(f); logoPrev.style.backgroundImage='url('+u+')'; logoPrev.style.backgroundSize='cover'; logoPrev.style.backgroundPosition='center'; logoPrev.textContent=''; logoBtn.textContent='Replace logo'; logoFile.value=''; };
+    logoFile.onchange=function(){ var f=logoFile.files[0]; if(!f) return; ppPendingLogo=f; var u=URL.createObjectURL(f); logoPrev.style.backgroundImage='url('+u+')'; logoPrev.style.backgroundSize='contain'; logoPrev.style.backgroundRepeat='no-repeat'; logoPrev.style.backgroundPosition='center'; logoPrev.textContent=''; logoBtn.textContent='Replace logo'; logoFile.value=''; };
   }
   var fName=document.getElementById('fName'),fRole=document.getElementById('fRole'),fPhone=document.getElementById('fPhone'),fComp=document.getElementById('fComp'),joinBtn=document.getElementById('joinBtn');
   function gate(){ joinBtn.disabled=!(fName.value.trim()&&fRole.value.trim()&&fComp.value.trim()); }
@@ -2084,7 +2084,7 @@ async function loadPartners(){
 }
 function ppCardHTML(p){
   var c=ppCompany(p.company_id);
-  var logo=c.logo_url?'<span class="logo-mono" style="background:transparent;padding:0"><img src="'+ppEsc(c.logo_url)+'" alt="" style="width:24px;height:24px;border-radius:6px;object-fit:cover"></span>':'<span class="logo-mono" style="background:'+c.color+'">'+ppEsc((ppInitials(c.name)[0]||'').toUpperCase())+'</span>';
+  var logo=c.logo_url?'<span class="logo-mono" style="background:transparent;padding:0"><img src="'+ppEsc(c.logo_url)+'" alt="" style="width:24px;height:24px;border-radius:6px;object-fit:contain"></span>':'<span class="logo-mono" style="background:'+c.color+'">'+ppEsc((ppInitials(c.name)[0]||'').toUpperCase())+'</span>';
   var dotKey=p.owner?(p.uid||'__owner__'):p.id;
   var online=PRESENCE.online[dotKey]?' on':'';
   var rm=((typeof ADMIN!=='undefined' && ADMIN) && !p.owner)?'<button class="pc-remove" data-rm="'+ppEsc(p.id)+'" title="Remove from project">\u00d7</button>':'';

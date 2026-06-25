@@ -97,7 +97,7 @@ const ADMIN_KEY    = "sn-admin-7yq4";
   .ilog .ok{color:var(--green)}.ilog .er{color:#e5757a}.ilog .pend{color:var(--dim)}
   .note{font-family:var(--mono);font-size:11px;color:var(--dim);text-align:center;margin-top:18px;line-height:1.6}
 .logo-row{display:flex;align-items:center;gap:13px}
-  .logo-prev{width:54px;height:54px;flex:0 0 auto;border-radius:11px;border:1.5px dashed var(--line);background:#0c0d0e;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:18px}
+  .logo-prev{width:54px;height:54px;flex:0 0 auto;border-radius:11px;border:1.5px dashed var(--line);background-color:#0c0d0e;background-size:contain;background-repeat:no-repeat;background-position:center;background-origin:content-box;padding:7px;display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:18px}
   .logo-up{background:rgba(236,236,234,.06);border:1px solid var(--line);color:var(--bone);font-family:var(--mono);font-size:11px;letter-spacing:.04em;border-radius:10px;padding:11px 15px;cursor:pointer;transition:border-color .15s,background .15s}
   .logo-up:hover{border-color:rgba(186,192,30,.55);color:var(--green);background:rgba(186,192,30,.08)}
     /* onboarding wizard takeover */
@@ -294,7 +294,7 @@ const ADMIN_KEY    = "sn-admin-7yq4";
       }
       if(i===1){
         var sugg=COMPANIES.map(function(c){ return '<option value="'+esc(c.name)+'">'; }).join('');
-        var ls=OB.companyLogo?'background-image:url('+OB.companyLogo+');background-size:cover;background-position:center':'';
+        var ls=OB.companyLogo?'background-image:url('+OB.companyLogo+');background-size:contain;background-repeat:no-repeat;background-position:center':'';
         return '<div class="ob-eyebrow" style="--i:0">Step 2 of 3</div>'
           +'<h2 class="ob-h" style="--i:1">Where you work</h2>'
           +'<p class="ob-p" style="--i:2">Your company shows on your partner card. Phone is optional.</p>'
@@ -340,7 +340,7 @@ const ADMIN_KEY    = "sn-admin-7yq4";
         nx.onclick=function(){ if(nx.disabled)return; sync1(); go(2); };
         var lp=document.getElementById('obLogoPrev'),lb=document.getElementById('obLogoBtn'),lf=document.getElementById('obLogoFile');
         lb.onclick=function(){ lf.click(); };
-        lf.onchange=function(){ var f=lf.files[0]; if(!f)return; PENDING_LOGO=f; var u=URL.createObjectURL(f); lp.style.backgroundImage='url('+u+')'; lp.style.backgroundSize='cover'; lp.style.backgroundPosition='center'; lp.textContent=''; lb.textContent='Replace logo'; lf.value=''; };
+        lf.onchange=function(){ var f=lf.files[0]; if(!f)return; PENDING_LOGO=f; var u=URL.createObjectURL(f); lp.style.backgroundImage='url('+u+')'; lp.style.backgroundSize='contain'; lp.style.backgroundRepeat='no-repeat'; lp.style.backgroundPosition='center'; lp.textContent=''; lb.textContent='Replace logo'; lf.value=''; };
       } else {
         document.getElementById('obBack').onclick=function(){ go(1); };
         var drop=document.getElementById('obDrop'),file=document.getElementById('obFile');
