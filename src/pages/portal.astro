@@ -103,7 +103,7 @@ const ADMIN_KEY    = "sn-admin-7yq4";
     /* onboarding wizard takeover */
     .ob{position:fixed;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;padding:26px;clip-path:inset(0 0 100% 0);transition:clip-path .62s cubic-bezier(.76,0,.24,1)}
     .ob.show{clip-path:inset(0 0 0% 0)}
-    .ob-scrim{position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 38%, rgba(6,7,6,.6), rgba(5,5,5,.95));-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+    .ob-scrim{position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 36%, #0b0c0a 0%, #070806 46%, #050505 100%);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
     .ob-inner{position:relative;z-index:1;width:100%;max-width:432px}
     .ob-mark{display:block;width:84px;height:auto;opacity:.92;margin:0 auto 22px}
     .ob-prog{display:flex;gap:8px;justify-content:center;margin-bottom:32px;min-height:3px}
@@ -228,11 +228,13 @@ const ADMIN_KEY    = "sn-admin-7yq4";
   }
 
   function render(){
+    if(document.getElementById('ob')) return;        // wizard owns the screen; don't redraw behind it
+    var br=document.querySelector('.brand'); if(br) br.style.visibility='';
     if(ADMIN) return renderAdmin();
-    if(!EMAIL) return renderGate();
-    if(!INVITE && !PROFILE) return renderBlocked();
-    if(!PROFILE) return renderOnboard();
-    return renderBack();
+    if(!EMAIL) return renderGate();                   // LOG IN — the front door, always
+    if(!INVITE && !PROFILE) return renderBlocked();   // signed in, not invited
+    if(!PROFILE) return renderSignedIn();             // signed in + invited, not onboarded yet
+    return renderBack();                              // signed in + onboarded
   }
 
   function gsvg(){ return '<svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.6 2.4 30.2 0 24 0 14.6 0 6.4 5.4 2.6 13.2l7.9 6.1C12.4 13.2 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.1 5.4-4.6 7l7.1 5.5c4.2-3.9 6.6-9.6 6.6-17z"/><path fill="#FBBC05" d="M10.5 28.3a14.5 14.5 0 0 1 0-8.6l-7.9-6.1a24 24 0 0 0 0 20.8l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.5l-7.1-5.5c-2 1.3-4.6 2.1-8.1 2.1-6.3 0-11.6-3.7-13.5-9l-7.9 6.1C6.4 42.6 14.6 48 24 48z"/></svg>'; }
@@ -267,6 +269,17 @@ const ADMIN_KEY    = "sn-admin-7yq4";
     document.getElementById("out").onclick=async function(){ await sb.auth.signOut(); location.href="/portal"; };
   }
 
+  function renderSignedIn(){
+    var ob=document.getElementById('ob'); if(ob) ob.remove();
+    stage.innerHTML='<div class="panel center"><div class="tick">\u2713</div>'
+      +'<h1 style="text-align:center;font-size:21px">You\u2019re signed in</h1>'
+      +'<div class="sub" style="text-align:center">Signed in as <b style="color:var(--bone)">'+esc(EMAIL)+'</b>. One quick step before you enter \u2014 set up your profile so the team can tag you in notes and approvals.</div>'
+      +'<button class="cta" id="start">Set up your profile</button></div>'
+      +'<div class="foot"><button class="ghost" id="out">Not you? Sign out</button></div>';
+    document.getElementById("start").onclick=function(){ EDIT=null; renderOnboard(); };
+    document.getElementById("out").onclick=async function(){ await sb.auth.signOut(); location.href="/portal"; };
+  }
+
   function renderOnboard(){
     if(document.getElementById('ob')) return;
     var e=EDIT||{};
@@ -276,11 +289,13 @@ const ADMIN_KEY    = "sn-admin-7yq4";
       companyLogo:(curCo&&curCo.logo_url)||'', avatar:e.avatar_url||'' };
     PENDING=null; PENDING_LOGO=null;
     var TOTAL=3;
+    var brand=document.querySelector('.brand'); if(brand) brand.style.visibility='hidden';
+    stage.innerHTML='';
     var ov=document.createElement('div'); ov.className='ob'; ov.id='ob';
-    ov.innerHTML='<div class="ob-scrim"></div>'+(EDIT?'<button class="ob-close" id="obClose" aria-label="Close">\u00d7</button>':'')+'<div class="ob-inner"><img class="ob-mark" src="/portal-logo.png" alt=""><div class="ob-prog" id="obProg"></div><div class="ob-stage" id="obStage"></div></div>';
+    ov.innerHTML='<div class="ob-scrim"></div><button class="ob-close" id="obClose" aria-label="Back">\u00d7</button><div class="ob-inner"><img class="ob-mark" src="/portal-logo.png" alt=""><div class="ob-prog" id="obProg"></div><div class="ob-stage" id="obStage"></div></div>';
     document.body.appendChild(ov);
     requestAnimationFrame(function(){ ov.classList.add('show'); });
-    var clo=document.getElementById('obClose'); if(clo) clo.onclick=function(){ EDIT=null; ov.remove(); render(); };
+    document.getElementById('obClose').onclick=function(){ EDIT=null; ov.remove(); if(brand) brand.style.visibility=''; render(); };
 
     function progDots(){ var h=''; for(var i=0;i<TOTAL;i++){ h+='<span class="ob-dot'+(i===OB.step?' on':'')+(i<OB.step?' done':'')+'"></span>'; } var pe=document.getElementById('obProg'); if(pe) pe.innerHTML=h; }
     function stepHTML(i){
