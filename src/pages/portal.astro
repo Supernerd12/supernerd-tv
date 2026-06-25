@@ -100,6 +100,40 @@ const ADMIN_KEY    = "sn-admin-7yq4";
   .logo-prev{width:54px;height:54px;flex:0 0 auto;border-radius:11px;border:1.5px dashed var(--line);background:#0c0d0e;background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;color:var(--dim);font-size:18px}
   .logo-up{background:rgba(236,236,234,.06);border:1px solid var(--line);color:var(--bone);font-family:var(--mono);font-size:11px;letter-spacing:.04em;border-radius:10px;padding:11px 15px;cursor:pointer;transition:border-color .15s,background .15s}
   .logo-up:hover{border-color:rgba(186,192,30,.55);color:var(--green);background:rgba(186,192,30,.08)}
+    /* onboarding wizard takeover */
+    .ob{position:fixed;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;padding:26px;clip-path:inset(0 0 100% 0);transition:clip-path .62s cubic-bezier(.76,0,.24,1)}
+    .ob.show{clip-path:inset(0 0 0% 0)}
+    .ob-scrim{position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 38%, rgba(6,7,6,.6), rgba(5,5,5,.95));-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+    .ob-inner{position:relative;z-index:1;width:100%;max-width:432px}
+    .ob-mark{display:block;width:84px;height:auto;opacity:.92;margin:0 auto 22px}
+    .ob-prog{display:flex;gap:8px;justify-content:center;margin-bottom:32px;min-height:3px}
+    .ob-dot{width:26px;height:3px;border-radius:2px;background:rgba(236,236,234,.16);transition:background .3s}
+    .ob-dot.on{background:var(--green)}
+    .ob-dot.done{background:rgba(186,192,30,.5)}
+    .ob-stage{position:relative}
+    .ob-step>*{opacity:0;animation:obIn .5s cubic-bezier(.2,.7,.2,1) forwards;animation-delay:calc(var(--i,0)*68ms)}
+    .ob-step.back>*{animation-name:obInBack}
+    @keyframes obIn{from{opacity:0;transform:translateX(34px)}to{opacity:1;transform:none}}
+    @keyframes obInBack{from{opacity:0;transform:translateX(-34px)}to{opacity:1;transform:none}}
+    .ob-step.leaving>*{animation:obOut .3s cubic-bezier(.4,0,.2,1) forwards;animation-delay:calc(var(--i,0)*32ms)}
+    .ob-step.leaving.back>*{animation-name:obOutBack}
+    @keyframes obOut{to{opacity:0;transform:translateX(-42px)}}
+    @keyframes obOutBack{to{opacity:0;transform:translateX(42px)}}
+    .ob-eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--green);margin-bottom:14px;text-align:center}
+    .ob-h{font-size:29px;font-weight:800;letter-spacing:-.03em;margin:0 0 10px;text-align:center;line-height:1.06}
+    .ob-p{font-family:var(--mono);font-size:12px;color:var(--dim);line-height:1.65;margin:0 auto 26px;text-align:center;max-width:330px}
+    .ob-f{margin-bottom:16px}
+    .ob-avwrap{display:flex;justify-content:center;margin-bottom:6px}
+    .ob-drop{width:142px;height:142px;border-radius:50%;border:1.5px dashed var(--line);display:flex;align-items:center;justify-content:center;cursor:pointer;background-size:cover;background-position:center;color:var(--dim);font-family:var(--mono);font-size:12px;text-align:center;transition:border-color .15s}
+    .ob-drop:hover{border-color:rgba(186,192,30,.55);color:var(--green)}
+    .ob-nav{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:24px}
+    .ob-nav .cta{width:auto;flex:1;padding:15px 22px}
+    .ob-back{background:none;border:1px solid var(--line);color:var(--dim);font-family:var(--mono);font-size:12px;border-radius:13px;padding:14px 20px;cursor:pointer;transition:border-color .15s,color .15s}
+    .ob-back:hover{border-color:rgba(236,236,234,.3);color:var(--bone)}
+    .ob-tick{width:64px;height:64px;border-radius:50%;margin:0 auto 18px;display:flex;align-items:center;justify-content:center;background:rgba(186,192,30,.14);border:1px solid rgba(186,192,30,.5);color:var(--green);font-size:30px}
+    .cta:disabled{opacity:.4;cursor:not-allowed;transform:none}
+    .ob-close{position:absolute;top:22px;right:24px;z-index:2;width:38px;height:38px;border-radius:50%;background:rgba(20,21,24,.6);border:1px solid var(--line);color:var(--bone);font-size:20px;cursor:pointer;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+    .ob-close:hover{border-color:rgba(255,255,255,.26)}
     .cr-ov{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(4,5,4,.92);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
   .cr-card{width:100%;max-width:330px;border-radius:22px;padding:26px;background:var(--panel);-webkit-backdrop-filter:blur(22px) saturate(150%);backdrop-filter:blur(22px) saturate(150%);border:1px solid var(--line);box-shadow:0 40px 120px -40px #000;text-align:center}
   .cr-title{font-size:19px;font-weight:800;letter-spacing:-.02em}
@@ -234,51 +268,107 @@ const ADMIN_KEY    = "sn-admin-7yq4";
   }
 
   function renderOnboard(){
-    var p=EDIT||{};
-    var sugg=COMPANIES.map(function(c){ return '<option value="'+esc(c.name)+'">'; }).join('');
-    var curCo=p.company_id?company(p.company_id):null;
-    var cname=curCo?(curCo.name||p.company_id||""):"";
-    var curLogo=(curCo&&curCo.logo_url)||"";
-    var drop=p.avatar_url?'background-image:url('+p.avatar_url+')':'';
-    var logoStyle=curLogo?'background-image:url('+curLogo+');background-size:cover;background-position:center':'';
-    stage.innerHTML='<div class="panel"><h1>'+(EDIT?"Edit your profile":"Finish onboarding")+'</h1>'
-      +'<div class="sub">'+(EDIT?"Update how you appear to the team.":"You\u2019ve opened your invite link \u2014 add your details so the team can tag you in notes and approvals.")+'</div>'
-      +'<div class="av"><div class="drop" id="drop" style="'+drop+'">'+(drop?"":"+ Add<br>photo")+'</div><div class="tx">A clear headshot helps people recognise you in comments.<br><span style="opacity:.7">Optional \u2014 initials are used otherwise.</span></div><input type="file" id="file" accept="image/*" hidden></div>'
-      +'<div class="fld"><label>Full name</label><input id="nm" placeholder="Jordan Rivera" value="'+esc(p.full_name||"")+'"></div>'
-      +'<div class="fld"><label>Job position</label><input id="rl" placeholder="Creative Director" value="'+esc(p.position||"")+'"></div>'
-      +'<div class="fld"><label>Phone <span style="opacity:.5">optional</span></label><input id="ph" type="tel" placeholder="(917) 555-0148" value="'+esc(p.phone||"")+'"></div>'
-      +'<div class="fld"><label>Company</label><input id="co" list="coList" autocomplete="off" placeholder="Your company" value="'+esc(cname)+'"><datalist id="coList">'+sugg+'</datalist></div>'
-      +'<div class="fld"><label>Company logo <span style="opacity:.5">optional</span></label><div class="logo-row"><div class="logo-prev" id="logoPrev" style="'+logoStyle+'">'+(logoStyle?"":"\u25a2")+'</div><button type="button" class="logo-up" id="logoBtn">'+(logoStyle?"Replace logo":"Upload logo")+'</button><input type="file" id="logoFile" accept="image/*" hidden></div></div>'
-      +'<button class="cta" id="save"'+(EDIT?"":" disabled")+'>'+(EDIT?"Save profile":"Join the project")+'</button>'
-      +'<div class="msg" id="m"></div></div>';
-    var drz=document.getElementById("drop"), file=document.getElementById("file");
-    drz.onclick=function(){ file.click(); };
-    file.onchange=function(){ var f=file.files[0]; if(!f) return; openCropper(f,function(out,purl){ PENDING=out; drz.style.backgroundImage="url("+purl+")"; drz.innerHTML=""; }); file.value=""; };
-    var logoPrev=document.getElementById("logoPrev"), logoBtn=document.getElementById("logoBtn"), logoFile=document.getElementById("logoFile");
-    logoBtn.onclick=function(){ logoFile.click(); };
-    logoFile.onchange=function(){ var f=logoFile.files[0]; if(!f) return; PENDING_LOGO=f; var u=URL.createObjectURL(f); logoPrev.style.backgroundImage="url("+u+")"; logoPrev.style.backgroundSize="cover"; logoPrev.style.backgroundPosition="center"; logoPrev.textContent=""; logoBtn.textContent="Replace logo"; logoFile.value=""; };
-    var nm=document.getElementById("nm"), rl=document.getElementById("rl"), co=document.getElementById("co"), save=document.getElementById("save"), m=document.getElementById("m");
-    function gate(){ save.disabled=!(nm.value.trim()&&rl.value.trim()&&co.value.trim()); }
-    [nm,rl,co].forEach(function(el){ el.oninput=gate; });
-    save.onclick=async function(){
-      save.disabled=true; save.textContent="Saving\u2026"; m.className="msg";
-      var cname=co.value.trim();
-      var existing=COMPANIES.find(function(c){ return (c.name||"").toLowerCase()===cname.toLowerCase(); });
-      var cid=existing?existing.id:(cname.toLowerCase().replace(/[^a-z0-9]+/g,"_")||("co"+Date.now()));
-      var logoUrl=null;
-      if(PENDING_LOGO){ logoUrl=await ppUploadLogo(PENDING_LOGO, cid); }
-      var coRow={review_slug:slug(),id:cid,name:cname}; if(logoUrl) coRow.logo_url=logoUrl;
-      try{ await sb.from("companies").upsert(coRow,{onConflict:"review_slug,id"}); }catch(e){}
+    if(document.getElementById('ob')) return;
+    var e=EDIT||{};
+    var curCo=e.company_id?company(e.company_id):null;
+    var OB={ step:0, dir:1, name:e.full_name||'', role:e.position||'',
+      phone:e.phone||'', company:(curCo?(curCo.name||e.company_id||''):''),
+      companyLogo:(curCo&&curCo.logo_url)||'', avatar:e.avatar_url||'' };
+    PENDING=null; PENDING_LOGO=null;
+    var TOTAL=3;
+    var ov=document.createElement('div'); ov.className='ob'; ov.id='ob';
+    ov.innerHTML='<div class="ob-scrim"></div>'+(EDIT?'<button class="ob-close" id="obClose" aria-label="Close">\u00d7</button>':'')+'<div class="ob-inner"><img class="ob-mark" src="/portal-logo.png" alt=""><div class="ob-prog" id="obProg"></div><div class="ob-stage" id="obStage"></div></div>';
+    document.body.appendChild(ov);
+    requestAnimationFrame(function(){ ov.classList.add('show'); });
+    var clo=document.getElementById('obClose'); if(clo) clo.onclick=function(){ EDIT=null; ov.remove(); render(); };
+
+    function progDots(){ var h=''; for(var i=0;i<TOTAL;i++){ h+='<span class="ob-dot'+(i===OB.step?' on':'')+(i<OB.step?' done':'')+'"></span>'; } var pe=document.getElementById('obProg'); if(pe) pe.innerHTML=h; }
+    function stepHTML(i){
+      if(i===0){
+        return '<div class="ob-eyebrow" style="--i:0">Step 1 of 3</div>'
+          +'<h2 class="ob-h" style="--i:1">Let\u2019s introduce you</h2>'
+          +'<p class="ob-p" style="--i:2">This is how the team will see you in notes and approvals.</p>'
+          +'<div class="ob-f" style="--i:3"><label>Full name</label><input id="obName" placeholder="Jordan Rivera" value="'+esc(OB.name)+'"></div>'
+          +'<div class="ob-f" style="--i:4"><label>Job position</label><input id="obRole" placeholder="Creative Director" value="'+esc(OB.role)+'"></div>'
+          +'<div class="ob-nav" style="--i:5"><span></span><button class="cta" id="obNext">Continue</button></div>';
+      }
+      if(i===1){
+        var sugg=COMPANIES.map(function(c){ return '<option value="'+esc(c.name)+'">'; }).join('');
+        var ls=OB.companyLogo?'background-image:url('+OB.companyLogo+');background-size:cover;background-position:center':'';
+        return '<div class="ob-eyebrow" style="--i:0">Step 2 of 3</div>'
+          +'<h2 class="ob-h" style="--i:1">Where you work</h2>'
+          +'<p class="ob-p" style="--i:2">Your company shows on your partner card. Phone is optional.</p>'
+          +'<div class="ob-f" style="--i:3"><label>Phone <span style="opacity:.5">optional</span></label><input id="obPhone" type="tel" placeholder="(917) 555-0148" value="'+esc(OB.phone)+'"></div>'
+          +'<div class="ob-f" style="--i:4"><label>Company</label><input id="obComp" list="obCoList" autocomplete="off" placeholder="Your company" value="'+esc(OB.company)+'"><datalist id="obCoList">'+sugg+'</datalist></div>'
+          +'<div class="ob-f" style="--i:5"><label>Company logo <span style="opacity:.5">optional</span></label><div class="logo-row"><div class="logo-prev" id="obLogoPrev" style="'+ls+'">'+(ls?'':'\u25a2')+'</div><button type="button" class="logo-up" id="obLogoBtn">'+(ls?'Replace logo':'Upload logo')+'</button><input type="file" id="obLogoFile" accept="image/*" hidden></div></div>'
+          +'<div class="ob-nav" style="--i:6"><button class="ob-back" id="obBack">Back</button><button class="cta" id="obNext">Continue</button></div>';
+      }
+      var drop=OB.avatar?'background-image:url('+OB.avatar+');background-size:cover;background-position:center':'';
+      return '<div class="ob-eyebrow" style="--i:0">Step 3 of 3</div>'
+        +'<h2 class="ob-h" style="--i:1">Put a face to the name</h2>'
+        +'<p class="ob-p" style="--i:2">A clear headshot helps people recognise you in comments. Optional \u2014 initials are used otherwise.</p>'
+        +'<div class="ob-avwrap" style="--i:3"><div class="ob-drop" id="obDrop" style="'+drop+'">'+(drop?'':'+ Add<br>photo')+'</div></div>'
+        +'<input type="file" id="obFile" accept="image/*" hidden>'
+        +'<div class="ob-nav" style="--i:4"><button class="ob-back" id="obBack">Back</button><button class="cta" id="obFinish">Finish \u00b7 enter portal</button></div>'
+        +'<div class="msg" id="obMsg" style="--i:5;text-align:center"></div>';
+    }
+    function paint(){
+      var st=document.getElementById('obStage'); if(!st) return;
+      var div=document.createElement('div'); div.className='ob-step'+(OB.dir<0?' back':''); div.innerHTML=stepHTML(OB.step);
+      st.innerHTML=''; st.appendChild(div); progDots(); wire();
+    }
+    function go(to){
+      var cur=document.getElementById('obStage').querySelector('.ob-step');
+      OB.dir=to>OB.step?1:-1;
+      if(cur){ cur.classList.add('leaving'); if(OB.dir<0) cur.classList.add('back'); }
+      setTimeout(function(){ OB.step=to; paint(); }, 300);
+    }
+    function sync0(){ var n=document.getElementById('obName'),r=document.getElementById('obRole'); if(n)OB.name=n.value; if(r)OB.role=r.value; }
+    function sync1(){ var p=document.getElementById('obPhone'),c=document.getElementById('obComp'); if(p)OB.phone=p.value; if(c)OB.company=c.value; }
+    function wire(){
+      if(OB.step===0){
+        var n=document.getElementById('obName'),r=document.getElementById('obRole'),nx=document.getElementById('obNext');
+        function g(){ nx.disabled=!(n.value.trim()&&r.value.trim()); }
+        n.oninput=g; r.oninput=g; g();
+        nx.onclick=function(){ if(nx.disabled)return; sync0(); go(1); };
+        setTimeout(function(){ try{ n.focus(); }catch(_){} },420);
+      } else if(OB.step===1){
+        var c=document.getElementById('obComp'),nx=document.getElementById('obNext');
+        function g(){ nx.disabled=!c.value.trim(); }
+        c.oninput=g; g();
+        document.getElementById('obBack').onclick=function(){ sync1(); go(0); };
+        nx.onclick=function(){ if(nx.disabled)return; sync1(); go(2); };
+        var lp=document.getElementById('obLogoPrev'),lb=document.getElementById('obLogoBtn'),lf=document.getElementById('obLogoFile');
+        lb.onclick=function(){ lf.click(); };
+        lf.onchange=function(){ var f=lf.files[0]; if(!f)return; PENDING_LOGO=f; var u=URL.createObjectURL(f); lp.style.backgroundImage='url('+u+')'; lp.style.backgroundSize='cover'; lp.style.backgroundPosition='center'; lp.textContent=''; lb.textContent='Replace logo'; lf.value=''; };
+      } else {
+        document.getElementById('obBack').onclick=function(){ go(1); };
+        var drop=document.getElementById('obDrop'),file=document.getElementById('obFile');
+        drop.onclick=function(){ file.click(); };
+        file.onchange=function(){ var f=file.files[0]; if(!f)return; openCropper(f,function(out,purl){ PENDING=out; OB.avatar=purl; drop.style.backgroundImage='url('+purl+')'; drop.style.backgroundSize='cover'; drop.style.backgroundPosition='center'; drop.innerHTML=''; }); file.value=''; };
+        document.getElementById('obFinish').onclick=save;
+      }
+    }
+    async function save(){
+      var fin=document.getElementById('obFinish'), m=document.getElementById('obMsg');
+      fin.disabled=true; fin.textContent='Saving\u2026'; if(m){ m.className='msg'; m.textContent=''; }
+      var cname=(OB.company||'').trim();
+      var existing=COMPANIES.find(function(c){ return (c.name||'').toLowerCase()===cname.toLowerCase(); });
+      var cid=existing?existing.id:(cname.toLowerCase().replace(/[^a-z0-9]+/g,'_')||('co'+Date.now()));
+      var logoUrl=null; if(PENDING_LOGO){ logoUrl=await ppUploadLogo(PENDING_LOGO,cid); }
+      if(cname){ var coRow={review_slug:slug(),id:cid,name:cname}; if(logoUrl) coRow.logo_url=logoUrl; try{ await sb.from('companies').upsert(coRow,{onConflict:'review_slug,id'}); }catch(e){} }
       var avatarUrl=(EDIT&&EDIT.avatar_url)||null;
-      if(PENDING){ try{ var ext=(PENDING.name&&PENDING.name.indexOf(".")>=0)?PENDING.name.split(".").pop().toLowerCase():"png"; var path=SESSION.user.id+"/"+Date.now()+"."+ext; var up=await sb.storage.from("avatars").upload(path,PENDING,{upsert:true,cacheControl:"3600"}); if(!up.error){ avatarUrl=sb.storage.from("avatars").getPublicUrl(path).data.publicUrl; } }catch(e){} }
-      var phEl=document.getElementById("ph");
-      var row={ id:SESSION.user.id, review_slug:slug(), email:SESSION.user.email, full_name:nm.value.trim(), position:rl.value.trim(), phone:phEl?phEl.value.trim():null, company_id:cid, avatar_url:avatarUrl, updated_at:new Date().toISOString() };
-      var err=null; try{ var r=await sb.from("profiles").upsert(row,{onConflict:"id"}); if(r.error) err=r.error; }catch(e){ err=e; }
-      if(err){ m.className="msg err"; m.textContent=(/row-level|policy/i.test(err.message||"")?"This email isn\u2019t invited to onboard. Ask Supernerd for an invite.":"Could not save: "+(err.message||"try again")); save.disabled=false; save.textContent=EDIT?"Save profile":"Join the project"; return; }
+      if(PENDING){ try{ var ext=(PENDING.name&&PENDING.name.indexOf('.')>=0)?PENDING.name.split('.').pop().toLowerCase():'png'; var path=SESSION.user.id+'/'+Date.now()+'.'+ext; var up=await sb.storage.from('avatars').upload(path,PENDING,{upsert:true,cacheControl:'3600'}); if(!up.error){ avatarUrl=sb.storage.from('avatars').getPublicUrl(path).data.publicUrl; } }catch(e){} }
+      var row={ id:SESSION.user.id, review_slug:slug(), email:SESSION.user.email, full_name:(OB.name||'').trim(), position:(OB.role||'').trim(), phone:(OB.phone||'').trim(), company_id:cname?cid:null, avatar_url:avatarUrl, updated_at:new Date().toISOString() };
+      var err=null; try{ var r=await sb.from('profiles').upsert(row,{onConflict:'id'}); if(r.error) err=r.error; }catch(e){ err=e; }
+      if(err){ if(m){ m.className='msg err'; m.textContent=(/row-level|policy/i.test(err.message||'')?'This email isn\u2019t invited to onboard. Ask Supernerd for an invite.':'Could not save: '+(err.message||'try again')); } fin.disabled=false; fin.textContent='Finish \u00b7 enter portal'; return; }
       PROFILE=row; EDIT=null;
-      stage.innerHTML='<div class="panel center"><div class="tick">\u2713</div><h1 style="text-align:center">You\u2019re in, '+esc(row.full_name.split(/\s+/)[0])+'!</h1><div class="sub" style="text-align:center">Your partner card is live. Supernerd has been notified.</div><button class="cta" id="enter">Enter the portal</button></div>';
-      document.getElementById("enter").onclick=goPortal;
-    };
+      var st=document.getElementById('obStage');
+      st.innerHTML='<div class="ob-step"><div class="ob-tick" style="--i:0">\u2713</div><h2 class="ob-h" style="--i:1">You\u2019re in, '+esc((row.full_name||'there').split(/\s+/)[0])+'!</h2><p class="ob-p" style="--i:2">Your partner card is live. Supernerd has been notified.</p><div class="ob-nav" style="--i:3"><span></span><button class="cta" id="obEnter">Enter the portal</button></div></div>';
+      var pe=document.getElementById('obProg'); if(pe) pe.innerHTML='';
+      document.getElementById('obEnter').onclick=goPortal;
+    }
+    paint();
   }
   async function ppUploadLogo(file, cid){
     try{

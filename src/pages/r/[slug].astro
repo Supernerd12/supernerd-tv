@@ -2053,12 +2053,25 @@ function openProfileMenu(e){
   m.innerHTML='<div class="prof-head"><div class="pn">'+ppEsc(nm)+'</div><div class="pr">'+ppEsc(rl)+(co?' \u00b7 '+ppEsc(co):'')+'</div></div><button type="button" id="pmEdit">Edit profile</button><button type="button" id="pmLogout" class="logout">Log out</button>';
   document.body.appendChild(m);
   if(btn){ var r=btn.getBoundingClientRect(); m.style.position='fixed'; m.style.top=(r.bottom+8)+'px'; m.style.right=Math.max(8,(window.innerWidth-r.right))+'px'; m.style.left='auto'; m.style.marginTop='0'; m.style.zIndex='200'; }
-  m.querySelector('#pmEdit').addEventListener('click', function(ev){ ev.preventDefault(); ev.stopPropagation(); closeProfMenu(); openOnboarding(AUTH.profile||{}); });
+  m.querySelector('#pmEdit').addEventListener('click', function(ev){ ev.preventDefault(); ev.stopPropagation(); closeProfMenu(); editMe(); });
   m.querySelector('#pmLogout').addEventListener('click', function(ev){ ev.preventDefault(); ev.stopPropagation(); closeProfMenu(); authSignOut(); });
   setTimeout(function(){ document.addEventListener('click', closeProfOnce, true); window.addEventListener('resize', closeProfMenu); window.addEventListener('scroll', closeProfMenu, true); },0);
 }
 function closeProfMenu(){ var m=document.getElementById('profMenu'); if(m) m.remove(); document.removeEventListener('click', closeProfOnce, true); window.removeEventListener('resize', closeProfMenu); window.removeEventListener('scroll', closeProfMenu, true); }
 function closeProfOnce(e){ var m=document.getElementById('profMenu'); if(!m){ document.removeEventListener('click', closeProfOnce, true); return; } if(m.contains(e.target)) return; if(e.target.closest && e.target.closest('#profBtn')) return; closeProfMenu(); }
+async function editMe(){
+  if(!AUTH.user) return;
+  var tgt=null;
+  try{
+    var ro=await sb.from('review_settings').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).maybeSingle();
+    if(ro && ro.data && ro.data.owner_uid && ro.data.owner_uid===AUTH.user.id){
+      tgt={ id:'__owner__', uid:ro.data.owner_uid, owner:true, full_name:ro.data.owner_name||'', position:ro.data.owner_position||'', company_id:ro.data.owner_company_id||'', avatar_url:ro.data.owner_avatar_url||null, phone:ro.data.owner_phone||null };
+      OWNER=tgt;
+    }
+  }catch(e){}
+  if(!tgt){ try{ await loadProfile(); }catch(e){} tgt=AUTH.profile; }
+  openOnboarding(tgt||{});
+}
 
 /* ---------- partners page ---------- */
 async function loadPartners(){
