@@ -89,6 +89,19 @@ const ADMIN_KEY    = "sn-admin-7yq4";
   .ilog{font-family:var(--mono);font-size:11px;line-height:1.8;margin-top:14px;max-height:180px;overflow:auto}
   .ilog .ok{color:var(--green)}.ilog .er{color:#e5757a}.ilog .pend{color:var(--dim)}
   a.link{color:var(--green);text-decoration:none}a.link:hover{text-decoration:underline}
+  .cr-ov{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(4,5,4,.9);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+  .cr-card{width:100%;max-width:330px;border-radius:22px;padding:26px;background:var(--panel);-webkit-backdrop-filter:blur(20px) saturate(150%);backdrop-filter:blur(20px) saturate(150%);border:1px solid var(--line);box-shadow:0 40px 120px -40px #000;text-align:center}
+  .cr-title{font-size:19px;font-weight:800;letter-spacing:-.02em}
+  .cr-sub{font-family:var(--mono);font-size:11px;color:var(--dim);margin:5px 0 18px}
+  .cr-stage{position:relative;width:264px;height:264px;margin:0 auto;border-radius:50%;overflow:hidden;background:#0b0c0d;cursor:grab;touch-action:none;box-shadow:0 0 0 1px rgba(255,255,255,.08)}
+  .cr-stage:active{cursor:grabbing}
+  .cr-stage img{position:absolute;user-select:none;-webkit-user-drag:none;max-width:none}
+  .cr-ring{position:absolute;inset:0;border-radius:50%;box-shadow:inset 0 0 0 2px rgba(186,192,30,.45);pointer-events:none}
+  .cr-zoomrow{display:flex;align-items:center;gap:12px;margin:18px 4px 4px}
+  .cr-zoomrow span{font-family:var(--mono);color:var(--dim);font-size:16px;width:14px;text-align:center}
+  .cr-zoomrow input[type=range]{flex:1;accent-color:var(--green)}
+  .cr-actions{margin-top:18px;display:flex;gap:12px;justify-content:center}
+  .cr-actions .cta{width:auto;padding:12px 22px}
 </style>
 </head>
 <body>
@@ -197,13 +210,14 @@ const ADMIN_KEY    = "sn-admin-7yq4";
       +'<div class="av"><div class="drop" id="drop" style="'+drop+'">'+(drop?"":"+ Add<br>photo")+'</div><div class="tx">A clear headshot helps people recognise you in comments.<br><span style="opacity:.7">Optional \u2014 initials are used otherwise.</span></div><input type="file" id="file" accept="image/*" hidden></div>'
       +'<div class="fld"><label>Full name</label><input id="nm" placeholder="Jordan Rivera" value="'+esc(p.full_name||"")+'"></div>'
       +'<div class="fld"><label>Job position</label><input id="rl" placeholder="Creative Director" value="'+esc(p.position||"")+'"></div>'
+      +'<div class="fld"><label>Phone <span style="opacity:.5">optional</span></label><input id="ph" type="tel" placeholder="(917) 555-0148" value="'+esc(p.phone||"")+'"></div>'
       +'<div class="fld"><label>Company</label><select id="co">'+opts+'</select></div>'
       +'<div class="fld" id="otherWrap" style="display:none"><label>Company name</label><input id="other" placeholder="Your company"></div>'
       +'<button class="cta" id="save"'+(EDIT?"":" disabled")+'>'+(EDIT?"Save profile":"Join project")+'</button>'
       +'<div class="msg" id="m"></div>';
     var drz=document.getElementById("drop"), file=document.getElementById("file");
     drz.onclick=function(){ file.click(); };
-    file.onchange=function(){ var f=file.files[0]; if(!f) return; PENDING=f; var r=new FileReader(); r.onload=function(){ drz.style.backgroundImage="url("+r.result+")"; drz.innerHTML=""; }; r.readAsDataURL(f); };
+    file.onchange=function(){ var f=file.files[0]; if(!f) return; openCropper(f,function(out,purl){ PENDING=out; drz.style.backgroundImage="url("+purl+")"; drz.innerHTML=""; }); file.value=""; };
     var nm=document.getElementById("nm"), rl=document.getElementById("rl"), co=document.getElementById("co"), other=document.getElementById("other"), ow=document.getElementById("otherWrap"), save=document.getElementById("save"), m=document.getElementById("m");
     function gate(){ save.disabled=!(nm.value.trim()&&rl.value.trim()&&(co.value!=="__other__"||other.value.trim())); }
     [nm,rl,other].forEach(function(el){ el.oninput=gate; });
@@ -216,7 +230,8 @@ const ADMIN_KEY    = "sn-admin-7yq4";
       }
       var avatarUrl=(EDIT&&EDIT.avatar_url)||null;
       if(PENDING){ try{ var ext=(PENDING.name.split(".").pop()||"png").toLowerCase(); var path=SESSION.user.id+"/"+Date.now()+"."+ext; var up=await sb.storage.from("avatars").upload(path,PENDING,{upsert:true,cacheControl:"3600"}); if(!up.error){ avatarUrl=sb.storage.from("avatars").getPublicUrl(path).data.publicUrl; } }catch(e){} }
-      var row={ id:SESSION.user.id, review_slug:slug(), email:SESSION.user.email, full_name:nm.value.trim(), position:rl.value.trim(), company_id:cid, avatar_url:avatarUrl, updated_at:new Date().toISOString() };
+      var phEl=document.getElementById("ph");
+      var row={ id:SESSION.user.id, review_slug:slug(), email:SESSION.user.email, full_name:nm.value.trim(), position:rl.value.trim(), phone:phEl?phEl.value.trim():null, company_id:cid, avatar_url:avatarUrl, updated_at:new Date().toISOString() };
       var err=null; try{ var r=await sb.from("profiles").upsert(row,{onConflict:"id"}); if(r.error) err=r.error; }catch(e){ err=e; }
       if(err){ m.className="msg err"; m.textContent=(/row-level|policy/i.test(err.message||"")?"This email isn\u2019t invited to onboard. Ask Supernerd for an invite.":"Could not save: "+(err.message||"try again")); save.disabled=false; save.textContent=EDIT?"Save profile":"Join project"; return; }
       PROFILE=row; EDIT=null;
@@ -256,6 +271,43 @@ const ADMIN_KEY    = "sn-admin-7yq4";
       go.disabled=false; go.textContent="Send invites";
       var done=document.createElement("div"); done.innerHTML='<span class="ok" style="display:block;margin-top:8px">Done \u2014 '+list.length+' invite(s) processed.</span>'; log.appendChild(done);
     };
+  }
+
+  /* ---------- avatar cropper ---------- */
+  function openCropper(file, cb){
+    var url=URL.createObjectURL(file), img=new Image();
+    img.onload=function(){
+      var S=264;
+      var ov=document.createElement("div"); ov.className="cr-ov"; ov.id="crOv";
+      ov.innerHTML='<div class="cr-card"><div class="cr-title">Position your photo</div><div class="cr-sub">Drag to move \u00b7 slider to zoom</div>'
+        +'<div class="cr-stage" id="crStage"><img id="crImg" src="'+url+'" draggable="false" alt=""><div class="cr-ring"></div></div>'
+        +'<div class="cr-zoomrow"><span>\u2212</span><input type="range" id="crZoom" min="1" max="3" step="0.01" value="1"><span>+</span></div>'
+        +'<div class="cr-actions"><button class="cta" id="crApply">Use photo</button><button class="ghost" id="crCancel">Cancel</button></div></div>';
+      document.body.appendChild(ov);
+      var im=document.getElementById("crImg"), zoom=document.getElementById("crZoom");
+      var iw=img.naturalWidth||1, ih=img.naturalHeight||1, cover=Math.max(S/iw,S/ih), z=1, tx=0, ty=0;
+      function apply(){ var sc=cover*z, w=iw*sc, h=ih*sc, mx=Math.max(0,(w-S)/2), my=Math.max(0,(h-S)/2); tx=Math.max(-mx,Math.min(mx,tx)); ty=Math.max(-my,Math.min(my,ty)); im.style.width=w+"px"; im.style.height=h+"px"; im.style.left=(S/2-w/2+tx)+"px"; im.style.top=(S/2-h/2+ty)+"px"; }
+      apply(); zoom.oninput=function(){ z=parseFloat(zoom.value)||1; apply(); };
+      var dg=false, sx=0, sy=0;
+      function pt(e){ var t=(e.touches&&e.touches[0])?e.touches[0]:e; return {x:t.clientX,y:t.clientY}; }
+      function dn(e){ dg=true; var p=pt(e); sx=p.x-tx; sy=p.y-ty; e.preventDefault(); }
+      function mv(e){ if(!dg)return; var p=pt(e); tx=p.x-sx; ty=p.y-sy; apply(); e.preventDefault(); }
+      function up(){ dg=false; }
+      im.addEventListener("mousedown",dn); window.addEventListener("mousemove",mv); window.addEventListener("mouseup",up);
+      im.addEventListener("touchstart",dn,{passive:false}); window.addEventListener("touchmove",mv,{passive:false}); window.addEventListener("touchend",up);
+      function clean(){ window.removeEventListener("mousemove",mv); window.removeEventListener("mouseup",up); window.removeEventListener("touchmove",mv); window.removeEventListener("touchend",up); try{URL.revokeObjectURL(url);}catch(e){} ov.remove(); }
+      document.getElementById("crCancel").onclick=clean;
+      document.getElementById("crApply").onclick=function(){
+        var OUT=400, f=OUT/S, sc=cover*z, w=iw*sc, h=ih*sc;
+        var cv=document.createElement("canvas"); cv.width=OUT; cv.height=OUT; var ctx=cv.getContext("2d");
+        ctx.fillStyle="#0b0c0d"; ctx.fillRect(0,0,OUT,OUT);
+        ctx.save(); ctx.beginPath(); ctx.arc(OUT/2,OUT/2,OUT/2,0,Math.PI*2); ctx.closePath(); ctx.clip();
+        ctx.drawImage(img,(S/2-w/2+tx)*f,(S/2-h/2+ty)*f,w*f,h*f); ctx.restore();
+        cv.toBlob(function(blob){ var out=blob?new File([blob],"avatar.png",{type:"image/png"}):file; cb(out, URL.createObjectURL(blob||file)); clean(); },"image/png",0.92);
+      };
+    };
+    img.onerror=function(){ cb(file,url); };
+    img.src=url;
   }
 
   boot();

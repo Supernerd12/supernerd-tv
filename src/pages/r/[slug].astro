@@ -901,6 +901,21 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
   .pd-status{color:var(--dim)}
   .pd-remove{width:100%;font-family:var(--mono);font-size:12px;color:#e5757a;background:rgba(229,72,77,.08);border:1px solid rgba(229,72,77,.3);border-radius:10px;padding:12px;cursor:pointer;margin-bottom:6px}
   .pd-remove:hover{background:rgba(229,72,77,.15)}
+
+  /* ===================================================================
+     v11 — avatar cropper (zoom + reposition)
+     =================================================================== */
+  .cr-card{width:100%;max-width:340px;border-radius:22px;padding:26px;background:linear-gradient(170deg,#191b1f,#0d0e10 84%);border:1px solid rgba(255,255,255,.08);box-shadow:0 40px 120px -40px #000,inset 0 1px 0 rgba(255,255,255,.05);text-align:center}
+  .cr-title{font-size:19px;font-weight:800;letter-spacing:-.02em}
+  .cr-sub{font-family:var(--mono);font-size:11px;color:var(--dim);margin:5px 0 18px}
+  .cr-stage{position:relative;width:264px;height:264px;margin:0 auto;border-radius:50%;overflow:hidden;background:#0b0c0d;cursor:grab;touch-action:none;box-shadow:0 0 0 1px rgba(255,255,255,.08)}
+  .cr-stage:active{cursor:grabbing}
+  .cr-stage img{position:absolute;user-select:none;-webkit-user-drag:none;max-width:none}
+  .cr-ring{position:absolute;inset:0;border-radius:50%;box-shadow:inset 0 0 0 2px rgba(186,192,30,.45);pointer-events:none}
+  .cr-zoomrow{display:flex;align-items:center;gap:12px;margin:18px 4px 4px}
+  .cr-zoomrow span{font-family:var(--mono);color:var(--dim);font-size:16px;width:14px;text-align:center}
+  .cr-zoomrow input[type=range]{flex:1;accent-color:var(--green)}
+  .cr-actions{margin-top:18px;display:flex;gap:12px;justify-content:center}
 </style>
 </head>
 <body>
@@ -1845,10 +1860,11 @@ function loginStep1(){
 }
 
 /* ---------- onboarding / profile edit ---------- */
-function openOnboarding(prefill){
+async function openOnboarding(prefill){
   if(!AUTH.user) return;
   ppEditTarget = prefill || (AUTH.profile||null);
   ppPendingFile = null;
+  if(!COMPANIES_CACHE || !COMPANIES_CACHE.length){ try{ await loadCompanies(); }catch(e){} }
   var ov=document.getElementById('onbOv');
   if(!ov){ ov=document.createElement('div'); ov.className='onb'; ov.id='onbOv'; ov.innerHTML='<div class="onb-card" id="onbCard"></div>'; document.body.appendChild(ov); }
   ov.classList.add('show');
@@ -1860,12 +1876,13 @@ function onbFormHTML(p){
   var list=(COMPANIES_CACHE||[]);
   var opts=list.map(function(c){ return '<option value="'+ppEsc(c.id)+'"'+(p&&p.company_id===c.id?' selected':'')+'>'+ppEsc(c.name)+'</option>'; }).join('')+'<option value="__other__">Other company\u2026</option>';
   var dropStyle=p&&p.avatar_url?'background-image:url('+p.avatar_url+')':'';
-  var nm=p?p.full_name:'', rl=p?p.position:'';
+  var nm=p?(p.full_name||''):'', rl=p?(p.position||''):'', ph=p?(p.phone||''):'';
   return '<div class="onb-eyebrow">'+ppEsc(CONFIG.COMPANY.name)+' \u00d7 review</div><div class="onb-title">'+(p?'Edit your profile':'Join the project')+'</div>'
     +'<div class="onb-sub">'+(p?'Update how you appear to the team.':'You\u2019ve been invited to review this project. Tell your team who you are so they can tag you in notes and approvals.')+'</div>'
     +'<div class="onb-av"><div class="drop" id="avDrop" style="'+dropStyle+'">'+(dropStyle?'':'+ Add<br>photo')+'</div><div class="av-tx">A clear headshot helps people<br>recognise you in comments.<br><span style="opacity:.7">Optional \u2014 initials are used otherwise.</span></div><input type="file" id="avFile" accept="image/*" style="display:none"></div>'
     +'<div class="onb-field"><label>Full name</label><input id="fName" placeholder="Jordan Rivera" value="'+ppEsc(nm)+'"></div>'
     +'<div class="onb-field"><label>Job position</label><input id="fRole" placeholder="Creative Director" value="'+ppEsc(rl)+'"></div>'
+    +'<div class="onb-field"><label>Phone <span style="opacity:.45;text-transform:none;letter-spacing:0">optional</span></label><input id="fPhone" type="tel" placeholder="(917) 555-0148" value="'+ppEsc(ph)+'"></div>'
     +'<div class="onb-field"><label>Company</label><select id="fComp">'+opts+'</select></div>'
     +'<div class="onb-field" id="otherWrap" style="display:none"><label>Company name</label><input id="fOther" placeholder="Your company"></div>'
     +'<div class="onb-actions"><button class="onb-join" id="joinBtn"'+(p?'':' disabled')+'>'+(p?'Save profile':'Join project')+'</button><button class="onb-cancel" id="cancelBtn">Cancel</button></div><div class="lm-msg" id="onbMsg"></div>';
@@ -1873,8 +1890,8 @@ function onbFormHTML(p){
 function wireOnb(){
   var avDrop=document.getElementById('avDrop'),avFile=document.getElementById('avFile');
   avDrop.onclick=function(){ avFile.click(); };
-  avFile.onchange=function(){ var f=avFile.files[0]; if(!f) return; ppPendingFile=f; var r=new FileReader(); r.onload=function(){ avDrop.style.backgroundImage='url('+r.result+')'; avDrop.innerHTML=''; }; r.readAsDataURL(f); };
-  var fName=document.getElementById('fName'),fRole=document.getElementById('fRole'),fComp=document.getElementById('fComp'),fOther=document.getElementById('fOther'),otherWrap=document.getElementById('otherWrap'),joinBtn=document.getElementById('joinBtn');
+  avFile.onchange=function(){ var f=avFile.files[0]; if(!f) return; openCropper(f, function(file,url){ ppPendingFile=file; avDrop.style.backgroundImage='url('+url+')'; avDrop.innerHTML=''; }); avFile.value=''; };
+  var fName=document.getElementById('fName'),fRole=document.getElementById('fRole'),fPhone=document.getElementById('fPhone'),fComp=document.getElementById('fComp'),fOther=document.getElementById('fOther'),otherWrap=document.getElementById('otherWrap'),joinBtn=document.getElementById('joinBtn');
   function gate(){ joinBtn.disabled=!(fName.value.trim()&&fRole.value.trim()&&(fComp.value!=='__other__'||fOther.value.trim())); }
   [fName,fRole,fOther].forEach(function(el){ el.oninput=gate; });
   fComp.onchange=function(){ otherWrap.style.display=fComp.value==='__other__'?'':'none'; gate(); };
@@ -1892,10 +1909,10 @@ function wireOnb(){
     if(ppPendingFile){ var u=await ppUploadAvatar(ppPendingFile); if(u) avatarUrl=u; }
     var err=null;
     if(isOwner){
-      try{ var ro=await sb.from('review_settings').upsert({review_slug:CONFIG.REVIEW_SLUG, owner_name:fName.value.trim(), owner_position:fRole.value.trim(), owner_company_id:cid, owner_avatar_url:avatarUrl, updated_at:new Date().toISOString()},{onConflict:'review_slug'}); if(ro.error) err=ro.error; }catch(e){ err=e; }
-      if(!err){ OWNER={ id:'__owner__', full_name:fName.value.trim(), position:fRole.value.trim(), company_id:cid, avatar_url:avatarUrl, owner:true }; }
+      try{ var ro=await sb.from('review_settings').upsert({review_slug:CONFIG.REVIEW_SLUG, owner_name:fName.value.trim(), owner_position:fRole.value.trim(), owner_company_id:cid, owner_avatar_url:avatarUrl, owner_phone:fPhone?fPhone.value.trim():null, owner_uid:AUTH.user.id, updated_at:new Date().toISOString()},{onConflict:'review_slug'}); if(ro.error) err=ro.error; }catch(e){ err=e; }
+      if(!err){ OWNER={ id:'__owner__', uid:AUTH.user.id, full_name:fName.value.trim(), position:fRole.value.trim(), company_id:cid, avatar_url:avatarUrl, phone:fPhone?fPhone.value.trim():null, owner:true }; }
     } else {
-      var row={ id:AUTH.user.id, review_slug:CONFIG.REVIEW_SLUG, email:AUTH.user.email, full_name:fName.value.trim(), position:fRole.value.trim(), company_id:cid, avatar_url:avatarUrl, updated_at:new Date().toISOString() };
+      var row={ id:AUTH.user.id, review_slug:CONFIG.REVIEW_SLUG, email:AUTH.user.email, full_name:fName.value.trim(), position:fRole.value.trim(), phone:fPhone?fPhone.value.trim():null, company_id:cid, avatar_url:avatarUrl, updated_at:new Date().toISOString() };
       try{ var r=await sb.from('profiles').upsert(row,{onConflict:'id'}); if(r.error) err=r.error; }catch(e){ err=e; }
       if(!err) AUTH.profile=row;
     }
@@ -1906,13 +1923,68 @@ function wireOnb(){
 }
 async function ppUploadAvatar(file){
   try{
-    var ext=(String(file.name).split('.').pop()||'png').toLowerCase();
+    var ext='png'; if(file.name && file.name.indexOf('.')>=0){ ext=file.name.split('.').pop().toLowerCase(); } else if(file.type && file.type.indexOf('/')>=0){ ext=file.type.split('/')[1]; }
     var path=AUTH.user.id+'/'+Date.now()+'.'+ext;
     var up=await sb.storage.from('avatars').upload(path, file, {upsert:true, cacheControl:'3600'});
     if(up.error) return null;
     var pub=sb.storage.from('avatars').getPublicUrl(path);
     return pub && pub.data ? pub.data.publicUrl : null;
   }catch(e){ return null; }
+}
+
+
+/* ---------- avatar cropper (zoom + reposition) ---------- */
+function openCropper(file, cb){
+  var url=URL.createObjectURL(file);
+  var img=new Image();
+  img.onload=function(){
+    var S=264;
+    var ov=document.createElement('div'); ov.className='onb show'; ov.id='crOv';
+    ov.innerHTML='<div class="cr-card">'
+      +'<div class="cr-title">Position your photo</div>'
+      +'<div class="cr-sub">Drag to move \u00b7 slider to zoom</div>'
+      +'<div class="cr-stage" id="crStage"><img id="crImg" src="'+url+'" draggable="false" alt=""><div class="cr-ring"></div></div>'
+      +'<div class="cr-zoomrow"><span>\u2212</span><input type="range" id="crZoom" min="1" max="3" step="0.01" value="1"><span>+</span></div>'
+      +'<div class="cr-actions"><button class="onb-join" id="crApply">Use photo</button><button class="onb-cancel" id="crCancel">Cancel</button></div>'
+      +'</div>';
+    document.body.appendChild(ov);
+    var im=document.getElementById('crImg'), zoom=document.getElementById('crZoom');
+    var iw=img.naturalWidth||1, ih=img.naturalHeight||1;
+    var cover=Math.max(S/iw, S/ih), z=1, tx=0, ty=0;
+    function apply(){
+      var sc=cover*z, w=iw*sc, h=ih*sc;
+      var maxX=Math.max(0,(w-S)/2), maxY=Math.max(0,(h-S)/2);
+      tx=Math.max(-maxX,Math.min(maxX,tx)); ty=Math.max(-maxY,Math.min(maxY,ty));
+      im.style.width=w+'px'; im.style.height=h+'px';
+      im.style.left=(S/2-w/2+tx)+'px'; im.style.top=(S/2-h/2+ty)+'px';
+    }
+    apply();
+    zoom.oninput=function(){ z=parseFloat(zoom.value)||1; apply(); };
+    var dragging=false, sx=0, sy=0;
+    function pt(e){ var t=(e.touches&&e.touches[0])?e.touches[0]:e; return {x:t.clientX,y:t.clientY}; }
+    function down(e){ dragging=true; var p=pt(e); sx=p.x-tx; sy=p.y-ty; e.preventDefault(); }
+    function move(e){ if(!dragging) return; var p=pt(e); tx=p.x-sx; ty=p.y-sy; apply(); e.preventDefault(); }
+    function up(){ dragging=false; }
+    im.addEventListener('mousedown',down); window.addEventListener('mousemove',move); window.addEventListener('mouseup',up);
+    im.addEventListener('touchstart',down,{passive:false}); window.addEventListener('touchmove',move,{passive:false}); window.addEventListener('touchend',up);
+    function cleanup(){ window.removeEventListener('mousemove',move); window.removeEventListener('mouseup',up); window.removeEventListener('touchmove',move); window.removeEventListener('touchend',up); try{URL.revokeObjectURL(url);}catch(e){} ov.remove(); }
+    document.getElementById('crCancel').onclick=cleanup;
+    document.getElementById('crApply').onclick=function(){
+      var OUT=400, f=OUT/S, sc=cover*z, w=iw*sc, h=ih*sc;
+      var cv=document.createElement('canvas'); cv.width=OUT; cv.height=OUT; var ctx=cv.getContext('2d');
+      ctx.fillStyle='#0b0c0d'; ctx.fillRect(0,0,OUT,OUT);
+      ctx.save(); ctx.beginPath(); ctx.arc(OUT/2,OUT/2,OUT/2,0,Math.PI*2); ctx.closePath(); ctx.clip();
+      ctx.drawImage(img,(S/2-w/2+tx)*f,(S/2-h/2+ty)*f,w*f,h*f);
+      ctx.restore();
+      cv.toBlob(function(blob){
+        var out=blob?new File([blob],'avatar.png',{type:'image/png'}):file;
+        var purl=URL.createObjectURL(blob||file);
+        cb(out, purl); cleanup();
+      },'image/png',0.92);
+    };
+  };
+  img.onerror=function(){ cb(file, url); };
+  img.src=url;
 }
 
 /* ---------- profile menu ---------- */
@@ -1941,9 +2013,10 @@ async function loadPartners(){
 function ppCardHTML(p){
   var c=ppCompany(p.company_id);
   var logo=c.logo_url?'<span class="logo-mono" style="background:transparent;padding:0"><img src="'+ppEsc(c.logo_url)+'" alt="" style="width:24px;height:24px;border-radius:6px;object-fit:cover"></span>':'<span class="logo-mono" style="background:'+c.color+'">'+ppEsc((ppInitials(c.name)[0]||'').toUpperCase())+'</span>';
-  var online=PRESENCE.online[p.id]?' on':'';
+  var dotKey=p.owner?(p.uid||'__owner__'):p.id;
+  var online=PRESENCE.online[dotKey]?' on':'';
   var rm=((typeof ADMIN!=='undefined' && ADMIN) && !p.owner)?'<button class="pc-remove" data-rm="'+ppEsc(p.id)+'" title="Remove from project">\u00d7</button>':'';
-  return '<div class="pcard" data-pid="'+ppEsc(p.id)+'">'+rm+'<div class="pc-top"><div class="pc-avwrap"><div class="avatar" style="'+ppAvStyle(p)+'">'+(p.avatar_url?'':ppEsc(ppInitials(p.full_name).toUpperCase()))+'</div><span class="pc-dot'+online+'" data-dot="'+ppEsc(p.id)+'"></span></div>'
+  return '<div class="pcard" data-pid="'+ppEsc(p.id)+'">'+rm+'<div class="pc-top"><div class="pc-avwrap"><div class="avatar" style="'+ppAvStyle(p)+'">'+(p.avatar_url?'':ppEsc(ppInitials(p.full_name).toUpperCase()))+'</div><span class="pc-dot'+online+'" data-dot="'+ppEsc(dotKey)+'"></span></div>'
     +'<div class="pc-id"><div class="pc-name">'+ppEsc(p.full_name)+'</div><div class="pc-role">'+ppEsc(p.position)+'</div></div></div>'
     +'<div class="pc-foot">'+logo+'<span class="pc-company">'+ppEsc(c.name)+'</span></div></div>';
 }
@@ -1962,6 +2035,7 @@ function renderPartners(profiles){
   m.querySelectorAll('.pcard').forEach(function(card){ card.onclick=function(e){ if(e.target.closest && e.target.closest('.pc-remove')) return; openCard(card.dataset.pid); }; });
   m.querySelectorAll('.pc-remove').forEach(function(b){ b.onclick=function(e){ e.stopPropagation(); removeFlow(b.dataset.rm); }; });
   if(ADMIN){ var ib=document.getElementById('ppInvite'); if(ib) ib.onclick=function(ev){ ev.stopPropagation(); ppToggleInvite(); }; }
+  refreshOnlineDots();
 }
 function ppToggleInvite(){
   var pop=document.getElementById('ppInvitePop'); if(!pop) return;
@@ -1990,13 +2064,19 @@ async function loadOwner(){
   try{
     var r=await sb.from('review_settings').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).maybeSingle();
     if(r && r.data){
-      OWNER={ id:'__owner__', full_name:r.data.owner_name||'Shaun Harrison', position:r.data.owner_position||'Creative Director', company_id:r.data.owner_company_id||'supernerd', avatar_url:r.data.owner_avatar_url||null, owner:true };
+      OWNER={ id:'__owner__', uid:r.data.owner_uid||null, full_name:r.data.owner_name||'Shaun Harrison', position:r.data.owner_position||'Creative Director', company_id:r.data.owner_company_id||'supernerd', avatar_url:r.data.owner_avatar_url||null, phone:r.data.owner_phone||null, owner:true };
+    }
+  }catch(e){}
+  try{
+    if(typeof ADMIN!=='undefined' && ADMIN && AUTH.user && OWNER.uid!==AUTH.user.id){
+      await sb.from('review_settings').upsert({review_slug:CONFIG.REVIEW_SLUG, owner_uid:AUTH.user.id},{onConflict:'review_slug'});
+      OWNER.uid=AUTH.user.id;
     }
   }catch(e){}
 }
 
 /* ---------- realtime presence (online lights) ---------- */
-function presenceKey(){ if(typeof ADMIN!=='undefined' && ADMIN) return '__owner__'; return AUTH.user?AUTH.user.id:null; }
+function presenceKey(){ return AUTH.user?AUTH.user.id:null; }
 function startPresence(){
   var key=presenceKey();
   if(PRESENCE.channel && PRESENCE.key===key) return;
@@ -2027,7 +2107,7 @@ function openCard(pid){
 
 /* ---------- read-only detail (others' cards) ---------- */
 function openPartnerDetail(p){
-  var c=ppCompany(p.company_id), online=!!PRESENCE.online[p.id];
+  var c=ppCompany(p.company_id), online=!!PRESENCE.online[p.owner?(p.uid||'__owner__'):p.id];
   var dot='<span class="pc-dot'+(online?' on':'')+'" style="position:static;display:inline-block;width:9px;height:9px;border-width:0;vertical-align:middle;margin-right:7px"></span>';
   var rm=((typeof ADMIN!=='undefined' && ADMIN) && !p.owner)?'<button class="pd-remove" id="pdRemove">Remove from project</button>':'';
   var ov=document.createElement('div'); ov.className='onb show'; ov.id='pdOv';
@@ -2035,6 +2115,7 @@ function openPartnerDetail(p){
     +'<div class="pd-top"><div class="avatar pd-av" style="'+ppAvStyle(p)+'">'+(p.avatar_url?'':ppEsc(ppInitials(p.full_name).toUpperCase()))+'</div>'
     +'<div><div class="pd-name">'+ppEsc(p.full_name)+'</div><div class="pd-role">'+ppEsc(p.position)+'</div></div></div>'
     +'<div class="pd-meta"><div><span class="logo-mono" style="background:'+c.color+'">'+ppEsc((ppInitials(c.name)[0]||'').toUpperCase())+'</span>'+ppEsc(c.name)+'</div>'
+    +(p.phone?'<div class="pd-email">'+ppEsc(p.phone)+'</div>':'')
     +(p.email?'<div class="pd-email">'+ppEsc(p.email)+'</div>':'')
     +'<div class="pd-status">'+dot+(online?'Online now':'Offline')+'</div></div>'
     +rm+'<div class="lm-foot"><button id="pdClose">Close</button></div></div>';
