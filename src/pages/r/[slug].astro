@@ -561,6 +561,72 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
   .notes-list.fan .note:nth-child(n+7){animation-delay:.3s}
   @keyframes fanIn{from{opacity:0; transform:translateY(-9px) scale(.99); filter:blur(4px)} to{opacity:1; transform:translateY(0) scale(1); filter:blur(0)}}
   @media (prefers-reduced-motion:reduce){ .notes-list.fan .note{animation:none} .ov-img{animation:none} #overlay.show{animation:none; background:rgba(3,3,3,.92)} }
+
+  /* ===================================================================
+     v4 — social comments: cards, reactions, reply bridge, @mention, share
+     =================================================================== */
+  .ic{display:inline-block;vertical-align:middle}
+
+  /* each comment is its own glass card; replies nest with a green bridge line */
+  .notes-list{display:flex;flex-direction:column;gap:12px}
+  .note{display:block;border:1px solid var(--hair-2);background:rgba(13,14,16,.55);-webkit-backdrop-filter:blur(11px) saturate(130%);backdrop-filter:blur(11px) saturate(130%);border-radius:15px;padding:14px 16px;box-shadow:var(--inner-hi)}
+  .note:first-child{border-top:1px solid var(--hair-2)}
+  .note-row{display:flex;gap:12px}
+  .note-main{flex:1;min-width:0;position:relative}
+  .reply-thread{margin-top:12px;padding-left:16px;border-left:2px solid rgba(186,192,30,.28);display:flex;flex-direction:column;gap:10px}
+  .note.is-reply{background:rgba(17,18,20,.5);border-radius:13px}
+  .reply-bridge{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:11px;letter-spacing:.02em;color:var(--green-hi);opacity:.85;margin-bottom:9px}
+  .reply-bridge .ic{width:13px;height:13px}
+
+  /* reactions */
+  .react-bar{position:relative;display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:11px}
+  .react-chip{display:inline-flex;align-items:center;gap:5px;font-size:13px;line-height:1;padding:4px 9px;border-radius:999px;border:1px solid var(--hair);background:rgba(236,236,234,.04);color:var(--bone);cursor:pointer;transition:transform .12s var(--ease-out),border-color .12s var(--ease-out),background .12s var(--ease-out)}
+  .react-chip:hover{border-color:rgba(186,192,30,.45)} .react-chip:active{transform:scale(.93)}
+  .react-chip.mine{border-color:rgba(186,192,30,.6);background:rgba(186,192,30,.15)}
+  .react-chip .rc-n{font-family:var(--mono);font-size:11px;color:var(--dim)} .react-chip.mine .rc-n{color:var(--green-hi)}
+  .react-add{display:inline-flex;align-items:center;justify-content:center;width:30px;height:26px;border-radius:999px;border:1px solid var(--line);background:none;color:var(--dim);cursor:pointer;transition:color .12s var(--ease-out),border-color .12s var(--ease-out)}
+  .react-add:hover{color:var(--green);border-color:rgba(186,192,30,.45)} .react-add .ic{width:16px;height:16px}
+  .react-pop{position:absolute;z-index:30;top:calc(100% + 6px);left:0;display:flex;gap:2px;padding:6px;border-radius:12px;background:rgba(18,19,22,.97);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid var(--hair-2);box-shadow:0 16px 44px -14px #000;animation:fanIn .18s var(--ease-out) both}
+  .react-pop button{font-size:18px;line-height:1;padding:5px 6px;border:none;background:none;cursor:pointer;border-radius:8px;transition:transform .1s var(--ease-out),background .1s var(--ease-out)}
+  .react-pop button:hover{transform:scale(1.2);background:rgba(236,236,234,.07)}
+
+  /* per-comment actions (icons, not words) */
+  .note-actions{display:flex;align-items:center;gap:8px;margin-top:9px}
+  .note-act{display:inline-flex;align-items:center;justify-content:center;width:28px;height:26px;border-radius:8px;border:1px solid transparent;background:none;color:var(--dim);cursor:pointer;transition:color .12s var(--ease-out),border-color .12s var(--ease-out),background .12s var(--ease-out)}
+  .note-act:hover{color:var(--green);border-color:rgba(186,192,30,.32);background:rgba(186,192,30,.06)} .note-act .ic{width:15px;height:15px}
+  .note-num{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--dim)}
+
+  /* @mentions */
+  .mention{color:var(--green-hi);background:rgba(186,192,30,.13);border-radius:4px;padding:0 3px;font-weight:600}
+  .at-hint{color:var(--dim);font-weight:400;text-transform:none;letter-spacing:0;font-family:var(--mono);font-size:10px}
+  .comp-body{position:relative}
+  .mention-pop{position:absolute;left:0;right:0;top:100%;margin-top:5px;z-index:40;max-height:230px;overflow:auto;border-radius:12px;background:rgba(18,19,22,.98);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid var(--hair-2);box-shadow:0 18px 52px -16px #000}
+  .mention-item{display:flex;align-items:baseline;gap:10px;width:100%;text-align:left;padding:10px 13px;background:none;border:none;border-bottom:1px solid var(--line);color:var(--bone);cursor:pointer;font-family:var(--disp);font-size:14px}
+  .mention-item:last-child{border-bottom:none} .mention-item:hover{background:rgba(186,192,30,.1)}
+  .mention-item .mi-name{font-weight:600;color:var(--green-hi)} .mention-item .mi-email{font-family:var(--mono);font-size:11px;color:var(--dim);margin-left:auto}
+
+  /* reply context chip in composer */
+  .reply-ctx{display:flex;align-items:center;gap:8px;margin-bottom:11px;padding:8px 12px;border-radius:11px;border:1px solid rgba(186,192,30,.3);background:rgba(186,192,30,.07)}
+  .reply-ctx .rc-ic .ic{width:14px;height:14px;color:var(--green-hi)}
+  .reply-ctx .rc-txt{font-size:13px;color:var(--bone);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .reply-ctx .rc-quote{color:var(--dim)}
+  .reply-ctx .rc-x{width:24px;height:24px;border-radius:6px;border:1px solid var(--line);background:none;color:var(--dim);cursor:pointer;font-size:15px;line-height:1}
+  .reply-ctx .rc-x:hover{color:#ff6b6b;border-color:rgba(255,107,107,.5)}
+
+  /* share menu */
+  .meta-bar{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .meta-left{display:flex;align-items:center;gap:14px} .meta-right{position:relative;display:flex;align-items:center}
+  .meta-share{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;border:1px solid var(--line);background:none;color:var(--dim);cursor:pointer;transition:color .14s var(--ease-out),border-color .14s var(--ease-out),background .14s var(--ease-out)}
+  .meta-share:hover{color:var(--green);border-color:rgba(186,192,30,.4);background:rgba(186,192,30,.06)} .meta-share .ic{width:17px;height:17px}
+  .share-pop{position:absolute;right:0;top:calc(100% + 8px);z-index:40;min-width:184px;display:flex;flex-direction:column;padding:6px;border-radius:12px;background:rgba(18,19,22,.98);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border:1px solid var(--hair-2);box-shadow:0 18px 52px -16px #000;animation:fanIn .18s var(--ease-out) both}
+  .share-opt{display:flex;align-items:center;gap:9px;text-align:left;padding:9px 12px;border:none;background:none;color:var(--bone);cursor:pointer;border-radius:8px;font-family:var(--disp);font-size:14px}
+  .share-opt:hover{background:rgba(186,192,30,.1);color:var(--green-hi)}
+
+  /* collapse is now an icon (chevron) */
+  .notes-toggle{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;width:30px;height:26px;padding:0;border:1px solid var(--line);border-radius:7px;background:none;color:var(--dim);cursor:pointer;transition:color .15s var(--ease-out),border-color .15s var(--ease-out)}
+  .notes-toggle:hover{color:var(--green);border-color:rgba(186,192,30,.4)}
+  .notes-toggle .ic{width:16px;height:16px;transition:transform .25s var(--ease-out)}
+  .notes-toggle.open .ic{transform:rotate(180deg)}
 </style>
 </head>
 <body>
@@ -650,6 +716,32 @@ let INVITES = [];        // people on the project (onboarded)
 const OWNER_NAME = 'Supernerd';            // how you appear when you comment
 const OWNER_EMAIL = 'hello@supernerd.tv';  // must match EDIT 3 (owner) in the SQL
 const AUTHOR_KEY = 'sn_author';
+const REACT_EMOJI = ['👍','❤️','🔥','😂','😮','👀','✅'];
+let replyTo = {};        // itemId -> { id, author_name, author_email, body }
+let mentionState = {};   // itemId -> { emails: { emailLower: name } }
+let REACTIONS = {};      // itemId -> { commentId -> { emoji -> [ {key,name} ] } }
+let COMMENTS = {};       // itemId -> last loaded comment rows (for reply lookup)
+function svgIcon(n){
+  const p={
+    chevron:'<path d="M4 6l4 4 4-4"/>',
+    reply:'<path d="M9 6.5L4.5 10.5 9 14.5"/><path d="M4.8 10.5H11a4 4 0 0 1 4 4v.5"/>',
+    smile:'<circle cx="8" cy="8" r="6.3"/><path d="M5.4 9.3c.7 1 1.6 1.5 2.6 1.5s1.9-.5 2.6-1.5"/><circle cx="6" cy="6.4" r=".75" fill="currentColor" stroke="none"/><circle cx="10" cy="6.4" r=".75" fill="currentColor" stroke="none"/>',
+    share:'<path d="M11 4.5L8 1.5 5 4.5"/><path d="M8 1.7v8.6"/><path d="M3.5 7.5v5a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1v-5"/>'
+  };
+  return '<svg class="ic ic-'+n+'" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(p[n]||'')+'</svg>';
+}
+function reactorIdentity(it){ const a=getAuthor(it); if(!a.name) return null; return { key:(a.email||('name:'+a.name.toLowerCase())), name:a.name, email:a.email||null }; }
+function itemDeepLink(proj, sec, it){ return location.origin+location.pathname+'#p='+encodeURIComponent(proj.id)+'&s='+encodeURIComponent(sec.id)+'&i='+encodeURIComponent(it.id); }
+function mentionPeople(){ return [{name:OWNER_NAME,email:OWNER_EMAIL}].concat(INVITES.map(p=>({name:p.name||p.email,email:p.email}))); }
+function mentionHighlight(body){
+  let html=esc(body);
+  const names=mentionPeople().map(p=>p.name).filter(Boolean);
+  if(!names.length) return html.replace(/\n/g,'<br>');
+  names.sort((a,b)=>b.length-a.length);
+  const e2=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  const re=new RegExp('@('+names.map(e2).join('|')+')(?![\\w])','g');
+  return html.replace(re,'<span class="mention">@$1</span>').replace(/\n/g,'<br>');
+}
 function getSavedAuthor(){ try { return JSON.parse(localStorage.getItem(AUTHOR_KEY) || 'null'); } catch (e) { return null; } }
 function setSavedAuthor(v, other){ try { localStorage.setItem(AUTHOR_KEY, JSON.stringify({ v: v||'', other: other||'' })); } catch (e) {} }
 function personName(email){ const p = INVITES.find(x => x.email === email); return p ? (p.name || p.email) : email; }
@@ -792,20 +884,20 @@ function mediaHTML(it){
 
 function versionBodyHTML(proj, sec, it){
   const dl = downloadHref(it);
-  const dlBtn = dl ? '<a class="dl-btn" href="'+esc(dl)+'" download target="_blank" rel="noopener">⤓ Download</a>' : '<span></span>';
+  const dlBtn = dl ? '<a class="dl-btn" href="'+esc(dl)+'" download target="_blank" rel="noopener">⤓ Download</a>' : '';
   const stamp = it.date ? '<span class="up-stamp">Uploaded '+esc(fmtStamp(it.date))+'</span>' : '';
-  const metaBar = (dl || it.date) ? '<div class="meta-bar">'+dlBtn+stamp+'</div>' : '';
+  const shareBtn = '<button class="meta-share" id="share-'+it.id+'" type="button" title="Share" aria-label="Share">'+svgIcon('share')+'</button><div class="share-pop" id="sharepop-'+it.id+'" hidden></div>';
+  const metaBar = '<div class="meta-bar"><div class="meta-left">'+dlBtn+stamp+'</div><div class="meta-right">'+shareBtn+'</div></div>';
   const tcField = it.type==='video' ? '<div class="field f-tc"><label>Timecode</label><input id="tc-'+it.id+'" placeholder="00:00"></div>' : '';
   const pinTool = it.type==='image' ? '<button class="tool-btn" id="pin-'+it.id+'" type="button">📍 Pin to image</button><span class="pin-ind" id="pin-ind-'+it.id+'"></span>' : '';
   return mediaHTML(it)
     + metaBar
-    + '<div class="notes"><div class="notes-bar"><h3>Notes</h3><span class="count" id="count-'+it.id+'"></span><button class="notes-toggle" id="ntog-'+it.id+'" type="button" aria-expanded="true">Hide</button></div>'
+    + '<div class="notes"><div class="notes-bar"><h3>Notes</h3><span class="count" id="count-'+it.id+'"></span><button class="notes-toggle open" id="ntog-'+it.id+'" type="button" aria-expanded="true" title="Collapse">'+svgIcon('chevron')+'</button></div>'
     + '<div id="notes-'+it.id+'" class="notes-list fan"><div class="empty">Loading notes…</div></div>'
-    + '<div class="composer"><div class="row"><div class="field f-name"><label>Your name</label><select id="name-'+it.id+'" class="name-select"><option value="">— pick your name —</option></select><input id="nameother-'+it.id+'" class="name-other" placeholder="Type your name" style="display:none"></div>'+tcField+'</div>'
-    + '<div class="field"><label>Note</label><textarea id="body-'+it.id+'" placeholder="What should change, or what is working? (or just leave a voice note)"></textarea></div>'
+    + '<div class="composer"><div class="reply-ctx" id="replyctx-'+it.id+'" hidden></div><div class="row"><div class="field f-name"><label>Your name</label><select id="name-'+it.id+'" class="name-select"><option value="">— pick your name —</option></select><input id="nameother-'+it.id+'" class="name-other" placeholder="Type your name" style="display:none"></div>'+tcField+'</div>'
+    + '<div class="field comp-body"><label>Note <span class="at-hint">— type @ to mention &amp; notify someone</span></label><textarea id="body-'+it.id+'" placeholder="What should change, or what is working? Type @ to tag someone."></textarea><div class="mention-pop" id="mentionpop-'+it.id+'" hidden></div></div>'
     + '<div class="composer-tools"><button class="tool-btn" id="rec-'+it.id+'" type="button">🎤 Record voice note</button>'+pinTool+'</div>'
     + '<div class="rec-prev" id="rec-prev-'+it.id+'"></div>'
-    + '<div class="notify-box" id="notify-'+it.id+'"></div>'
     + '<div class="composer-foot"><button class="post" id="post-'+it.id+'" disabled>Post note</button><span class="msg" id="msg-'+it.id+'"></span></div></div></div>';
 }
 
@@ -846,10 +938,13 @@ function wireVersion(proj, sec, it){
   const rec=document.getElementById('rec-'+it.id);
   if(rec) rec.addEventListener('click', ()=>toggleRecord(it));
 
-  // notes delegation: delete, seek, pin-badge
+  // notes delegation: delete, seek, pin-badge, reactions, replies
   const box=document.getElementById('notes-'+it.id);
   if(box) box.addEventListener('click', (e)=>{
     const d=e.target.closest('.note-del'); if(d){ deleteNote(it.id, d.dataset.c); return; }
+    const rcp=e.target.closest('.react-chip'); if(rcp){ toggleReaction(proj,sec,it, rcp.dataset.c, rcp.dataset.emoji); return; }
+    const radd=e.target.closest('.react-add'); if(radd){ e.stopPropagation(); openReactPop(proj,sec,it, radd); return; }
+    const rb=e.target.closest('.reply-btn'); if(rb){ setReply(it, rb.dataset.c); return; }
     const t=e.target.closest('.tc'); if(t && t.dataset.sec){ seek(it.id, +t.dataset.sec); return; }
     const pb=e.target.closest('.pin-badge'); if(pb){ const layer=document.getElementById('pinlayer-'+it.id); if(layer){ const mk=layer.querySelector('.pin-marker[data-c="'+pb.dataset.c+'"]'); if(mk){ mk.classList.add('flash'); mk.scrollIntoView({behavior:'smooth',block:'center'}); setTimeout(()=>mk.classList.remove('flash'),1100); } } }
   });
@@ -860,7 +955,13 @@ function wireVersion(proj, sec, it){
   const nEl=document.getElementById('name-'+it.id), oEl=document.getElementById('nameother-'+it.id), bEl=document.getElementById('body-'+it.id);
   if(nEl) nEl.addEventListener('change', ()=>onNameChange(it));
   if(oEl) oEl.addEventListener('input', ()=>{ setSavedAuthor(nEl?nEl.value:'', oEl.value); gateFor(it); });
-  if(bEl) bEl.addEventListener('input', ()=>gateFor(it));
+  if(bEl) bEl.addEventListener('input', ()=>{ gateFor(it); mentionInput(it); });
+  if(bEl) bEl.addEventListener('keyup', ()=>mentionInput(it));
+  if(bEl) bEl.addEventListener('blur', ()=>{ setTimeout(()=>{ const mp=document.getElementById('mentionpop-'+it.id); if(mp){ mp.hidden=true; } }, 150); });
+  const mp=document.getElementById('mentionpop-'+it.id);
+  if(mp) mp.addEventListener('mousedown', (e)=>{ const b=e.target.closest('.mention-item'); if(b){ e.preventDefault(); pickMention(it, b.dataset.email, b.dataset.name); } });
+  const shBtn=document.getElementById('share-'+it.id);
+  if(shBtn) shBtn.addEventListener('click', (e)=>{ e.stopPropagation(); shareMenu(proj,sec,it); });
   fillNameSelect(it);
   const tg=document.getElementById('ntog-'+it.id); if(tg) tg.addEventListener('click', ()=>toggleNotes(it));
   loadNotes(proj,sec,it);
@@ -904,7 +1005,7 @@ function assetId(proj, sec, it){ return proj.id+':'+sec.id+':'+it.id; }
 function toggleNotes(it){
   const box=document.getElementById('notes-'+it.id), btn=document.getElementById('ntog-'+it.id); if(!box) return;
   const collapsed=box.classList.toggle('collapsed');
-  if(btn){ btn.textContent=collapsed?'Show':'Hide'; btn.setAttribute('aria-expanded', String(!collapsed)); }
+  if(btn){ btn.classList.toggle('open', !collapsed); btn.setAttribute('aria-expanded', String(!collapsed)); btn.title=collapsed?'Expand':'Collapse'; }
   if(!collapsed){ box.classList.remove('fan'); void box.offsetWidth; box.classList.add('fan'); }
 }
 async function loadNotes(proj, sec, it){
@@ -912,26 +1013,56 @@ async function loadNotes(proj, sec, it){
   try{
     const { data, error } = await sb.from('comments').select('*').eq('review_slug', CONFIG.REVIEW_SLUG).eq('asset_id', assetId(proj,sec,it)).order('created_at', { ascending:true });
     if(error) throw error;
+    COMMENTS[it.id]=data;
     const ct=document.getElementById('count-'+it.id); if(ct) ct.textContent=data.length||'';
+    // reactions (resilient: works even if comment_reactions table not created yet)
+    REACTIONS[it.id]={};
+    const ids=data.map(c=>c.id);
+    if(ids.length){ try{ const rr=await sb.from('comment_reactions').select('*').in('comment_id', ids); if(!rr.error && rr.data){ rr.data.forEach(r=>{ const m=REACTIONS[it.id]; (m[r.comment_id]=m[r.comment_id]||{}); (m[r.comment_id][r.emoji]=m[r.comment_id][r.emoji]||[]).push({key:r.reactor_key,name:r.reactor_name||r.reactor_email||'Someone'}); }); } }catch(e){} }
     const pinned=data.filter(c=>c.pos_x!=null && c.pos_y!=null);
     const pinNum=new Map(); pinned.forEach((c,i)=>pinNum.set(c.id,i+1));
     if(!data.length){ box.innerHTML='<div class="empty">No notes yet. Add the first one below.</div>'; if(it.type==='image') renderPins(it, [], pinNum); return; }
     const mineSet=new Set(myComments());
-    box.innerHTML=data.map(c=>{
-      const secs=parseTimecode(c.timecode);
-      const canSeek=secs!=null && players[it.id];
-      const tc=c.timecode ? '<button class="tc '+(canSeek?'':'static')+'" '+(canSeek?'data-sec="'+secs+'"':'disabled')+'>'+esc(c.timecode)+'</button>' : '';
-      const del=(ADMIN || mineSet.has(c.id)) ? '<button class="note-del" title="Delete note" data-c="'+c.id+'">\u00d7</button>' : '';
-      const pin=pinNum.has(c.id) ? '<button class="pin-badge" data-c="'+c.id+'" title="Show on image">'+pinNum.get(c.id)+'</button>' : '';
-      const audio=c.audio_url ? '<audio controls preload="none" src="'+esc(c.audio_url)+'"></audio>' : '';
-      const bodyHtml=c.body ? '<div class="note-body">'+esc(c.body)+'</div>' : '';
-      return '<div class="note" id="note-'+it.id+'-'+c.id+'"><div class="ava">'+esc((c.author_name||'?').trim().charAt(0)||'?')+'</div><div class="note-main"><div class="note-head">'+pin+'<span class="note-name'+((ADMIN&&c.author_email)?' has-email':'')+'"'+((ADMIN&&c.author_email)?' title="'+esc(c.author_email)+'"':'')+'>'+esc(c.author_name||'Anonymous')+'</span>'+tc+'<span class="note-time" title="'+esc(relTime(c.created_at))+'">'+esc(fmtTime(c.created_at))+'</span>'+del+'</div>'+bodyHtml+audio+'</div></div>';
-    }).join('');
+    const children={}; const roots=[];
+    data.forEach(c=>{ if(c.parent_id!=null && data.some(p=>p.id===c.parent_id)){ (children[c.parent_id]=children[c.parent_id]||[]).push(c); } else roots.push(c); });
+    const numMap=new Map(); data.forEach((c,i)=>numMap.set(c.id,i+1));
+    let html=''; roots.forEach(c=>{ html+=renderComment(it, c, 0, children, pinNum, mineSet, numMap, ''); });
+    box.innerHTML=html;
     if(it.type==='image') renderPins(it, pinned, pinNum);
   }catch(e){
     console.error('load notes failed', e);
     box.innerHTML='<div class="empty">Could not load notes. Refresh the page to try again.</div>';
   }
+}
+
+function reactionBarHTML(it, c){
+  const r=(REACTIONS[it.id] && REACTIONS[it.id][c.id]) || {};
+  const a=getAuthor(it); const myKey=a.name ? (a.email||('name:'+a.name.toLowerCase())) : null;
+  let chips='';
+  Object.keys(r).forEach(em=>{ const arr=r[em]; const mine=myKey && arr.some(x=>x.key===myKey); const names=arr.map(x=>x.name).join(', '); chips+='<button type="button" class="react-chip'+(mine?' mine':'')+'" data-c="'+c.id+'" data-emoji="'+esc(em)+'" title="'+esc(names)+'">'+em+'<span class="rc-n">'+arr.length+'</span></button>'; });
+  chips+='<button type="button" class="react-add" data-c="'+c.id+'" title="Add reaction" aria-label="Add reaction">'+svgIcon('smile')+'</button>';
+  return '<div class="react-bar" data-c="'+c.id+'">'+chips+'</div>';
+}
+
+function renderComment(it, c, depth, children, pinNum, mineSet, numMap, parentName){
+  const secs=parseTimecode(c.timecode);
+  const canSeek=secs!=null && players[it.id];
+  const tc=c.timecode ? '<button class="tc '+(canSeek?'':'static')+'" '+(canSeek?'data-sec="'+secs+'"':'disabled')+'>'+esc(c.timecode)+'</button>' : '';
+  const del=(ADMIN || mineSet.has(c.id)) ? '<button class="note-del" title="Delete note" data-c="'+c.id+'">\u00d7</button>' : '';
+  const pin=pinNum.has(c.id) ? '<button class="pin-badge" data-c="'+c.id+'" title="Show on image">'+pinNum.get(c.id)+'</button>' : '';
+  const audio=c.audio_url ? '<audio controls preload="none" src="'+esc(c.audio_url)+'"></audio>' : '';
+  const bodyHtml=c.body ? '<div class="note-body">'+mentionHighlight(c.body)+'</div>' : '';
+  const bridge=(depth>0 && parentName) ? '<div class="reply-bridge">'+svgIcon('reply')+'<span>replying to '+esc(parentName)+'</span></div>' : '';
+  const react=reactionBarHTML(it,c);
+  const actions='<div class="note-actions"><button type="button" class="note-act reply-btn" data-c="'+c.id+'" title="Reply" aria-label="Reply">'+svgIcon('reply')+'</button><span class="note-num">#'+numMap.get(c.id)+'</span></div>';
+  const head='<div class="note-head">'+pin+'<span class="note-name'+((ADMIN&&c.author_email)?' has-email':'')+'"'+((ADMIN&&c.author_email)?' title="'+esc(c.author_email)+'"':'')+'>'+esc(c.author_name||'Anonymous')+'</span>'+tc+'<span class="note-time" title="'+esc(fmtTime(c.created_at))+'">'+esc(relTime(c.created_at))+'</span>'+del+'</div>';
+  let kids='';
+  (children[c.id]||[]).forEach(k=>{ kids+=renderComment(it, k, depth+1, children, pinNum, mineSet, numMap, c.author_name); });
+  return '<div class="note'+(depth>0?' is-reply':'')+'" id="note-'+it.id+'-'+c.id+'">'
+    + bridge
+    + '<div class="note-row"><div class="ava">'+esc((c.author_name||'?').trim().charAt(0)||'?')+'</div><div class="note-main">'+head+bodyHtml+audio+react+actions+'</div></div>'
+    + (kids?'<div class="reply-thread">'+kids+'</div>':'')
+    + '</div>';
 }
 
 function renderPins(it, pinned, pinNum){
@@ -964,14 +1095,19 @@ async function postNote(proj, sec, it){
     if(audio_url) row.audio_url=audio_url;
     if(pin){ row.pos_x=pin.x; row.pos_y=pin.y; }
     if(preview) row.preview_url=preview;
-    const nb=document.getElementById('notify-'+it.id);
-    let picks = nb ? [...nb.querySelectorAll('.notify-pick:checked')].map(c=>c.value) : [];
-    row.notify_emails = picks.filter(e => e && e !== a.email);
+    const mentions=collectMentions(it);
+    const rt=replyTo[it.id];
+    let notify=mentions.slice();
+    if(rt && rt.author_email) notify.push((rt.author_email||'').toLowerCase());
+    const meEmail=(a.email||'').toLowerCase();
+    row.notify_emails=[...new Set(notify)].filter(e=>e && e!==meEmail);
+    if(rt && rt.id!=null) row.parent_id=rt.id;
     const { data:ins, error } = await sb.from('comments').insert(row).select();
     if(error) throw error;
     if(ins && ins[0] && ins[0].id) addMine(ins[0].id);
     bodyEl.value=''; if(tcEl) tcEl.value='';
     pendingAudio[it.id]=null; pendingPin[it.id]=null; pinMode[it.id]=false;
+    mentionState[it.id]=null; clearReply(it);
     const prev=document.getElementById('rec-prev-'+it.id); if(prev) prev.innerHTML='';
     const pinBtn=document.getElementById('pin-'+it.id); if(pinBtn) pinBtn.classList.remove('active');
     const layer=document.getElementById('pinlayer-'+it.id); if(layer) layer.classList.remove('arming');
@@ -1075,6 +1211,76 @@ async function sendOnboarding(){
   finally{ btn.disabled=false; btn.textContent='Send welcome email'; }
 }
 
+async function toggleReaction(proj, sec, it, commentId, emoji){
+  const me=reactorIdentity(it); const msg=document.getElementById('msg-'+it.id);
+  if(!me){ if(msg){ msg.className='msg err'; msg.textContent='Pick your name (below) to react.'; } const ns=document.getElementById('name-'+it.id); if(ns) ns.focus(); return; }
+  const cur=(REACTIONS[it.id] && REACTIONS[it.id][commentId] && REACTIONS[it.id][commentId][emoji]) || [];
+  const mine=cur.some(r=>r.key===me.key);
+  try{
+    if(mine){ const { error }=await sb.from('comment_reactions').delete().eq('comment_id', commentId).eq('emoji', emoji).eq('reactor_key', me.key); if(error) throw error; }
+    else { const { error }=await sb.from('comment_reactions').insert({ comment_id:commentId, emoji:emoji, reactor_key:me.key, reactor_name:me.name, reactor_email:me.email }); if(error) throw error; }
+    await loadNotes(proj,sec,it);
+  }catch(e){ console.error('reaction failed', e); if(msg){ msg.className='msg err'; msg.textContent='Reactions need comments-social.sql run in Supabase.'; } }
+}
+function closeReactPop(){ document.querySelectorAll('.react-pop').forEach(p=>p.remove()); document.removeEventListener('click', reactPopAway); }
+function reactPopAway(e){ if(!e.target.closest('.react-pop') && !e.target.closest('.react-add')) closeReactPop(); }
+function openReactPop(proj, sec, it, anchor){
+  closeReactPop();
+  const pop=document.createElement('div'); pop.className='react-pop';
+  pop.innerHTML=REACT_EMOJI.map(em=>'<button type="button" data-emoji="'+esc(em)+'">'+em+'</button>').join('');
+  anchor.parentNode.appendChild(pop);
+  pop.addEventListener('click', (e)=>{ const b=e.target.closest('button'); if(!b) return; closeReactPop(); toggleReaction(proj,sec,it, anchor.dataset.c, b.dataset.emoji); });
+  setTimeout(()=>document.addEventListener('click', reactPopAway), 0);
+}
+function setReply(it, cid){
+  const arr=COMMENTS[it.id]||[]; const c=arr.find(x=>String(x.id)===String(cid)); if(!c) return;
+  replyTo[it.id]={ id:c.id, author_name:c.author_name, author_email:c.author_email||'', body:c.body||'' };
+  const ctx=document.getElementById('replyctx-'+it.id);
+  if(ctx){ ctx.hidden=false; ctx.innerHTML='<span class="rc-ic">'+svgIcon('reply')+'</span><span class="rc-txt">Replying to <b>'+esc(c.author_name||'Anonymous')+'</b>'+(c.body?' · <span class="rc-quote">'+esc(c.body.slice(0,80))+(c.body.length>80?'…':'')+'</span>':'')+'</span><button type="button" class="rc-x" id="rcx-'+it.id+'" title="Cancel reply" aria-label="Cancel reply">×</button>'; const x=document.getElementById('rcx-'+it.id); if(x) x.addEventListener('click', ()=>clearReply(it)); }
+  const ta=document.getElementById('body-'+it.id); if(ta){ ta.focus(); ta.scrollIntoView({behavior:'smooth',block:'center'}); }
+}
+function clearReply(it){ replyTo[it.id]=null; const ctx=document.getElementById('replyctx-'+it.id); if(ctx){ ctx.hidden=true; ctx.innerHTML=''; } }
+function mentionInput(it){
+  const ta=document.getElementById('body-'+it.id), pop=document.getElementById('mentionpop-'+it.id); if(!ta||!pop) return;
+  const val=ta.value, caret=ta.selectionStart||val.length, upto=val.slice(0,caret);
+  const m=upto.match(/(?:^|\s)@([^\s@]{0,30})$/);
+  if(!m){ pop.hidden=true; pop.innerHTML=''; return; }
+  const q=m[1].toLowerCase();
+  const matches=mentionPeople().filter(p=>p.name.toLowerCase().includes(q)||p.email.toLowerCase().includes(q)).slice(0,6);
+  if(!matches.length){ pop.hidden=true; pop.innerHTML=''; return; }
+  pop.innerHTML=matches.map(p=>'<button type="button" class="mention-item" data-email="'+esc(p.email)+'" data-name="'+esc(p.name)+'"><span class="mi-name">@'+esc(p.name)+'</span><span class="mi-email">'+esc(p.email)+'</span></button>').join('');
+  pop.hidden=false;
+}
+function pickMention(it, email, name){
+  const ta=document.getElementById('body-'+it.id), pop=document.getElementById('mentionpop-'+it.id); if(!ta) return;
+  const val=ta.value, caret=ta.selectionStart||val.length, upto=val.slice(0,caret), after=val.slice(caret);
+  const m=upto.match(/(?:^|\s)@([^\s@]{0,30})$/);
+  if(m){ const start=caret-m[1].length-1; ta.value=val.slice(0,start)+'@'+name+' '+after; const np=start+name.length+2; try{ ta.setSelectionRange(np,np); }catch(e){} }
+  mentionState[it.id]=mentionState[it.id]||{emails:{}}; mentionState[it.id].emails[(email||'').toLowerCase()]=name;
+  if(pop){ pop.hidden=true; pop.innerHTML=''; }
+  ta.focus(); gateFor(it);
+}
+function collectMentions(it){
+  const ta=document.getElementById('body-'+it.id); const body=ta?ta.value:''; const out={};
+  const st=(mentionState[it.id] && mentionState[it.id].emails) || {};
+  Object.keys(st).forEach(em=>{ if(body.indexOf('@'+st[em])>-1) out[em]=true; });
+  mentionPeople().forEach(p=>{ if(p.name && body.indexOf('@'+p.name)>-1) out[(p.email||'').toLowerCase()]=true; });
+  return Object.keys(out).filter(Boolean);
+}
+function shareMenu(proj, sec, it){
+  const pop=document.getElementById('sharepop-'+it.id); if(!pop) return;
+  if(!pop.hidden){ pop.hidden=true; return; }
+  document.querySelectorAll('.share-pop').forEach(p=>{ if(p!==pop) p.hidden=true; });
+  const link=itemDeepLink(proj,sec,it), title=itemTitle(it);
+  pop.innerHTML='<button type="button" class="share-opt" data-act="copy">🔗 Copy link</button><button type="button" class="share-opt" data-act="email">✉️ Share to email</button><button type="button" class="share-opt" data-act="text">💬 Share to text</button>';
+  pop.hidden=false;
+  pop.onclick=(e)=>{ const b=e.target.closest('.share-opt'); if(!b) return; const act=b.dataset.act;
+    if(act==='copy'){ if(navigator.clipboard){ navigator.clipboard.writeText(link).then(()=>{ b.textContent='✓ Copied!'; }).catch(()=>{ b.textContent='Copy failed'; }); } else { b.textContent='Copy unavailable'; } setTimeout(()=>{ pop.hidden=true; }, 900); }
+    else if(act==='email'){ location.href='mailto:?subject='+encodeURIComponent('Review: '+title)+'&body='+encodeURIComponent('Take a look at '+title+':\n\n'+link); pop.hidden=true; }
+    else if(act==='text'){ location.href='sms:?&body='+encodeURIComponent(title+' — '+link); pop.hidden=true; }
+  };
+}
+document.addEventListener('click', (e)=>{ if(!e.target.closest('.share-pop') && !e.target.closest('.meta-share')) document.querySelectorAll('.share-pop').forEach(p=>p.hidden=true); });
 document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeOverlay(); });
 (function(){ const o=document.getElementById('overlay'); if(o){ o.addEventListener('click', (e)=>{ if(e.target===o) closeOverlay(); }); const x=o.querySelector('.ov-close'); if(x) x.addEventListener('click', closeOverlay); } })();
 chrome();
