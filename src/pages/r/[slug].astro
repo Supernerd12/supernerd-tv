@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v16';
+  const VERSION = 'v17';
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   const items    = (await getCollection('reviewItems')).filter(i => i.data.published !== false);
@@ -1147,6 +1147,12 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
 .task-edit{background:none;border:0;color:var(--dim);font-size:13px;cursor:pointer;padding:4px;line-height:1}
 .task-edit:hover{color:var(--green)}
 .pc-task{display:flex;width:fit-content;max-width:100%;align-items:center;gap:7px;margin:11px 0 0;font-family:var(--mono);font-size:11px;color:var(--bone);background:rgba(255,255,255,.03);border:1px solid var(--hair);border-radius:999px;padding:4px 11px}
+
+/* ===================== v17: task date picker button ===================== */
+.dk-daterow{display:flex;gap:8px;align-items:stretch}
+.dk-daterow .dk-i{flex:1;margin:0}
+.dk-calbtn{flex:0 0 auto;width:46px;border:1px solid var(--line);border-radius:9px;background:#000;color:var(--bone);font-size:17px;cursor:pointer}
+.dk-calbtn:hover{border-color:var(--green)}
 </style>
 </head>
 <body>
@@ -2205,7 +2211,7 @@ async function taskLoad(projKey){
   catch(e){ console.error('tasks load failed',e); mount.innerHTML='<div class="sec-empty">Could not load tasks. Run tasks.sql in Supabase first.</div>'; return; }
   TASKS_CACHE[projKey]=rows;
   var addBtn='<div class="task-board-head"><button class="task-add" id="taskAddTop">+ Add task</button></div>';
-  mount.innerHTML=addBtn+'<div class="task-cols">'+taskColHTML(projKey,'supernerd','Supernerd',rows)+taskColHTML(projKey,'client','Client',rows)+'</div>';
+  mount.innerHTML=addBtn+'<div class="task-cols">'+taskColHTML(projKey,'supernerd','Supernerd',rows)+taskColHTML(projKey,'client','Partner',rows)+'</div>';
   taskWire(projKey);
 }
 function taskColHTML(projKey,side,label,rows){
@@ -2260,16 +2266,17 @@ function taskOpen(projKey, side, row){
   var curSide = editing ? (row.side||'supernerd') : (side || (ADMIN ? 'client' : 'supernerd'));
   var ov=document.createElement('div'); ov.className='onb show'; ov.id='taskOv';
   var sel=function(v){return curSide===v?' selected':'';};
-  var peopleOpts='<option value="">\u2014 assign owner \u2014</option><option value="__me__">Me</option><option value="__client__">The client (no specific person)</option>'+taskPeople().map(function(p){return '<option value="'+esc(p.email)+'"'+((editing&&(row.owner_email||'').toLowerCase()===p.email.toLowerCase())?' selected':'')+'>'+esc(p.name)+'</option>';}).join('');
+  var peopleOpts='<option value="">\u2014 assign owner \u2014</option><option value="__me__">Me</option><option value="__client__">The partner (no specific person)</option>'+taskPeople().map(function(p){return '<option value="'+esc(p.email)+'"'+((editing&&(row.owner_email||'').toLowerCase()===p.email.toLowerCase())?' selected':'')+'>'+esc(p.name)+'</option>';}).join('');
   ov.innerHTML='<div class="lm-modal"><div class="lm-title" style="font-size:19px">'+(editing?'Edit task':'New task')+'</div>'
-    +'<label class="dk-l">For which list</label><select class="dk-i" id="tkSide"><option value="supernerd"'+sel('supernerd')+'>Supernerd (our to-do)</option><option value="client"'+sel('client')+'>Client (their to-do — e.g. approvals)</option></select>'
+    +'<label class="dk-l">For which list</label><select class="dk-i" id="tkSide"><option value="supernerd"'+sel('supernerd')+'>Supernerd (our to-do)</option><option value="client"'+sel('client')+'>Partner (their to-do — e.g. approvals)</option></select>'
     +'<label class="dk-l">Task</label><input class="dk-i" id="tkTitle" value="'+(editing?esc(row.title||''):'')+'" placeholder="e.g. Review the new animatic">'
     +'<label class="dk-l">Owner</label><select class="dk-i" id="tkOwner">'+peopleOpts+'</select>'
-    +'<label class="dk-l">Due date</label><input class="dk-i" id="tkDue" type="date" value="'+(editing&&row.due_date?esc(row.due_date):'')+'">'
+    +'<label class="dk-l">Due date</label><div class="dk-daterow"><input class="dk-i" id="tkDue" type="date" value="'+(editing?(row.due_date?esc(row.due_date):''):new Date().toISOString().slice(0,10))+'"><button type="button" class="dk-calbtn" id="tkCal" title="Pick a date">\uD83D\uDCC5</button></div>'
     +'<div class="lm-foot"><button id="tkCancel">Cancel</button><button id="tkSave" class="post">'+(editing?'Save':'Add task')+'</button><span class="msg" id="tkMsg"></span></div></div>';
   document.body.appendChild(ov);
   ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); });
   document.getElementById('tkCancel').onclick=function(){ ov.remove(); };
+  var tkCal=document.getElementById('tkCal'); if(tkCal) tkCal.onclick=function(){ var d=document.getElementById('tkDue'); try{ d.showPicker(); }catch(e){ d.focus(); } };
   document.getElementById('tkSave').onclick=async function(){
     var title=(document.getElementById('tkTitle').value||'').trim();
     var newSide=document.getElementById('tkSide').value;
@@ -2277,7 +2284,7 @@ function taskOpen(projKey, side, row){
     var msg=document.getElementById('tkMsg'); if(!title){ msg.className='msg err'; msg.textContent='Name the task.'; return; }
     var ownerName='', ownerEmail='';
     if(ownerSel==='__me__'){ ownerName=(AUTH.profile&&AUTH.profile.full_name)||myEmail(); ownerEmail=myEmail(); }
-    else if(ownerSel==='__client__'){ ownerName='The client'; ownerEmail=''; }
+    else if(ownerSel==='__client__'){ ownerName='The partner'; ownerEmail=''; }
     else if(ownerSel){ var p=taskPeople().find(function(x){return x.email===ownerSel;}); ownerName=p?p.name:ownerSel; ownerEmail=ownerSel; }
     else if(editing){ ownerName=row.owner_name||''; ownerEmail=row.owner_email||''; }
     var btn=document.getElementById('tkSave'); btn.disabled=true; btn.textContent='Saving\u2026';
@@ -2469,7 +2476,7 @@ function calWire(){
   var cc=c.querySelector('[data-ccancel]'); if(cc) cc.onclick=function(){CAL.pendingDel=null;calRender();};
   var nb=c.querySelector('[data-cnew]'); if(nb) nb.onclick=function(){ var dk=(CAL.view==='day'&&CAL.day)?calKey(CAL.day):calTodayK(); calEvOpen(null, dk); };
   if(typeof ADMIN!=='undefined' && ADMIN){
-    c.querySelectorAll('.cal-ev').forEach(function(el){ el.addEventListener('click', function(ev){ ev.stopPropagation(); var id=el.dataset.eid; var found=CAL.EV.filter(function(x){return String(x.id)===String(id);})[0]; if(found) calEvOpen(found); }); });
+    c.querySelectorAll('.cal-ev').forEach(function(el){ el.addEventListener('click', function(ev){ ev.stopPropagation(); var id=el.dataset.eid; var found=CAL.EV.filter(function(x){return String(x.id)===String(id);})[0]; if(found){ if(found.isTask){ location.hash='p='+encodeURIComponent(CAL.projId||'')+'&f=tasks'; return; } calEvOpen(found); } }); });
   }
   var ab=c.querySelector('[data-cadd]'); if(ab) ab.onclick=function(){var nm=document.getElementById('calnewN').value.trim(),col=document.getElementById('calnewC').value;if(!nm)return;var slug=nm.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'')||('type'+Date.now());if(CAL.TYPES[slug])slug=slug+'x';CAL.TYPES[slug]={l:nm,c:col};CAL.ORDER.push(slug);calUpsertType(slug);calRender();};
 }
@@ -2486,6 +2493,12 @@ async function calLoad(projId){
     var re=await sb.from('calendar_events').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).order('date',{ascending:true});
     CAL.EV=((re&&re.data)||[]).map(function(r){ return { id:r.id, d:r.date, type:r.type, title:r.title, proj:r.project_id||'project', kind:r.kind||'major', time:r.time||'', notes:r.notes||'', frozen:r.frozen_color||null }; });
   }catch(e){ CAL.EV=[]; }
+  // tasks with a due date show up on the calendar too
+  try{
+    var rtk=await sb.from('tasks').select('id,title,due_date,owner_name,status').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',projId).not('due_date','is',null);
+    if(rtk&&rtk.data){ rtk.data.forEach(function(t){ if(!t.due_date) return; CAL.EV.push({ id:'task:'+t.id, d:t.due_date, type:'__task__', title:t.title, proj:projId, kind:'major', time:'', notes:(t.owner_name?('Owner: '+t.owner_name):'')+(t.status==='complete'?' \u00b7 done':''), frozen:'#BAC01E', isTask:true }); }); }
+    CAL.TYPES['__task__']={l:'Task',c:'#BAC01E'};
+  }catch(e){}
   calRender();
 }
 
@@ -2797,11 +2810,18 @@ async function loadPartners(){
   PP.taskBy={};
   if(currentProjectKey){
     try{
-      var tr=await sb.from('tasks').select('owner_email,status').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',currentProjectKey).in('status',['in_progress','working_changes']);
-      if(!tr.error){ (tr.data||[]).forEach(function(t){ var em=(t.owner_email||'').toLowerCase(); if(!em) return; if(!PP.taskBy[em] || t.status==='in_progress') PP.taskBy[em]=taskStatus(t.status); }); }
+      var tr=await sb.from('tasks').select('owner_email,status,title').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',currentProjectKey).in('status',['in_progress','working_changes']);
+      if(!tr.error){ (tr.data||[]).forEach(function(t){ var em=(t.owner_email||'').toLowerCase(); if(!em) return; var st=taskStatus(t.status); var cur=PP.taskBy[em]; if(!cur){ PP.taskBy[em]={label:st.label,color:st.color,titles:[t.title]}; } else { cur.titles.push(t.title); if(t.status==='in_progress'){ cur.label=st.label; cur.color=st.color; } } }); }
     }catch(e){}
   }
   renderPartners(profiles);
+}
+function taskStatusFor(p){
+  if(!PP.taskBy || !p) return null;
+  var keys=[]; if(p.email) keys.push(String(p.email).toLowerCase());
+  if(p.owner){ (CONFIG.OWNER_LOGINS||[]).forEach(function(e){ keys.push(String(e).toLowerCase()); }); }
+  for(var i=0;i<keys.length;i++){ if(PP.taskBy[keys[i]]) return PP.taskBy[keys[i]]; }
+  return null;
 }
 function ppCardHTML(p){
   var c=ppCompany(p.company_id);
@@ -2811,8 +2831,8 @@ function ppCardHTML(p){
   var dotKey=p.owner?(p.uid||'__owner__'):p.id;
   var online=PRESENCE.online[dotKey]?' on':'';
   var rm=((typeof ADMIN!=='undefined' && ADMIN) && !p.owner)?'<button class="pc-remove" data-rm="'+ppEsc(p.id)+'" title="Remove from project">\u00d7</button>':'';
-  var ts=(PP.taskBy&&p.email)?PP.taskBy[String(p.email).toLowerCase()]:null;
-  var statusPill = ts ? '<div class="pc-task"><span class="task-light blink" style="--c:'+ts.color+'"></span>'+ppEsc(ts.label)+'</div>' : '';
+  var ts=taskStatusFor(p);
+  var statusPill = ts ? '<div class="pc-task" title="'+ppEsc((ts.titles||[]).join(', '))+'"><span class="task-light blink" style="--c:'+ts.color+'"></span>'+ppEsc(ts.label)+'</div>' : '';
   return '<div class="pcard" data-pid="'+ppEsc(p.id)+'">'+rm+'<div class="pc-top"><div class="pc-avwrap"><div class="avatar" style="'+ppAvStyle(p)+'">'+(p.avatar_url?'':ppEsc(ppInitials(p.full_name).toUpperCase()))+'</div><span class="pc-dot'+online+'" data-dot="'+ppEsc(dotKey)+'"></span></div>'
     +'<div class="pc-id"><div class="pc-name">'+ppEsc(p.full_name)+'</div><div class="pc-role">'+ppEsc(p.position)+'</div></div></div>'
     +statusPill
