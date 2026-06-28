@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v19';
+  const VERSION = 'v20';
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   const items    = (await getCollection('reviewItems')).filter(i => i.data.published !== false);
@@ -1288,6 +1288,10 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
   .ca-bar{align-items:flex-start} .ca-add{width:100%}
   .ca-grid,.col-grid{grid-template-columns:1fr}
 }
+
+/* v20 — ghost admin button (Send test email) */
+.admin-btn.ghost{background:transparent; color:var(--bone); border:1px solid var(--hair)}
+.admin-btn.ghost:hover{background:rgba(186,192,30,.08); border-color:rgba(186,192,30,.45)}
 </style>
 </head>
 <body>
@@ -1643,6 +1647,7 @@ function renderProject(proj, sec, stack, folder){
     loadGridCounts(proj, sec);
   }
   if(ADMIN && !folder){ const ab=document.getElementById('ann-btn-'+sec.id); if(ab) ab.addEventListener('click', ()=>announce(proj.id,sec.id)); }
+  if(ADMIN){ var etb=document.getElementById('emailTestBtn'); if(etb) etb.onclick=sendTestEmail; }
 }
 
 function gridCardHTML(proj, sec, stack){
@@ -1990,7 +1995,7 @@ async function deleteNote(itemId, commentId){
 }
 
 function adminStrip(proj, sec){
-  return '<div class="admin-strip"><span class="admin-tag">Admin</span><input id="ann-msg-'+sec.id+'" class="admin-input" placeholder="Optional message — e.g. \'New work is up for review\'"><button class="admin-btn" id="ann-btn-'+sec.id+'">Notify team · '+esc(sec.name)+' ready</button><span class="admin-msg" id="ann-status-'+sec.id+'"></span></div>';
+  return '<div class="admin-strip"><span class="admin-tag">Admin</span><input id="ann-msg-'+sec.id+'" class="admin-input" placeholder="Optional message — e.g. \'New work is up for review\'"><button class="admin-btn" id="ann-btn-'+sec.id+'">Notify team · '+esc(sec.name)+' ready</button><span class="admin-msg" id="ann-status-'+sec.id+'"></span><button class="admin-btn ghost" type="button" id="emailTestBtn">Send test email to me</button><span class="admin-msg" id="emailTestMsg"></span></div>';
 }
 async function announce(projId, secId){
   const proj=CONFIG.PROJECTS.find(p=>p.id===projId); if(!proj) return;
@@ -3394,6 +3399,52 @@ function caTzOptions(cur){
   ];
   var found=list.some(function(z){return z[0]===sel;}); if(!found && sel){ list.unshift([sel, caTzShort(sel)]); }
   return list.map(function(z){ return '<option value="'+z[0]+'"'+(z[0]===sel?' selected':'')+'>'+esc(z[1])+'</option>'; }).join('');
+}
+
+/* ============================================================
+   v20 — email send (Resend via send-email Edge Function)
+   ============================================================ */
+function emailShell(heading, inner){
+  return '<div style="margin:0;padding:0;background:#050505;">'
+    +'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#050505;padding:28px 0;font-family:Helvetica,Arial,sans-serif;"><tr><td align="center">'
+    +'<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px;max-width:600px;background:#0b0c0e;border:1px solid #1c1e22;border-radius:16px;overflow:hidden;">'
+    +'<tr><td style="padding:24px 30px 18px;border-bottom:1px solid #1c1e22;"><img src="https://supernerd.tv/email-logo.png" alt="Supernerd" height="26" style="height:26px;display:block;"></td></tr>'
+    +'<tr><td style="padding:30px;">'
+    +'<div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#BAC01E;font-weight:700;margin-bottom:10px;">Supernerd Studio</div>'
+    +'<h1 style="margin:0 0 16px;font-size:24px;line-height:1.2;color:#ECECEA;font-weight:800;">'+esc(heading)+'</h1>'
+    +inner
+    +'</td></tr>'
+    +'<tr><td style="padding:18px 30px 24px;border-top:1px solid #1c1e22;"><div style="font-size:12px;color:#6c7075;line-height:1.5;">Supernerd Studios &middot; Harlem, NYC &middot; <a href="https://supernerd.tv" style="color:#BAC01E;text-decoration:none;">supernerd.tv</a></div></td></tr>'
+    +'</table></td></tr></table></div>';
+}
+async function sendEmail(opts){
+  // opts: { to:[], bcc:[], subject, html, replyTo }
+  var res = await sb.functions.invoke('send-email', { body: opts });
+  if(res.error){
+    var detail='';
+    try{ if(res.error.context && typeof res.error.context.json==='function'){ var j=await res.error.context.json(); detail=(j&&j.error)||''; } }catch(_){}
+    throw new Error(detail || res.error.message || 'send failed');
+  }
+  if(res.data && res.data.error) throw new Error(res.data.error);
+  return res.data;
+}
+async function sendTestEmail(){
+  var btn=document.getElementById('emailTestBtn'), msg=document.getElementById('emailTestMsg');
+  var to=myEmail();
+  if(!to){ if(msg){ msg.className='admin-msg err'; msg.textContent='No email on your account.'; } return; }
+  if(btn){ btn.disabled=true; var orig=btn.textContent; btn.textContent='Sending\u2026'; }
+  if(msg){ msg.className='admin-msg'; msg.textContent=''; }
+  try{
+    var inner='<p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#c9ccd1;">If you\u2019re reading this, your portal can send email through Resend. \u2713</p>'
+      +'<p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#c9ccd1;">That means the Project Overview newsletter and comment / welcome notifications can now go out straight from here.</p>'
+      +'<p style="margin:0;font-size:13px;line-height:1.6;color:#8a8e94;">Test sent to '+esc(to)+'.</p>';
+    var html=emailShell('Email is working', inner);
+    await sendEmail({ to:[to], subject:'Supernerd portal \u2014 email test \u2713', html:html });
+    if(msg){ msg.className='admin-msg ok'; msg.textContent='Sent \u2713 \u2014 check '+to+' (first one may land in spam).'; }
+  }catch(e){
+    if(msg){ msg.className='admin-msg err'; msg.textContent='Failed: '+(e.message||'unknown')+' \u2014 check the function secrets / FROM_EMAIL domain.'; }
+  }
+  if(btn){ btn.disabled=false; btn.textContent=orig; }
 }
 
 </script>
