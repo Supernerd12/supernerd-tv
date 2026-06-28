@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const BUILD = new Date().toISOString().replace('T',' ').slice(0,16) + ' UTC';
+  const VERSION = 'v15';
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   const items    = (await getCollection('reviewItems')).filter(i => i.data.published !== false);
@@ -102,7 +102,7 @@ export async function getStaticPaths() {
     }
     const CLIENTS = cOrder.map(k => cMap.get(k));
 
-    const data = { REVIEW_SLUG: co.key, OWNER_LOGINS: ["hello@supernerd.tv","shaun@supernerd.tv"], BUILD, COMPANY: { name: co.name, logo: co.logo || '' }, CLIENTS, PROJECTS };
+    const data = { REVIEW_SLUG: co.key, OWNER_LOGINS: ["hello@supernerd.tv","shaun@supernerd.tv"], VERSION, COMPANY: { name: co.name, logo: co.logo || '' }, CLIENTS, PROJECTS };
     return { params: { slug: co.url_slug }, props: { data } };
   });
 }
@@ -1076,6 +1076,59 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
 /* ===================== v14: build stamp + Presentations nav placement ===================== */
 .build-stamp{display:block;margin-top:7px;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:rgba(236,236,234,.30)}
 .nav-decks{margin-top:8px}
+
+/* ===================== v15: Project eyebrow, Project Status, Task Manager ===================== */
+.pv-eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--green);margin-bottom:4px}
+
+/* Project Status box (sidebar) */
+.pstat-box{margin:14px 0 18px;padding:13px 14px;border:1px solid var(--hair);border-radius:13px;background:rgba(255,255,255,.02)}
+.pstat-h{display:flex;align-items:center;justify-content:space-between;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin-bottom:9px}
+.pstat-edit{font-family:var(--mono);font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:var(--green);background:none;border:0;cursor:pointer;padding:0}
+.pstat-edit:hover{color:var(--green-hi)}
+.pstat-pill{display:flex;align-items:center;gap:10px}
+.pstat-dot{width:12px;height:12px;border-radius:50%;flex:0 0 auto;box-shadow:0 0 10px currentColor}
+.pstat-name{font-family:var(--disp);font-size:15px;font-weight:700;color:var(--bone)}
+/* status editor modal */
+.psrow{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.psrow-pick{flex:1;display:flex;align-items:center;gap:10px;font-family:var(--disp);font-size:14px;color:var(--bone);background:rgba(255,255,255,.03);border:1px solid var(--hair);border-radius:9px;padding:9px 12px;cursor:pointer;text-align:left}
+.psrow-pick.on{border-color:var(--green);background:rgba(186,192,30,.08)}
+.psrow-col{width:34px;height:34px;border:1px solid var(--hair);border-radius:8px;background:none;padding:2px;cursor:pointer}
+.psrow-del{background:none;border:0;color:var(--dim);font-size:14px;cursor:pointer;padding:6px}
+.psrow-del:hover{color:#e0676c}
+.psadd{display:flex;align-items:center;gap:8px;margin-top:12px}
+.psadd .dk-i{flex:1;margin:0}
+.psadd input[type=color]{width:34px;height:34px;border:1px solid var(--hair);border-radius:8px;background:none;padding:2px;cursor:pointer}
+
+/* nav notification badge */
+.n-badge{margin-left:auto;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--green);color:#0c0d0e;font-family:var(--mono);font-size:11px;font-weight:800;display:inline-flex;align-items:center;justify-content:center}
+
+/* Task Manager */
+.task-cols{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+@media (max-width:820px){.task-cols{grid-template-columns:1fr}}
+.task-col{border:1px solid var(--hair);border-radius:16px;padding:14px 14px 16px;background:rgba(255,255,255,.012)}
+.task-col-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.task-col-h h3{margin:0;font-family:var(--disp);font-size:17px;font-weight:800;color:var(--bone)}
+.task-add{font-family:var(--mono);font-size:11px;letter-spacing:.03em;text-transform:uppercase;font-weight:800;color:#0c0d0e;background:var(--green);border:0;border-radius:8px;padding:7px 12px;cursor:pointer}
+.task-add:hover{background:var(--green-hi)}
+.task-list{display:flex;flex-direction:column;gap:10px}
+.task-empty{font-family:var(--mono);font-size:12px;color:var(--dim);padding:10px 2px}
+.task-card{display:flex;align-items:center;gap:11px;padding:11px 12px;border:1px solid var(--hair);border-radius:11px;background:rgba(255,255,255,.02)}
+.task-card.done{opacity:.7}
+.task-card.done .task-title{text-decoration:line-through;color:var(--dim)}
+.task-light{width:11px;height:11px;border-radius:50%;flex:0 0 auto;background:var(--c,#3b82f6)}
+.task-light.blink{box-shadow:0 0 9px var(--c);animation:taskblink 1.15s ease-in-out infinite}
+.task-light.done{background:#22c55e;box-shadow:0 0 7px #22c55e;animation:none}
+@keyframes taskblink{0%,100%{opacity:1}50%{opacity:.25}}
+.task-main{flex:1;min-width:0}
+.task-title{font-family:var(--disp);font-size:14px;font-weight:600;color:var(--bone);line-height:1.25}
+.task-sub{display:flex;gap:10px;flex-wrap:wrap;margin-top:3px;font-family:var(--mono);font-size:11px;color:var(--dim)}
+.task-who{color:var(--bone)}
+.task-due{color:var(--dim)}
+.task-status{font-family:var(--mono);font-size:11px;color:var(--bone);background:#000;border:1px solid var(--c,var(--hair));border-left:4px solid var(--c,var(--green));border-radius:8px;padding:6px 8px;cursor:pointer;max-width:148px}
+.task-del{background:none;border:0;color:var(--dim);font-size:13px;cursor:pointer;padding:4px}
+.task-del:hover{color:#e0676c}
+.task-done-h{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin:16px 0 9px}
+.task-done{display:flex;flex-direction:column;gap:8px}
 </style>
 </head>
 <body>
@@ -1382,8 +1435,12 @@ function renderProject(proj, sec, stack, folder){
     const n=s.stacks.reduce((m,st)=>m+st.versions.length,0);
     return '<a href="#p='+encodeURIComponent(proj.id)+'&s='+encodeURIComponent(s.id)+'" class="'+(s.id===sec.id?'active':'')+'"><span class="n-num">'+String(i+1).padStart(2,'0')+'</span><span class="n-name">'+esc(s.name)+'</span><span class="n-ct">'+(n||'')+'</span></a>';
   }).join('');
-  const FOLDERS=[{k:'calendar',name:'Calendar',ico:'cal'},{k:'assets',name:'Client Assets',ico:'pal',soon:true},{k:'partners',name:'Project Partners',ico:'ppl'}];
-  const folderNav=FOLDERS.map(function(ff){ return ff.soon ? '<a class="soon"><span class="n-ico">'+calNavIcon(ff.ico)+'</span><span class="n-name">'+esc(ff.name)+'</span><span class="soon-tag">soon</span></a>' : '<a href="#p='+encodeURIComponent(proj.id)+'&f='+ff.k+'" class="'+(folder===ff.k?'active':'')+'"><span class="n-ico">'+calNavIcon(ff.ico)+'</span><span class="n-name">'+esc(ff.name)+'</span></a>'; }).join('');
+  const FOLDERS=[{k:'calendar',name:'Calendar',ico:'cal'},{k:'tasks',name:'Task Manager',ico:'task'},{k:'assets',name:'Client Assets',ico:'pal',soon:true},{k:'partners',name:'Project Partners',ico:'ppl'}];
+  const folderNav=FOLDERS.map(function(ff){
+    if(ff.soon) return '<a class="soon"><span class="n-ico">'+calNavIcon(ff.ico)+'</span><span class="n-name">'+esc(ff.name)+'</span><span class="soon-tag">soon</span></a>';
+    var badge = ff.k==='tasks' ? '<span class="n-badge" id="taskBadge" hidden></span>' : '';
+    return '<a href="#p='+encodeURIComponent(proj.id)+'&f='+ff.k+'" class="'+(folder===ff.k?'active':'')+'"><span class="n-ico">'+calNavIcon(ff.ico)+'</span><span class="n-name">'+esc(ff.name)+'</span>'+badge+'</a>';
+  }).join('');
   // Presentations lives ABOVE the Project group. Admin always sees it; clients only when a deck is published.
   const decksNav='<nav class="nav nav-decks"><a id="decksNav" href="#p='+encodeURIComponent(proj.id)+'&f=decks" class="'+(folder==='decks'?'active':'')+'"'+(ADMIN?'':' style="display:none"')+'><span class="n-ico">'+calNavIcon('deck')+'</span><span class="n-name">Presentations</span></a></nav>';
   const adminHTML = ADMIN ? adminStrip(proj,sec) : '';
@@ -1391,6 +1448,7 @@ function renderProject(proj, sec, stack, folder){
   if(folder){
     if(folder==='calendar'){ head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>Calendar</h2></div>'; body='<div class="cal" id="calmount"><div class="cal-loading">Loading calendar\u2026</div></div>'; }
     else if(folder==='decks'){ head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>Presentations</h2><div class="pp-sub">Live Canva decks — they stay current as you edit them in Canva.</div></div>'; body='<div id="deckmount" class="decks"><div class="cal-loading">Loading presentations\u2026</div></div>'; }
+    else if(folder==='tasks'){ head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>Task Manager</h2><div class="pp-sub">Shared checklist. Both sides can add tasks, assign an owner &amp; due date, and set status.</div></div>'; body='<div id="taskmount" class="tasks-wrap"><div class="cal-loading">Loading tasks\u2026</div></div>'; }
     else if(folder==='partners'){ head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>Project Partners</h2><div class="pp-sub">Everyone onboarded to this project.</div></div>'; body='<div id="ppmount"><div class="cal-loading">Loading partners\u2026</div></div>'; }
     else { head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>Client Assets</h2></div>'; body='<div class="folder-soon"><p>Client Assets is coming soon.</p><p class="fs-sub">Pantone / hex picker, logo uploads, and a brand-guide PDF will live here.</p></div>'; }
   } else if(stack){
@@ -1401,12 +1459,15 @@ function renderProject(proj, sec, stack, folder){
     body = sec.stacks.length ? '<div class="rgrid">'+sec.stacks.map(st=>gridCardHTML(proj,sec,st)).join('')+'</div>' : '<div class="sec-empty">Nothing in '+esc(sec.name)+' yet.</div>';
   }
   var _cl=(CONFIG.CLIENTS||[]).find(function(x){return x.key===proj.client;}); var _clName=_cl?_cl.name:CONFIG.COMPANY.name;
-  app.innerHTML='<div class="pv"><aside class="side"><a class="back" href="#c='+encodeURIComponent(proj.client||'')+'">← '+esc(_clName)+'</a><h2 class="pv-title">'+esc(proj.title)+'</h2><nav class="nav">'+nav+'</nav>'+decksNav+'<div class="nav-group">Project</div><nav class="nav nav-folders">'+folderNav+'</nav></aside><div class="mainsec">'+head+adminHTML+body+'</div></div>';
+  app.innerHTML='<div class="pv"><aside class="side"><a class="back" href="#c='+encodeURIComponent(proj.client||'')+'">← '+esc(_clName)+'</a><div class="pv-eyebrow">Project</div><h2 class="pv-title">'+esc(proj.title)+'</h2><div id="projStatusBox" class="pstat-box"></div><nav class="nav">'+nav+'</nav>'+decksNav+'<div class="nav-group">Client Dashboard</div><nav class="nav nav-folders">'+folderNav+'</nav></aside><div class="mainsec">'+head+adminHTML+body+'</div></div>';
   if(!ADMIN) decksReveal(proj.id);
+  projStatusLoad(proj.id);
+  taskBadgeLoad(proj.id);
 
   if(folder){
     if(folder==='calendar') calLoad(proj.id);
     else if(folder==='decks') deckLoad(proj.id);
+    else if(folder==='tasks') taskLoad(proj.id);
     else if(folder==='partners') loadPartners();
   } else if(stack){
     wireVersion(proj, sec, stack.versions[0]);
@@ -1899,7 +1960,7 @@ document.addEventListener('click', (e)=>{ if(!e.target.closest('.share-pop') && 
 document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeOverlay(); });
 (function(){ const o=document.getElementById('overlay'); if(o){ o.addEventListener('click', (e)=>{ if(e.target===o) closeOverlay(); }); const x=o.querySelector('.ov-close'); if(x) x.addEventListener('click', closeOverlay); } })();
 chrome();
-(function(){ var b=document.getElementById('buildStamp'); if(b && CONFIG.BUILD) b.textContent='build '+CONFIG.BUILD; })();
+(function(){ var b=document.getElementById('buildStamp'); if(b && CONFIG.VERSION) b.textContent=CONFIG.VERSION; })();
 window.addEventListener('hashchange', route);
 loadInvites().finally(route);
 
@@ -1915,6 +1976,7 @@ var CAL_MON=['January','February','March','April','May','June','July','August','
 function calNavIcon(n){
   var p={cal:'<rect x="3" y="4.5" width="18" height="16" rx="2"></rect><path d="M3 9.5h18M8 3v3M16 3v3"></path>',
     deck:'<rect x="3" y="4" width="18" height="13" rx="2"></rect><path d="M12 17v3M8.5 20h7"></path>',
+    task:'<path d="M4 6h10M4 12h10M4 18h7"></path><path d="M17.5 5.5l1.5 1.5 2.5-2.5"></path><path d="M17.5 11.5l1.5 1.5 2.5-2.5"></path>',
     pal:'<path d="M12 3a9 9 0 1 0 0 18 1.8 1.8 0 0 0 1.7-2.6 1.8 1.8 0 0 1 1.6-2.6H17a4 4 0 0 0 4-4c0-4.4-4-6.2-9-6.2Z"></path><circle cx="7.5" cy="11.5" r="1.1"></circle><circle cx="12" cy="8" r="1.1"></circle><circle cx="16.5" cy="11" r="1.1"></circle>',
     ppl:'<circle cx="9" cy="8" r="3"></circle><path d="M3.5 19a5.5 5.5 0 0 1 11 0"></path><path d="M16.2 5.7a3 3 0 0 1 0 5.2M17.5 19a5.6 5.6 0 0 0-2-4.3"></path>'};
   return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'+(p[n]||'')+'</svg>';
@@ -2028,6 +2090,154 @@ function deckOpen(projKey, row){
       else { var r2=await sb.from('presentations').insert({ review_slug:CONFIG.REVIEW_SLUG, project_key:projKey, name:name, url:url, version:ver, published:pubd }); if(r2.error) throw r2.error; }
       ov.remove(); deckLoad(projKey);
     }catch(e){ console.error('save deck failed', e); msg.className='msg err'; msg.textContent='Could not save — run presentations.sql and sign in as owner.'; btn.disabled=false; btn.textContent='Save'; }
+  };
+}
+
+/* ---------- Project Status ---------- */
+var PSTAT_DEFAULTS=[{name:'On Track',color:'#22c55e'},{name:'Needs Client Review',color:'#eab308'},{name:'Waiting on Assets',color:'#f59e0b'},{name:'In Revision',color:'#3b82f6'},{name:'Final Delivery',color:'#a855f7'}];
+var PSTAT_CACHE={};
+function pstatGet(row){
+  var phases=(row&&row.phases&&row.phases.length)?row.phases:PSTAT_DEFAULTS;
+  var cur=(row&&row.phase)||phases[0].name;
+  var match=phases.find(function(p){return p.name===cur;})||{name:cur,color:'#22c55e'};
+  return {phases:phases, phase:cur, color:match.color};
+}
+async function projStatusLoad(projKey){
+  var box=document.getElementById('projStatusBox'); if(!box) return;
+  var row=null;
+  try{ var r=await sb.from('project_status').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',projKey).maybeSingle(); if(!r.error) row=r.data; }catch(e){}
+  PSTAT_CACHE[projKey]=row; projStatusRender(projKey);
+}
+function projStatusRender(projKey){
+  var box=document.getElementById('projStatusBox'); if(!box) return;
+  var st=pstatGet(PSTAT_CACHE[projKey]);
+  var btn = ADMIN ? '<button class="pstat-edit" id="pstatEdit">Change</button>' : '';
+  box.innerHTML='<div class="pstat-h"><span>Project Status</span>'+btn+'</div><div class="pstat-pill"><span class="pstat-dot" style="background:'+esc(st.color)+'"></span><span class="pstat-name">'+esc(st.phase)+'</span></div>';
+  if(ADMIN){ var e=document.getElementById('pstatEdit'); if(e) e.onclick=function(){ projStatusOpen(projKey); }; }
+}
+function projStatusOpen(projKey){
+  var st=pstatGet(PSTAT_CACHE[projKey]); var phases=st.phases.map(function(p){return {name:p.name,color:p.color};}); var chosen=st.phase;
+  var ov=document.createElement('div'); ov.className='onb show'; ov.id='pstatOv';
+  function rowsHTML(){ return phases.map(function(p,i){ return '<div class="psrow"><button type="button" class="psrow-pick'+(p.name===chosen?' on':'')+'" data-i="'+i+'"><span class="pstat-dot" style="background:'+esc(p.color)+'"></span>'+esc(p.name)+'</button><input type="color" class="psrow-col" data-i="'+i+'" value="'+esc(p.color)+'"><button type="button" class="psrow-del" data-i="'+i+'">\u2715</button></div>'; }).join(''); }
+  function redraw(){ var c=document.getElementById('psList'); if(c){ c.innerHTML=rowsHTML(); wire(); } }
+  function wire(){
+    ov.querySelectorAll('.psrow-pick').forEach(function(b){ b.onclick=function(){ chosen=phases[+b.dataset.i].name; ov.querySelectorAll('.psrow-pick').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); }; });
+    ov.querySelectorAll('.psrow-col').forEach(function(c){ c.oninput=function(){ phases[+c.dataset.i].color=c.value; }; });
+    ov.querySelectorAll('.psrow-del').forEach(function(d){ d.onclick=function(){ phases.splice(+d.dataset.i,1); if(!phases.length) phases.push({name:'On Track',color:'#22c55e'}); if(!phases.some(function(p){return p.name===chosen;})) chosen=phases[0].name; redraw(); }; });
+  }
+  ov.innerHTML='<div class="lm-modal"><div class="lm-title" style="font-size:19px">Project Status</div><p class="dk-hint" style="margin:0 0 12px">Pick the phase clients see. Add your own phases for this project.</p><div id="psList">'+rowsHTML()+'</div><div class="psadd"><input class="dk-i" id="psNew" placeholder="New phase name"><input type="color" id="psNewCol" value="#BAC01E"><button type="button" id="psAdd" class="deck-addver">+ Add phase</button></div><div class="lm-foot"><button id="psCancel">Cancel</button><button id="psSave" class="post">Save</button><span class="msg" id="psMsg"></span></div></div>';
+  document.body.appendChild(ov); wire();
+  ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); });
+  document.getElementById('psCancel').onclick=function(){ ov.remove(); };
+  document.getElementById('psAdd').onclick=function(){ var n=(document.getElementById('psNew').value||'').trim(); if(!n) return; phases.push({name:n,color:document.getElementById('psNewCol').value||'#BAC01E'}); document.getElementById('psNew').value=''; redraw(); };
+  document.getElementById('psSave').onclick=async function(){
+    var msg=document.getElementById('psMsg'), btn=document.getElementById('psSave'); btn.disabled=true; btn.textContent='Saving\u2026';
+    try{ var r=await sb.from('project_status').upsert({ review_slug:CONFIG.REVIEW_SLUG, project_key:projKey, phase:chosen, phases:phases, updated_at:new Date().toISOString() }, { onConflict:'review_slug,project_key' }); if(r.error) throw r.error; PSTAT_CACHE[projKey]={phase:chosen,phases:phases}; ov.remove(); projStatusRender(projKey); }
+    catch(e){ console.error('status save failed',e); msg.className='msg err'; msg.textContent='Could not save — run tasks.sql first.'; btn.disabled=false; btn.textContent='Save'; }
+  };
+}
+
+/* ---------- Task Manager ---------- */
+var TASK_STATUSES=[
+  {k:'in_progress',label:'In progress',color:'#3b82f6'},
+  {k:'working_changes',label:'Working on changes',color:'#f59e0b'},
+  {k:'needs_client_feedback',label:'Needs client feedback',color:'#a855f7'},
+  {k:'uploaded',label:'Uploaded',color:'#06b6d4'},
+  {k:'needs_approval',label:'Needs approval',color:'#eab308'},
+  {k:'needs_changes',label:'Needs changes',color:'#ef4444'},
+  {k:'complete',label:'Complete',color:'#22c55e'}
+];
+function taskStatus(k){ return TASK_STATUSES.find(function(s){return s.k===k;})||TASK_STATUSES[0]; }
+var TASKS_CACHE={};
+function myEmail(){ return ((AUTH.user&&AUTH.user.email)||(AUTH.profile&&AUTH.profile.email)||'').toLowerCase(); }
+async function taskBadgeLoad(projKey){
+  var me=myEmail(); var b=document.getElementById('taskBadge');
+  if(!me){ if(b) b.hidden=true; return; }
+  try{
+    var r=await sb.from('tasks').select('id,status,owner_email').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',projKey).neq('status','complete');
+    if(r.error) throw r.error;
+    var n=(r.data||[]).filter(function(t){ return (t.owner_email||'').toLowerCase()===me; }).length;
+    b=document.getElementById('taskBadge'); if(b){ if(n>0){ b.textContent=n; b.hidden=false; } else b.hidden=true; }
+  }catch(e){}
+}
+async function taskLoad(projKey){
+  var mount=document.getElementById('taskmount'); if(!mount) return;
+  var rows=[];
+  try{ var r=await sb.from('tasks').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',projKey).order('created_at',{ascending:true}); if(r.error) throw r.error; rows=r.data||[]; }
+  catch(e){ console.error('tasks load failed',e); mount.innerHTML='<div class="sec-empty">Could not load tasks. Run tasks.sql in Supabase first.</div>'; return; }
+  TASKS_CACHE[projKey]=rows;
+  mount.innerHTML='<div class="task-cols">'+taskColHTML(projKey,'supernerd','Supernerd',rows)+taskColHTML(projKey,'client','Client',rows)+'</div>';
+  taskWire(projKey);
+}
+function taskColHTML(projKey,side,label,rows){
+  var mine=rows.filter(function(t){return (t.side||'supernerd')===side;});
+  var active=mine.filter(function(t){return t.status!=='complete';});
+  var done=mine.filter(function(t){return t.status==='complete';});
+  return '<div class="task-col" data-side="'+side+'"><div class="task-col-h"><h3>'+esc(label)+'</h3><button class="task-add" data-side="'+side+'">+ Add task</button></div>'
+    +'<div class="task-list">'+(active.map(taskCardHTML).join('')||'<div class="task-empty">No open tasks.</div>')+'</div>'
+    +(done.length?'<div class="task-done-h">Completed</div><div class="task-done">'+done.map(taskDoneHTML).join('')+'</div>':'')
+    +'</div>';
+}
+function taskTip(t){ return 'Assigned by '+(t.assigner_name||'\u2014')+(t.owner_name?(' \u00b7 for '+t.owner_name):'')+(t.due_date?(' \u00b7 due '+taskDue(t.due_date)):''); }
+function taskCardHTML(t){
+  var s=taskStatus(t.status);
+  var opts=TASK_STATUSES.map(function(o){return '<option value="'+o.k+'"'+(o.k===t.status?' selected':'')+'>'+esc(o.label)+'</option>';}).join('');
+  var due=t.due_date?('<span class="task-due">'+esc(taskDue(t.due_date))+'</span>'):'';
+  return '<div class="task-card" data-id="'+esc(t.id)+'" title="'+esc(taskTip(t))+'">'
+    +'<span class="task-light blink" style="--c:'+esc(s.color)+'"></span>'
+    +'<div class="task-main"><div class="task-title">'+esc(t.title)+'</div><div class="task-sub">'+(t.owner_name?'<span class="task-who">'+esc(t.owner_name)+'</span>':'')+due+'</div></div>'
+    +'<select class="task-status" data-id="'+esc(t.id)+'" style="--c:'+esc(s.color)+'">'+opts+'</select>'
+    +(taskCanDelete(t)?'<button class="task-del" data-id="'+esc(t.id)+'" title="Delete">\u2715</button>':'')
+    +'</div>';
+}
+function taskDoneHTML(t){
+  return '<div class="task-card done" data-id="'+esc(t.id)+'" title="'+esc(taskTip(t))+'"><span class="task-light done"></span><div class="task-main"><div class="task-title">'+esc(t.title)+'</div></div>'
+    +'<select class="task-status" data-id="'+esc(t.id)+'" style="--c:#22c55e">'+TASK_STATUSES.map(function(o){return '<option value="'+o.k+'"'+(o.k===t.status?' selected':'')+'>'+esc(o.label)+'</option>';}).join('')+'</select>'
+    +(taskCanDelete(t)?'<button class="task-del" data-id="'+esc(t.id)+'" title="Delete">\u2715</button>':'')+'</div>';
+}
+function taskCanDelete(t){ return ADMIN || ((t.assigner_email||'').toLowerCase()===myEmail()); }
+function taskDue(d){ try{ var x=new Date(d+'T00:00:00'); return x.toLocaleDateString(undefined,{month:'short',day:'numeric'}); }catch(e){ return d; } }
+function taskWire(projKey){
+  var mount=document.getElementById('taskmount'); if(!mount) return;
+  mount.querySelectorAll('.task-add').forEach(function(b){ b.onclick=function(){ taskOpen(projKey, b.dataset.side); }; });
+  mount.querySelectorAll('.task-status').forEach(function(sel){ sel.onchange=function(){ taskSetStatus(projKey, sel.dataset.id, sel.value); }; });
+  mount.querySelectorAll('.task-del').forEach(function(b){ b.onclick=function(){ taskDelete(projKey, b.dataset.id); }; });
+}
+async function taskSetStatus(projKey,id,status){
+  try{ var r=await sb.from('tasks').update({status:status}).eq('id',id); if(r.error) throw r.error; taskLoad(projKey); taskBadgeLoad(projKey); }
+  catch(e){ console.error('status update failed',e); alert('Could not update status.'); }
+}
+async function taskDelete(projKey,id){
+  if(!confirm('Delete this task?')) return;
+  try{ var r=await sb.from('tasks').delete().eq('id',id); if(r.error) throw r.error; taskLoad(projKey); taskBadgeLoad(projKey); }
+  catch(e){ console.error('delete failed',e); alert('Could not delete.'); }
+}
+function taskPeople(){ var list=[]; (INVITES||[]).forEach(function(i){ if(i.email) list.push({name:i.name||i.email,email:i.email}); }); return list; }
+function taskOpen(projKey, side){
+  var ov=document.createElement('div'); ov.className='onb show'; ov.id='taskOv';
+  var peopleOpts='<option value="">\u2014 assign owner \u2014</option><option value="__me__">Me</option><option value="__client__">The client (no specific person)</option>'+taskPeople().map(function(p){return '<option value="'+esc(p.email)+'">'+esc(p.name)+'</option>';}).join('');
+  ov.innerHTML='<div class="lm-modal"><div class="lm-title" style="font-size:19px">New task \u2014 '+(side==='client'?'Client':'Supernerd')+' list</div>'
+    +'<label class="dk-l">Task</label><input class="dk-i" id="tkTitle" placeholder="e.g. Review the new animatic">'
+    +'<label class="dk-l">Owner</label><select class="dk-i" id="tkOwner">'+peopleOpts+'</select>'
+    +'<label class="dk-l">Due date</label><input class="dk-i" id="tkDue" type="date">'
+    +'<div class="lm-foot"><button id="tkCancel">Cancel</button><button id="tkSave" class="post">Add task</button><span class="msg" id="tkMsg"></span></div></div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); });
+  document.getElementById('tkCancel').onclick=function(){ ov.remove(); };
+  document.getElementById('tkSave').onclick=async function(){
+    var title=(document.getElementById('tkTitle').value||'').trim();
+    var ownerSel=document.getElementById('tkOwner').value, due=document.getElementById('tkDue').value||null;
+    var msg=document.getElementById('tkMsg'); if(!title){ msg.className='msg err'; msg.textContent='Name the task.'; return; }
+    var ownerName='', ownerEmail='';
+    if(ownerSel==='__me__'){ ownerName=(AUTH.profile&&AUTH.profile.full_name)||myEmail(); ownerEmail=myEmail(); }
+    else if(ownerSel==='__client__'){ ownerName='The client'; ownerEmail=''; }
+    else if(ownerSel){ var p=taskPeople().find(function(x){return x.email===ownerSel;}); ownerName=p?p.name:ownerSel; ownerEmail=ownerSel; }
+    var an=(AUTH.profile&&AUTH.profile.full_name)||(ADMIN?'Supernerd':myEmail())||'\u2014';
+    var btn=document.getElementById('tkSave'); btn.disabled=true; btn.textContent='Adding\u2026';
+    try{
+      var r=await sb.from('tasks').insert({ review_slug:CONFIG.REVIEW_SLUG, project_key:projKey, side:side, title:title, owner_name:ownerName, owner_email:ownerEmail, assigner_name:an, assigner_email:myEmail(), due_date:due, status:'in_progress' });
+      if(r.error) throw r.error; ov.remove(); taskLoad(projKey); taskBadgeLoad(projKey);
+    }catch(e){ console.error('add task failed',e); msg.className='msg err'; msg.textContent='Could not add — run tasks.sql.'; btn.disabled=false; btn.textContent='Add task'; }
   };
 }
 function calParse(s){ var a=String(s).split('-'); return new Date(+a[0],+a[1]-1,+a[2]); }
