@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v15';
+  const VERSION = 'v16';
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   const items    = (await getCollection('reviewItems')).filter(i => i.data.published !== false);
@@ -960,19 +960,29 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
 .cev-del:hover{background:rgba(229,72,77,.12)}
 .cev-msg{font-family:var(--mono);font-size:11px;color:#e5736f;margin-top:10px;min-height:14px}
 
-/* ===================== v11: review layout, cards, mobile topbar ===================== */
-/* image + composer on the left, notes panel on the right */
-.ver-layout{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(330px,1fr);gap:26px;align-items:start}
-.ver-main{min-width:0}
+/* ===================== v11/v16: review layout — title row aligned, draggable divider ===================== */
+.ver-layout{display:grid;grid-template-columns:minmax(0,calc(var(--lp,64%) - 14px)) 14px minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);align-items:start}
+.ver-body{display:contents}
+.ver-head-l{grid-column:1;grid-row:1;display:flex;align-items:center;gap:12px;flex-wrap:wrap;min-width:0;padding-bottom:16px}
+.ver-head-r{grid-column:3;grid-row:1;min-width:0;padding-bottom:16px}
+.ver-head-r .notes-bar{margin:0}
+.ver-main{grid-column:1;grid-row:2;min-width:0}
 .ver-main .composer{margin-top:18px}
-.ver-side{min-width:0;position:sticky;top:96px}
-.ver-side .notes{margin-top:0}
+.ver-side{grid-column:3;grid-row:2;min-width:0;position:sticky;top:96px}
 .ver-side .notes-list{max-height:calc(100vh - 210px);overflow-y:auto;padding-right:6px}
 .ver-side .notes-list::-webkit-scrollbar{width:8px}
 .ver-side .notes-list::-webkit-scrollbar-thumb{background:var(--hair);border-radius:8px}
+/* the divider you can drag */
+.ver-gutter{grid-column:2;grid-row:1 / span 2;align-self:stretch;cursor:col-resize;position:relative;touch-action:none}
+.ver-gutter .vg-grip{position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--hair);transform:translateX(-50%);transition:background .12s,width .12s}
+.ver-gutter:hover .vg-grip,.ver-gutter.drag .vg-grip{background:var(--green);width:2px}
 @media (max-width:900px){
-  .ver-layout{grid-template-columns:1fr;gap:16px}
-  .ver-side{position:static;top:auto}
+  .ver-layout{display:flex;flex-direction:column;gap:14px}
+  .ver-gutter{display:none}
+  .ver-head-l{order:1;padding-bottom:0}
+  .ver-main{order:2}
+  .ver-head-r{order:3;padding-bottom:0}
+  .ver-side{order:4;position:static;top:auto}
   .ver-side .notes-list{max-height:none;overflow:visible;padding-right:0}
   .ver-main .composer{margin-top:14px}
 }
@@ -1129,6 +1139,14 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
 .task-del:hover{color:#e0676c}
 .task-done-h{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin:16px 0 9px}
 .task-done{display:flex;flex-direction:column;gap:8px}
+
+/* ===================== v16: task add/edit + partner card status ===================== */
+.task-board-head{display:flex;justify-content:flex-end;margin-bottom:14px}
+.task-add-col{font-family:var(--mono);font-size:11px;letter-spacing:.03em;text-transform:uppercase;font-weight:800;color:var(--green);background:none;border:1px solid var(--hair);border-radius:7px;padding:5px 10px;cursor:pointer}
+.task-add-col:hover{border-color:var(--green)}
+.task-edit{background:none;border:0;color:var(--dim);font-size:13px;cursor:pointer;padding:4px;line-height:1}
+.task-edit:hover{color:var(--green)}
+.pc-task{display:flex;width:fit-content;max-width:100%;align-items:center;gap:7px;margin:11px 0 0;font-family:var(--mono);font-size:11px;color:var(--bone);background:rgba(255,255,255,.03);border:1px solid var(--hair);border-radius:999px;padding:4px 11px}
 </style>
 </head>
 <body>
@@ -1209,7 +1227,7 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
 <script is:inline define:vars={{ data, SUPABASE_URL, SUPABASE_KEY, STREAM_CUSTOMER, ADMIN_KEY }}>
 const CONFIG = Object.assign({ SUPABASE_URL, SUPABASE_KEY, STREAM_CUSTOMER, ADMIN_KEY }, data);
 const sb = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY, { auth: { persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, flowType:"pkce" } });
-var currentFolder=null;
+var currentFolder=null; var currentProjectKey=null;
 let ADMIN = !!CONFIG.ADMIN_KEY && new URLSearchParams(location.search).get('admin') === CONFIG.ADMIN_KEY;
 let players = {};
 let recorders = {};      // itemId -> MediaRecorder
@@ -1429,7 +1447,7 @@ function onboardSectionHTML(cl){
 
 /* ---------- project view ---------- */
 function renderProject(proj, sec, stack, folder){
-  currentFolder = folder||null;
+  currentFolder = folder||null; currentProjectKey = proj.id;
   const app=document.getElementById('app');
   const nav=proj.sections.map((s,i)=>{
     const n=s.stacks.reduce((m,st)=>m+st.versions.length,0);
@@ -1471,6 +1489,7 @@ function renderProject(proj, sec, stack, folder){
     else if(folder==='partners') loadPartners();
   } else if(stack){
     wireVersion(proj, sec, stack.versions[0]);
+    wireResizer();
     document.querySelectorAll('.ver-chip').forEach(chip=>{ chip.addEventListener('click', ()=> selectVersion(chip.dataset.stack, chip.dataset.v)); });
   } else {
     loadGridCounts(proj, sec);
@@ -1504,6 +1523,23 @@ async function loadGridCounts(proj, sec){
 }
 
 /* ---------- a stack (deliverable + versions) ---------- */
+function getSplit(){ var v; try{ v=parseFloat(localStorage.getItem('sn_versplit')); }catch(e){} return (v>=40&&v<=78)?v:64; }
+function applySplit(p){ document.querySelectorAll('.ver-layout').forEach(function(l){ l.style.setProperty('--lp', p+'%'); }); }
+function wireResizer(){
+  applySplit(getSplit());
+  document.querySelectorAll('.ver-gutter').forEach(function(g){
+    if(g._wired) return; g._wired=true;
+    g.addEventListener('pointerdown', function(e){
+      var lay=g.closest('.ver-layout'); if(!lay) return;
+      e.preventDefault(); g.classList.add('drag');
+      try{ g.setPointerCapture(e.pointerId); }catch(_){}
+      function clamp(ev){ var r=lay.getBoundingClientRect(); var p=(ev.clientX-r.left)/r.width*100; return Math.max(40,Math.min(78,p)); }
+      function mv(ev){ applySplit(clamp(ev)); }
+      function up(ev){ g.classList.remove('drag'); var p=clamp(ev); applySplit(p); try{ localStorage.setItem('sn_versplit', String(p)); }catch(_){} document.removeEventListener('pointermove',mv); document.removeEventListener('pointerup',up); }
+      document.addEventListener('pointermove',mv); document.addEventListener('pointerup',up);
+    });
+  });
+}
 function stackHTML(proj, sec, stack){
   const sel = stack.versions[0];
   const showChips = stack.versions.length > 1 || !!sel.version;
@@ -1511,7 +1547,11 @@ function stackHTML(proj, sec, stack){
     const label = v.version || fmtDate(v.date) || ('v'+(stack.versions.length - i));
     return '<button class="ver-chip'+(i===0?' active':'')+'" data-stack="'+esc(stack.id)+'" data-v="'+esc(v.id)+'">'+esc(label)+'</button>';
   }).join('') + '</div>' : '';
-  return '<section class="deliv" id="stack-'+stack.id+'"><div class="deliv-head"><span class="deliv-title">'+esc(stack.title)+'</span>'+chips+'</div><div class="ver-body" id="vbody-'+stack.id+'">'+versionBodyHTML(proj,sec,sel)+'</div></section>';
+  return '<section class="deliv" id="stack-'+stack.id+'"><div class="ver-layout" id="vlay-'+stack.id+'">'
+    +'<div class="ver-head-l"><span class="deliv-title">'+esc(stack.title)+'</span>'+chips+'</div>'
+    +'<div class="ver-gutter" id="vgut-'+stack.id+'" title="Drag to resize"><span class="vg-grip"></span></div>'
+    +'<div class="ver-body" id="vbody-'+stack.id+'">'+versionBodyHTML(proj,sec,sel)+'</div>'
+    +'</div></section>';
 }
 
 function selectVersion(stackId, versionId){
@@ -1556,12 +1596,10 @@ function versionBodyHTML(proj, sec, it){
     + '<div class="composer-tools"><button class="tool-btn" id="rec-'+it.id+'" type="button">🎤 Record voice note</button>'+pinTool+'</div>'
     + '<div class="rec-prev" id="rec-prev-'+it.id+'"></div>'
     + '<div class="composer-foot"><button class="post" id="post-'+it.id+'" disabled>Post note</button><span class="msg" id="msg-'+it.id+'"></span></div></div>';
-  const notes = '<div class="notes"><div class="notes-bar"><h3>Notes</h3><span class="count" id="count-'+it.id+'"></span><button class="notes-toggle" id="ntog-'+it.id+'" type="button" aria-expanded="true">Collapse</button></div>'
-    + '<div id="notes-'+it.id+'" class="notes-list fan"><div class="empty">Loading notes…</div></div></div>';
-  return '<div class="ver-layout">'
-    + '<div class="ver-main">' + mediaHTML(it) + metaBar + composer + '</div>'
-    + '<div class="ver-side">' + notes + '</div>'
-    + '</div>';
+  const notesBar = '<div class="ver-head-r"><div class="notes-bar"><h3>Notes</h3><span class="count" id="count-'+it.id+'"></span><button class="notes-toggle" id="ntog-'+it.id+'" type="button" aria-expanded="true">Collapse</button></div></div>';
+  const main = '<div class="ver-main">' + mediaHTML(it) + metaBar + composer + '</div>';
+  const side = '<div class="ver-side"><div id="notes-'+it.id+'" class="notes-list fan"><div class="empty">Loading notes…</div></div></div>';
+  return notesBar + main + side;
 }
 
 function gateFor(it){
@@ -2166,14 +2204,15 @@ async function taskLoad(projKey){
   try{ var r=await sb.from('tasks').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',projKey).order('created_at',{ascending:true}); if(r.error) throw r.error; rows=r.data||[]; }
   catch(e){ console.error('tasks load failed',e); mount.innerHTML='<div class="sec-empty">Could not load tasks. Run tasks.sql in Supabase first.</div>'; return; }
   TASKS_CACHE[projKey]=rows;
-  mount.innerHTML='<div class="task-cols">'+taskColHTML(projKey,'supernerd','Supernerd',rows)+taskColHTML(projKey,'client','Client',rows)+'</div>';
+  var addBtn='<div class="task-board-head"><button class="task-add" id="taskAddTop">+ Add task</button></div>';
+  mount.innerHTML=addBtn+'<div class="task-cols">'+taskColHTML(projKey,'supernerd','Supernerd',rows)+taskColHTML(projKey,'client','Client',rows)+'</div>';
   taskWire(projKey);
 }
 function taskColHTML(projKey,side,label,rows){
   var mine=rows.filter(function(t){return (t.side||'supernerd')===side;});
   var active=mine.filter(function(t){return t.status!=='complete';});
   var done=mine.filter(function(t){return t.status==='complete';});
-  return '<div class="task-col" data-side="'+side+'"><div class="task-col-h"><h3>'+esc(label)+'</h3><button class="task-add" data-side="'+side+'">+ Add task</button></div>'
+  return '<div class="task-col" data-side="'+side+'"><div class="task-col-h"><h3>'+esc(label)+'</h3><button class="task-add-col" data-side="'+side+'">+ Add</button></div>'
     +'<div class="task-list">'+(active.map(taskCardHTML).join('')||'<div class="task-empty">No open tasks.</div>')+'</div>'
     +(done.length?'<div class="task-done-h">Completed</div><div class="task-done">'+done.map(taskDoneHTML).join('')+'</div>':'')
     +'</div>';
@@ -2187,6 +2226,7 @@ function taskCardHTML(t){
     +'<span class="task-light blink" style="--c:'+esc(s.color)+'"></span>'
     +'<div class="task-main"><div class="task-title">'+esc(t.title)+'</div><div class="task-sub">'+(t.owner_name?'<span class="task-who">'+esc(t.owner_name)+'</span>':'')+due+'</div></div>'
     +'<select class="task-status" data-id="'+esc(t.id)+'" style="--c:'+esc(s.color)+'">'+opts+'</select>'
+    +'<button class="task-edit" data-id="'+esc(t.id)+'" title="Edit">\u270e</button>'
     +(taskCanDelete(t)?'<button class="task-del" data-id="'+esc(t.id)+'" title="Delete">\u2715</button>':'')
     +'</div>';
 }
@@ -2199,8 +2239,10 @@ function taskCanDelete(t){ return ADMIN || ((t.assigner_email||'').toLowerCase()
 function taskDue(d){ try{ var x=new Date(d+'T00:00:00'); return x.toLocaleDateString(undefined,{month:'short',day:'numeric'}); }catch(e){ return d; } }
 function taskWire(projKey){
   var mount=document.getElementById('taskmount'); if(!mount) return;
-  mount.querySelectorAll('.task-add').forEach(function(b){ b.onclick=function(){ taskOpen(projKey, b.dataset.side); }; });
+  var top=document.getElementById('taskAddTop'); if(top) top.onclick=function(){ taskOpen(projKey, null, null); };
+  mount.querySelectorAll('.task-add-col').forEach(function(b){ b.onclick=function(){ taskOpen(projKey, b.dataset.side, null); }; });
   mount.querySelectorAll('.task-status').forEach(function(sel){ sel.onchange=function(){ taskSetStatus(projKey, sel.dataset.id, sel.value); }; });
+  mount.querySelectorAll('.task-edit').forEach(function(b){ b.onclick=function(){ var row=(TASKS_CACHE[projKey]||[]).find(function(x){return x.id===b.dataset.id;}); taskOpen(projKey, row?row.side:null, row); }; });
   mount.querySelectorAll('.task-del').forEach(function(b){ b.onclick=function(){ taskDelete(projKey, b.dataset.id); }; });
 }
 async function taskSetStatus(projKey,id,status){
@@ -2213,31 +2255,41 @@ async function taskDelete(projKey,id){
   catch(e){ console.error('delete failed',e); alert('Could not delete.'); }
 }
 function taskPeople(){ var list=[]; (INVITES||[]).forEach(function(i){ if(i.email) list.push({name:i.name||i.email,email:i.email}); }); return list; }
-function taskOpen(projKey, side){
+function taskOpen(projKey, side, row){
+  var editing=!!(row && row.id);
+  var curSide = editing ? (row.side||'supernerd') : (side || (ADMIN ? 'client' : 'supernerd'));
   var ov=document.createElement('div'); ov.className='onb show'; ov.id='taskOv';
-  var peopleOpts='<option value="">\u2014 assign owner \u2014</option><option value="__me__">Me</option><option value="__client__">The client (no specific person)</option>'+taskPeople().map(function(p){return '<option value="'+esc(p.email)+'">'+esc(p.name)+'</option>';}).join('');
-  ov.innerHTML='<div class="lm-modal"><div class="lm-title" style="font-size:19px">New task \u2014 '+(side==='client'?'Client':'Supernerd')+' list</div>'
-    +'<label class="dk-l">Task</label><input class="dk-i" id="tkTitle" placeholder="e.g. Review the new animatic">'
+  var sel=function(v){return curSide===v?' selected':'';};
+  var peopleOpts='<option value="">\u2014 assign owner \u2014</option><option value="__me__">Me</option><option value="__client__">The client (no specific person)</option>'+taskPeople().map(function(p){return '<option value="'+esc(p.email)+'"'+((editing&&(row.owner_email||'').toLowerCase()===p.email.toLowerCase())?' selected':'')+'>'+esc(p.name)+'</option>';}).join('');
+  ov.innerHTML='<div class="lm-modal"><div class="lm-title" style="font-size:19px">'+(editing?'Edit task':'New task')+'</div>'
+    +'<label class="dk-l">For which list</label><select class="dk-i" id="tkSide"><option value="supernerd"'+sel('supernerd')+'>Supernerd (our to-do)</option><option value="client"'+sel('client')+'>Client (their to-do — e.g. approvals)</option></select>'
+    +'<label class="dk-l">Task</label><input class="dk-i" id="tkTitle" value="'+(editing?esc(row.title||''):'')+'" placeholder="e.g. Review the new animatic">'
     +'<label class="dk-l">Owner</label><select class="dk-i" id="tkOwner">'+peopleOpts+'</select>'
-    +'<label class="dk-l">Due date</label><input class="dk-i" id="tkDue" type="date">'
-    +'<div class="lm-foot"><button id="tkCancel">Cancel</button><button id="tkSave" class="post">Add task</button><span class="msg" id="tkMsg"></span></div></div>';
+    +'<label class="dk-l">Due date</label><input class="dk-i" id="tkDue" type="date" value="'+(editing&&row.due_date?esc(row.due_date):'')+'">'
+    +'<div class="lm-foot"><button id="tkCancel">Cancel</button><button id="tkSave" class="post">'+(editing?'Save':'Add task')+'</button><span class="msg" id="tkMsg"></span></div></div>';
   document.body.appendChild(ov);
   ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); });
   document.getElementById('tkCancel').onclick=function(){ ov.remove(); };
   document.getElementById('tkSave').onclick=async function(){
     var title=(document.getElementById('tkTitle').value||'').trim();
+    var newSide=document.getElementById('tkSide').value;
     var ownerSel=document.getElementById('tkOwner').value, due=document.getElementById('tkDue').value||null;
     var msg=document.getElementById('tkMsg'); if(!title){ msg.className='msg err'; msg.textContent='Name the task.'; return; }
     var ownerName='', ownerEmail='';
     if(ownerSel==='__me__'){ ownerName=(AUTH.profile&&AUTH.profile.full_name)||myEmail(); ownerEmail=myEmail(); }
     else if(ownerSel==='__client__'){ ownerName='The client'; ownerEmail=''; }
     else if(ownerSel){ var p=taskPeople().find(function(x){return x.email===ownerSel;}); ownerName=p?p.name:ownerSel; ownerEmail=ownerSel; }
-    var an=(AUTH.profile&&AUTH.profile.full_name)||(ADMIN?'Supernerd':myEmail())||'\u2014';
-    var btn=document.getElementById('tkSave'); btn.disabled=true; btn.textContent='Adding\u2026';
+    else if(editing){ ownerName=row.owner_name||''; ownerEmail=row.owner_email||''; }
+    var btn=document.getElementById('tkSave'); btn.disabled=true; btn.textContent='Saving\u2026';
     try{
-      var r=await sb.from('tasks').insert({ review_slug:CONFIG.REVIEW_SLUG, project_key:projKey, side:side, title:title, owner_name:ownerName, owner_email:ownerEmail, assigner_name:an, assigner_email:myEmail(), due_date:due, status:'in_progress' });
-      if(r.error) throw r.error; ov.remove(); taskLoad(projKey); taskBadgeLoad(projKey);
-    }catch(e){ console.error('add task failed',e); msg.className='msg err'; msg.textContent='Could not add — run tasks.sql.'; btn.disabled=false; btn.textContent='Add task'; }
+      if(editing){
+        var r=await sb.from('tasks').update({ side:newSide, title:title, owner_name:ownerName, owner_email:ownerEmail, due_date:due }).eq('id', row.id); if(r.error) throw r.error;
+      } else {
+        var an=(AUTH.profile&&AUTH.profile.full_name)||(ADMIN?'Supernerd':myEmail())||'\u2014';
+        var r2=await sb.from('tasks').insert({ review_slug:CONFIG.REVIEW_SLUG, project_key:projKey, side:newSide, title:title, owner_name:ownerName, owner_email:ownerEmail, assigner_name:an, assigner_email:myEmail(), due_date:due, status:'in_progress' }); if(r2.error) throw r2.error;
+      }
+      ov.remove(); taskLoad(projKey); taskBadgeLoad(projKey);
+    }catch(e){ console.error('save task failed',e); msg.className='msg err'; msg.textContent='Could not save — run tasks.sql.'; btn.disabled=false; btn.textContent=editing?'Save':'Add task'; }
   };
 }
 function calParse(s){ var a=String(s).split('-'); return new Date(+a[0],+a[1]-1,+a[2]); }
@@ -2742,6 +2794,13 @@ async function loadPartners(){
   await loadOwner();
   var profiles=[];
   try{ var r=await sb.from('profiles').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).order('created_at',{ascending:true}); profiles=r.data||[]; }catch(e){ profiles=[]; }
+  PP.taskBy={};
+  if(currentProjectKey){
+    try{
+      var tr=await sb.from('tasks').select('owner_email,status').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',currentProjectKey).in('status',['in_progress','working_changes']);
+      if(!tr.error){ (tr.data||[]).forEach(function(t){ var em=(t.owner_email||'').toLowerCase(); if(!em) return; if(!PP.taskBy[em] || t.status==='in_progress') PP.taskBy[em]=taskStatus(t.status); }); }
+    }catch(e){}
+  }
   renderPartners(profiles);
 }
 function ppCardHTML(p){
@@ -2752,8 +2811,11 @@ function ppCardHTML(p){
   var dotKey=p.owner?(p.uid||'__owner__'):p.id;
   var online=PRESENCE.online[dotKey]?' on':'';
   var rm=((typeof ADMIN!=='undefined' && ADMIN) && !p.owner)?'<button class="pc-remove" data-rm="'+ppEsc(p.id)+'" title="Remove from project">\u00d7</button>':'';
+  var ts=(PP.taskBy&&p.email)?PP.taskBy[String(p.email).toLowerCase()]:null;
+  var statusPill = ts ? '<div class="pc-task"><span class="task-light blink" style="--c:'+ts.color+'"></span>'+ppEsc(ts.label)+'</div>' : '';
   return '<div class="pcard" data-pid="'+ppEsc(p.id)+'">'+rm+'<div class="pc-top"><div class="pc-avwrap"><div class="avatar" style="'+ppAvStyle(p)+'">'+(p.avatar_url?'':ppEsc(ppInitials(p.full_name).toUpperCase()))+'</div><span class="pc-dot'+online+'" data-dot="'+ppEsc(dotKey)+'"></span></div>'
     +'<div class="pc-id"><div class="pc-name">'+ppEsc(p.full_name)+'</div><div class="pc-role">'+ppEsc(p.position)+'</div></div></div>'
+    +statusPill
     +'<div class="pc-foot">'+logo+'<span class="pc-company">'+ppEsc(c.name)+'</span></div></div>';
 }
 function renderPartners(profiles){
