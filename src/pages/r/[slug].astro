@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v17';
+  const VERSION = 'v18';
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   const items    = (await getCollection('reviewItems')).filter(i => i.data.published !== false);
@@ -1153,6 +1153,31 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
 .dk-daterow .dk-i{flex:1;margin:0}
 .dk-calbtn{flex:0 0 auto;width:46px;border:1px solid var(--line);border-radius:9px;background:#000;color:var(--bone);font-size:17px;cursor:pointer}
 .dk-calbtn:hover{border-color:var(--green)}
+
+/* ===== v18: review grid count-based sizing ===== */
+.rgrid[data-cols="1"]{grid-template-columns:minmax(0,1fr)}
+.rgrid[data-cols="2"]{grid-template-columns:repeat(2,minmax(0,1fr))}
+.rgrid[data-cols="3"]{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:900px){ .rgrid[data-cols="3"]{grid-template-columns:repeat(2,minmax(0,1fr))} }
+@media (max-width:600px){ .rgrid[data-cols]{grid-template-columns:minmax(0,1fr)} }
+
+/* ===== v18: partner pill beside the name (keeps card heights even) ===== */
+.pc-top .pc-task{margin:0 0 0 auto; padding:5px 10px; border-radius:999px; display:inline-flex; align-items:center; gap:7px; flex:0 0 auto; max-width:48%; background:rgba(255,255,255,.05); border:1px solid var(--hair); cursor:pointer; transition:border-color .16s var(--ease-out),background .16s var(--ease-out)}
+.pc-top .pc-task:hover{border-color:rgba(186,192,30,.4); background:rgba(186,192,30,.08)}
+.pc-top .pc-task .pc-task-l{font:600 10.5px/1 var(--mono); letter-spacing:.02em; text-transform:uppercase; color:var(--bone); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.pc-top .pc-task .task-light{flex:0 0 auto}
+.pc-id{flex:1 1 auto}
+
+/* ===== v18: custom hover tooltip for partner task pills ===== */
+.pp-tip{position:fixed; transform:translate(-50%,-100%) translateY(-2px); z-index:9000; pointer-events:none; max-width:280px; padding:8px 11px; border-radius:9px; background:rgba(10,11,13,.97); border:1px solid var(--hair-2); box-shadow:0 14px 40px -16px #000; color:var(--bone); font:500 12px/1.4 var(--mono); letter-spacing:.01em; white-space:normal; opacity:0; transition:opacity .14s var(--ease-out)}
+.pp-tip.show{opacity:1}
+.pp-tip.below{transform:translate(-50%,0) translateY(2px)}
+.pp-tip::after{content:""; position:absolute; left:50%; bottom:-5px; transform:translateX(-50%) rotate(45deg); width:9px; height:9px; background:rgba(10,11,13,.97); border-right:1px solid var(--hair-2); border-bottom:1px solid var(--hair-2)}
+.pp-tip.below::after{bottom:auto; top:-5px; border:0; border-left:1px solid var(--hair-2); border-top:1px solid var(--hair-2)}
+
+/* ===== v18: date-picker button uses the calendar icon (matches dashboard) ===== */
+.dk-calbtn svg{width:18px; height:18px; display:block; stroke:currentColor}
+.dk-calbtn{display:inline-flex; align-items:center; justify-content:center; color:var(--bone)}
 </style>
 </head>
 <body>
@@ -1480,7 +1505,7 @@ function renderProject(proj, sec, stack, folder){
     body=stackHTML(proj,sec,stack);
   } else {
     head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>'+esc(sec.name)+'</h2></div>';
-    body = sec.stacks.length ? '<div class="rgrid">'+sec.stacks.map(st=>gridCardHTML(proj,sec,st)).join('')+'</div>' : '<div class="sec-empty">Nothing in '+esc(sec.name)+' yet.</div>';
+    body = sec.stacks.length ? '<div class="rgrid" data-cols="'+Math.min(sec.stacks.length,3)+'">'+sec.stacks.map(st=>gridCardHTML(proj,sec,st)).join('')+'</div>' : '<div class="sec-empty">Nothing in '+esc(sec.name)+' yet.</div>';
   }
   var _cl=(CONFIG.CLIENTS||[]).find(function(x){return x.key===proj.client;}); var _clName=_cl?_cl.name:CONFIG.COMPANY.name;
   app.innerHTML='<div class="pv"><aside class="side"><a class="back" href="#c='+encodeURIComponent(proj.client||'')+'">← '+esc(_clName)+'</a><div class="pv-eyebrow">Project</div><h2 class="pv-title">'+esc(proj.title)+'</h2><div id="projStatusBox" class="pstat-box"></div><nav class="nav">'+nav+'</nav>'+decksNav+'<div class="nav-group">Client Dashboard</div><nav class="nav nav-folders">'+folderNav+'</nav></aside><div class="mainsec">'+head+adminHTML+body+'</div></div>';
@@ -2270,8 +2295,8 @@ function taskOpen(projKey, side, row){
   ov.innerHTML='<div class="lm-modal"><div class="lm-title" style="font-size:19px">'+(editing?'Edit task':'New task')+'</div>'
     +'<label class="dk-l">For which list</label><select class="dk-i" id="tkSide"><option value="supernerd"'+sel('supernerd')+'>Supernerd (our to-do)</option><option value="client"'+sel('client')+'>Partner (their to-do — e.g. approvals)</option></select>'
     +'<label class="dk-l">Task</label><input class="dk-i" id="tkTitle" value="'+(editing?esc(row.title||''):'')+'" placeholder="e.g. Review the new animatic">'
-    +'<label class="dk-l">Owner</label><select class="dk-i" id="tkOwner">'+peopleOpts+'</select>'
-    +'<label class="dk-l">Due date</label><div class="dk-daterow"><input class="dk-i" id="tkDue" type="date" value="'+(editing?(row.due_date?esc(row.due_date):''):new Date().toISOString().slice(0,10))+'"><button type="button" class="dk-calbtn" id="tkCal" title="Pick a date">\uD83D\uDCC5</button></div>'
+    +'<label class="dk-l">Assigned to</label><select class="dk-i" id="tkOwner">'+peopleOpts+'</select>'
+    +'<label class="dk-l">Due date</label><div class="dk-daterow"><input class="dk-i" id="tkDue" type="date" value="'+(editing?(row.due_date?esc(row.due_date):''):new Date().toISOString().slice(0,10))+'"><button type="button" class="dk-calbtn" id="tkCal" title="Pick a date">'+calNavIcon('cal')+'</button></div>'
     +'<div class="lm-foot"><button id="tkCancel">Cancel</button><button id="tkSave" class="post">'+(editing?'Save':'Add task')+'</button><span class="msg" id="tkMsg"></span></div></div>';
   document.body.appendChild(ov);
   ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); });
@@ -2304,7 +2329,7 @@ function calSameDay(a,b){ return a.getFullYear()===b.getFullYear()&&a.getMonth()
 function calTypeC(t){ return CAL.TYPES[t]?CAL.TYPES[t].c:'#8b8f98'; }
 function calTypeL(t){ return CAL.TYPES[t]?CAL.TYPES[t].l:t; }
 function calIsPast(e){ return e.d < calTodayK(); }
-function calEvColor(e){ return calIsPast(e)?(e.frozen||'#8b8f98'):calTypeC(e.type); }
+function calEvColor(e){ if(e.isTask) return e.frozen||'#BAC01E'; return calIsPast(e)?(e.frozen||'#8b8f98'):calTypeC(e.type); }
 function calProjName(id){ return id||'project'; }
 function calHexA(hex,a){ var h=hex.replace('#',''); return 'rgba('+parseInt(h.slice(0,2),16)+','+parseInt(h.slice(2,4),16)+','+parseInt(h.slice(4,6),16)+','+a+')'; }
 function calLighten(hex){ var h=hex.replace('#',''); var r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16); r=Math.round(r+(255-r)*.45);g=Math.round(g+(255-g)*.45);b=Math.round(b+(255-b)*.45); return 'rgb('+r+','+g+','+b+')'; }
@@ -2496,7 +2521,7 @@ async function calLoad(projId){
   // tasks with a due date show up on the calendar too
   try{
     var rtk=await sb.from('tasks').select('id,title,due_date,owner_name,status').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',projId).not('due_date','is',null);
-    if(rtk&&rtk.data){ rtk.data.forEach(function(t){ if(!t.due_date) return; CAL.EV.push({ id:'task:'+t.id, d:t.due_date, type:'__task__', title:t.title, proj:projId, kind:'major', time:'', notes:(t.owner_name?('Owner: '+t.owner_name):'')+(t.status==='complete'?' \u00b7 done':''), frozen:'#BAC01E', isTask:true }); }); }
+    if(rtk&&rtk.data){ rtk.data.forEach(function(t){ if(!t.due_date) return; var sc=taskStatus(t.status).color; CAL.EV.push({ id:'task:'+t.id, d:t.due_date, type:'__task__', title:t.title, proj:projId, kind:'major', time:'', notes:(t.owner_name?('Assigned to: '+t.owner_name):'')+(t.status==='complete'?' \u00b7 done':''), frozen:sc, isTask:true }); }); }
     CAL.TYPES['__task__']={l:'Task',c:'#BAC01E'};
   }catch(e){}
   calRender();
@@ -2823,6 +2848,8 @@ function taskStatusFor(p){
   for(var i=0;i<keys.length;i++){ if(PP.taskBy[keys[i]]) return PP.taskBy[keys[i]]; }
   return null;
 }
+function ppTipHide(){ var t=document.getElementById('ppTip'); if(t) t.parentNode&&t.parentNode.removeChild(t); }
+function ppTip(el, text){ ppTipHide(); if(!text) return; var t=document.createElement('div'); t.className='pp-tip'; t.id='ppTip'; t.textContent=text; document.body.appendChild(t); var r=el.getBoundingClientRect(); var x=r.left+r.width/2; var y=r.top-9; var w=t.offsetWidth; if(x-w/2<8) x=8+w/2; if(x+w/2>window.innerWidth-8) x=window.innerWidth-8-w/2; t.style.left=x+'px'; t.style.top=y+'px'; if(y-t.offsetHeight<6){ t.style.top=(r.bottom+9)+'px'; t.classList.add('below'); } requestAnimationFrame(function(){ t.classList.add('show'); }); }
 function ppCardHTML(p){
   var c=ppCompany(p.company_id);
   var logo=c.logo_url
@@ -2832,10 +2859,10 @@ function ppCardHTML(p){
   var online=PRESENCE.online[dotKey]?' on':'';
   var rm=((typeof ADMIN!=='undefined' && ADMIN) && !p.owner)?'<button class="pc-remove" data-rm="'+ppEsc(p.id)+'" title="Remove from project">\u00d7</button>':'';
   var ts=taskStatusFor(p);
-  var statusPill = ts ? '<div class="pc-task" title="'+ppEsc((ts.titles||[]).join(', '))+'"><span class="task-light blink" style="--c:'+ts.color+'"></span>'+ppEsc(ts.label)+'</div>' : '';
+  var tipTxt=ppEsc((ts&&ts.titles||[]).join(' \u00b7 '));
+  var statusPill = ts ? '<div class="pc-task" data-tip="'+tipTxt+'" title="'+tipTxt+'"><span class="task-light blink" style="--c:'+ts.color+'"></span><span class="pc-task-l">'+ppEsc(ts.label)+'</span></div>' : '';
   return '<div class="pcard" data-pid="'+ppEsc(p.id)+'">'+rm+'<div class="pc-top"><div class="pc-avwrap"><div class="avatar" style="'+ppAvStyle(p)+'">'+(p.avatar_url?'':ppEsc(ppInitials(p.full_name).toUpperCase()))+'</div><span class="pc-dot'+online+'" data-dot="'+ppEsc(dotKey)+'"></span></div>'
-    +'<div class="pc-id"><div class="pc-name">'+ppEsc(p.full_name)+'</div><div class="pc-role">'+ppEsc(p.position)+'</div></div></div>'
-    +statusPill
+    +'<div class="pc-id"><div class="pc-name">'+ppEsc(p.full_name)+'</div><div class="pc-role">'+ppEsc(p.position)+'</div></div>'+statusPill+'</div>'
     +'<div class="pc-foot">'+logo+'<span class="pc-company">'+ppEsc(c.name)+'</span></div></div>';
 }
 function renderPartners(profiles){
@@ -2852,6 +2879,12 @@ function renderPartners(profiles){
   m.querySelectorAll('.fchip').forEach(function(b){ b.onclick=function(){ PP.filter=b.dataset.ppf; renderPartners(PP.profiles); }; });
   m.querySelectorAll('.pcard').forEach(function(card){ card.onclick=function(e){ if(e.target.closest && e.target.closest('.pc-remove')) return; openCard(card.dataset.pid); }; });
   m.querySelectorAll('.pc-remove').forEach(function(b){ b.onclick=function(e){ e.stopPropagation(); removeFlow(b.dataset.rm); }; });
+  m.querySelectorAll('.pc-task[data-tip]').forEach(function(el){
+    if(!el.dataset.tip) return;
+    el.addEventListener('mouseenter',function(){ ppTip(el, el.dataset.tip); });
+    el.addEventListener('mouseleave', ppTipHide);
+    el.addEventListener('click', function(e){ e.stopPropagation(); ppTipHide(); location.hash='p='+encodeURIComponent(currentProjectKey||'')+'&f=tasks'; });
+  });
   if(ADMIN){ var ib=document.getElementById('ppInvite'); if(ib) ib.onclick=function(ev){ ev.stopPropagation(); ppToggleInvite(); }; }
   refreshOnlineDots();
 }
