@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v21';
+  const VERSION = 'v22';
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   const items    = (await getCollection('reviewItems')).filter(i => i.data.published !== false);
@@ -1292,6 +1292,69 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
 /* v20 — ghost admin button (Send test email) */
 .admin-btn.ghost{background:transparent; color:var(--bone); border:1px solid var(--hair)}
 .admin-btn.ghost:hover{background:rgba(186,192,30,.08); border-color:rgba(186,192,30,.45)}
+
+/* ============================================================
+   v22 — Newsletter Studio
+   ============================================================ */
+.nl-studio{max-width:760px}
+.nl-block{padding:18px 0 20px; border-bottom:1px solid var(--hair)}
+.nl-block:last-of-type{border-bottom:0}
+.nl-bh{display:flex; align-items:baseline; gap:10px; margin-bottom:13px; flex-wrap:wrap}
+.nl-bh h4{margin:0; font:600 16px/1.1 var(--disp); color:var(--bone)}
+.nl-bhint{font:400 12px var(--mono); color:var(--dim)}
+.nl-l{display:block; font:600 10.5px/1 var(--mono); letter-spacing:.05em; text-transform:uppercase; color:var(--dim); margin:12px 0 6px}
+.nl-l:first-child{margin-top:0}
+.nl-i,.nl-ta{width:100%; padding:9px 12px; border-radius:9px; border:1px solid var(--hair); background:rgba(0,0,0,.3); color:var(--bone); font:400 13.5px var(--mono)}
+.nl-i.sm{width:120px} .nl-i.mt{margin-top:8px}
+.nl-ta{resize:vertical; min-height:74px; line-height:1.55}
+.nl-i:focus,.nl-ta:focus{outline:none; border-color:var(--green)}
+.nl-grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:14px}
+.nl-row{display:flex; gap:8px; align-items:center; margin-bottom:8px}
+.nl-row .nl-i{flex:1 1 auto}
+.nl-x{flex:0 0 auto; width:30px; height:34px; border-radius:8px; border:1px solid var(--hair); background:rgba(255,255,255,.02); color:var(--dim); font-size:17px; line-height:1; cursor:pointer}
+.nl-x:hover{color:#ff6b6b; border-color:rgba(255,107,107,.5)}
+.nl-add{margin-top:4px; padding:7px 13px; border-radius:8px; border:1px dashed var(--hair); background:transparent; color:var(--green); font:600 11.5px var(--mono); letter-spacing:.03em; cursor:pointer}
+.nl-add:hover{border-color:var(--green); background:rgba(186,192,30,.06)}
+.nl-add.inline{margin-top:0; flex:0 0 auto; border-style:solid}
+
+/* title word chips */
+.nl-wchips{display:flex; flex-wrap:wrap; gap:7px; margin-top:10px}
+.nl-wchip{padding:6px 11px; border-radius:8px; border:1px solid var(--hair); background:rgba(255,255,255,.03); color:var(--bone); font:600 13px var(--disp); cursor:pointer; transition:all .14s var(--ease-out)}
+.nl-wchip:hover{border-color:rgba(186,192,30,.4)}
+.nl-wchip.on{background:var(--green); border-color:var(--green); color:#0a0a08}
+.nl-chip-hint{font:400 12px var(--mono); color:var(--dim)}
+
+/* hero picker */
+.nl-hero-pick{display:grid; grid-template-columns:1fr 1.1fr; gap:18px; align-items:start}
+.nl-tlabel{text-transform:none; letter-spacing:0; color:var(--green); margin-left:6px}
+.nl-range{width:100%; margin:2px 0 4px; accent-color:var(--green)}
+.nl-trow{display:flex; align-items:center; gap:8px}
+.nl-unit{font:400 12px var(--mono); color:var(--dim)}
+.nl-hero-prev{aspect-ratio:16/9; border-radius:12px; overflow:hidden; border:1px solid var(--hair); background:#111}
+.nl-hero-prev img{width:100%; height:100%; object-fit:cover; display:block}
+.nl-hero-none{display:flex; align-items:center; justify-content:center; height:100%; color:var(--dim); font:400 12px var(--mono)}
+
+/* recipients */
+.nl-recs{display:flex; flex-direction:column; gap:7px; margin-bottom:10px}
+.nl-rec-row{display:flex; align-items:center; gap:9px; font:400 13px var(--mono); color:var(--bone); cursor:pointer}
+.nl-rec-row input{accent-color:var(--green); width:15px; height:15px}
+.nl-rec-row i{color:var(--dim); font-style:normal; font-size:12px}
+.nl-empty-sm{font:400 12.5px var(--mono); color:var(--dim); padding:6px 0}
+
+/* actions */
+.nl-actions{display:flex; align-items:center; gap:10px; margin-top:22px; flex-wrap:wrap}
+.nl-status{font:500 12.5px var(--mono); margin-left:4px}
+.nl-status.ok{color:var(--green)} .nl-status.err{color:#ff6b6b}
+
+/* preview overlay */
+.nl-preview-wrap{width:min(680px,94vw); max-height:88vh; display:flex; flex-direction:column; background:#0A0A0B; border-radius:14px; overflow:hidden; border:1px solid var(--hair-2)}
+.nl-preview-bar{padding:11px 16px; font:600 11px var(--mono); letter-spacing:.08em; text-transform:uppercase; color:var(--dim); border-bottom:1px solid var(--hair); background:rgba(255,255,255,.02)}
+.nl-preview-frame{width:100%; height:74vh; border:0; background:#0A0A0B}
+
+@media (max-width:680px){
+  .nl-grid3{grid-template-columns:1fr}
+  .nl-hero-pick{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
@@ -1606,7 +1669,7 @@ function renderProject(proj, sec, stack, folder){
   }).join('');
   // Presentations lives ABOVE the Project group. Admin always sees it; clients only when a deck is published.
   const decksNav='<nav class="nav nav-decks"><a id="decksNav" href="#p='+encodeURIComponent(proj.id)+'&f=decks" class="'+(folder==='decks'?'active':'')+'"'+(ADMIN?'':' style="display:none"')+'><span class="n-ico">'+calNavIcon('deck')+'</span><span class="n-name">Presentations</span></a></nav>';
-  const finalNav='<div class="nav-group">Final</div><nav class="nav nav-final"><a href="#p='+encodeURIComponent(proj.id)+'&f=final" class="'+(folder==='final'?'active':'')+'"><span class="n-ico">'+calNavIcon('final')+'</span><span class="n-name">Final Deliverables</span></a></nav>';
+  const finalNav='<div class="nav-group">Final</div><nav class="nav nav-final"><a href="#p='+encodeURIComponent(proj.id)+'&f=final" class="'+(folder==='final'?'active':'')+'"><span class="n-ico">'+calNavIcon('final')+'</span><span class="n-name">Final Deliverables</span></a><a href="#p='+encodeURIComponent(proj.id)+'&f=newsletter" class="'+(folder==='newsletter'?'active':'')+'"'+(ADMIN?'':' style="display:none"')+'><span class="n-ico">'+calNavIcon('news')+'</span><span class="n-name">Send Newsletter</span></a></nav>';
   const adminHTML = ADMIN ? adminStrip(proj,sec) : '';
   let head, body;
   if(folder){
@@ -1617,6 +1680,7 @@ function renderProject(proj, sec, stack, folder){
     else if(folder==='assets'){ head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>Client Assets</h2><div class="pp-sub">Brand kit for this project. Anyone on the team can add to it.</div></div>'; body='<div id="camount" class="ca-wrap"><div class="cal-loading">Loading assets\u2026</div></div>'; }
     else if(folder==='brief'){ head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>Creative Brief</h2><div class="pp-sub">The single source of truth for this project. Anyone on the team can edit it.</div></div>'; body='<div id="cbmount"><div class="cal-loading">Loading brief\u2026</div></div>'; }
     else if(folder==='final'){ head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>Final Deliverables</h2><div class="pp-sub">The locked, approved cut \u2014 ready to download.</div></div>'; body='<div id="fdmount"><div class="cal-loading">Loading\u2026</div></div>'; }
+    else if(folder==='newsletter'){ head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>Send Newsletter</h2><div class="pp-sub">Build a branded \u201cwhere we are\u201d update and send it to the whole project.</div></div>'; body='<div id="nlmount"><div class="cal-loading">Loading newsletter studio\u2026</div></div>'; }
     else { head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>Client Assets</h2></div>'; body='<div id="camount" class="ca-wrap"><div class="cal-loading">Loading assets\u2026</div></div>'; }
   } else if(stack){
     head='<div class="main-head"><a class="crumb" href="#p='+encodeURIComponent(proj.id)+'&s='+encodeURIComponent(sec.id)+'">← '+esc(sec.name)+'</a><h2>'+esc(stack.title)+'</h2></div>';
@@ -1639,6 +1703,7 @@ function renderProject(proj, sec, stack, folder){
     else if(folder==='assets') caLoad(proj.id);
     else if(folder==='brief') briefLoad(proj.id);
     else if(folder==='final') finalLoad(proj.id);
+    else if(folder==='newsletter') nlLoad(proj.id);
   } else if(stack){
     wireVersion(proj, sec, stack.versions[0]);
     wireResizer();
@@ -2171,7 +2236,8 @@ function calNavIcon(n){
     pal:'<path d="M12 3a9 9 0 1 0 0 18 1.8 1.8 0 0 0 1.7-2.6 1.8 1.8 0 0 1 1.6-2.6H17a4 4 0 0 0 4-4c0-4.4-4-6.2-9-6.2Z"></path><circle cx="7.5" cy="11.5" r="1.1"></circle><circle cx="12" cy="8" r="1.1"></circle><circle cx="16.5" cy="11" r="1.1"></circle>',
     ppl:'<circle cx="9" cy="8" r="3"></circle><path d="M3.5 19a5.5 5.5 0 0 1 11 0"></path><path d="M16.2 5.7a3 3 0 0 1 0 5.2M17.5 19a5.6 5.6 0 0 0-2-4.3"></path>',
     brief:'<path d="M6 3h9l4 4v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"></path><path d="M14 3v4h4M8.5 12h7M8.5 16h7"></path>',
-    final:'<path d="M5 4.5h14M6.5 4.5v6a5.5 5.5 0 0 0 11 0v-6"></path><path d="M9.5 20h5M12 16v4"></path><path d="M3.5 6.5a2.5 2.5 0 0 0 3 2.4M20.5 6.5a2.5 2.5 0 0 1-3 2.4"></path>'};
+    final:'<path d="M5 4.5h14M6.5 4.5v6a5.5 5.5 0 0 0 11 0v-6"></path><path d="M9.5 20h5M12 16v4"></path><path d="M3.5 6.5a2.5 2.5 0 0 0 3 2.4M20.5 6.5a2.5 2.5 0 0 1-3 2.4"></path>',
+    news:'<rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M3 9h18M7 13h6M7 16h10"></path>'};
   return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'+(p[n]||'')+'</svg>';
 }
 function calTodayK(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
@@ -3448,6 +3514,373 @@ async function sendTestEmail(){
     if(msg){ msg.className='admin-msg err'; msg.textContent='Failed: '+(e.message||'unknown')+' \u2014 check the function secrets / FROM_EMAIL domain.'; }
   }
   if(btn){ btn.disabled=false; btn.textContent=orig; }
+}
+
+/* ============================================================
+   v22 — PROJECT NEWSLETTER STUDIO
+   ============================================================ */
+var NL = { proj:null, data:null, members:[], videos:[], heroBusy:false, sending:false };
+
+function nlBlank(){
+  return {
+    eyebrow:'Project Update Newsletter',
+    title:'', titleGreen:{},               // titleGreen[index]=true => acid word
+    sub:'',
+    hero:{ uid:'', t:0, url:'', composed:'' },
+    latest:{ label:'On Track', url:'' },
+    phase:'', review:{ date:'', label:'' },
+    stand:'',
+    happened:[], eyes:[], milestones:[], decisions:[], locked:[],
+    reviewUrl:''
+  };
+}
+function nlEsc(s){ var d=document.createElement('div'); d.textContent=(s==null?'':s); return d.innerHTML; }
+function nlStreamThumb(uid, t){ return 'https://'+CONFIG.STREAM_CUSTOMER+'/'+uid+'/thumbnails/thumbnail.jpg?time='+Math.max(0,Math.floor(t||0))+'s&height=720'; }
+function nlProjVideos(proj){
+  var out=[];
+  (proj.sections||[]).forEach(function(sec){ (sec.stacks||[]).forEach(function(st){ (st.versions||[]).forEach(function(v){ if(v.type==='video' && v.stream_uid){ out.push({ uid:v.stream_uid, label:(st.title||v.title||'Video')+(v.version?(' '+v.version):''), section:sec.name }); } }); }); });
+  // de-dupe by uid
+  var seen={}, uniq=[]; out.forEach(function(v){ if(!seen[v.uid]){ seen[v.uid]=1; uniq.push(v); } });
+  return uniq;
+}
+function nlLatestStackUrl(proj){
+  var s=(proj.sections||[])[0]; if(!s) return '';
+  var st=(s.stacks||[])[0]; if(!st) return '';
+  return location.origin+'/r/'+CONFIG.REVIEW_SLUG+'/#p='+encodeURIComponent(proj.id)+'&k='+encodeURIComponent(st.id);
+}
+function nlReviewUrl(proj){ return location.origin+'/r/'+CONFIG.REVIEW_SLUG+'/#p='+encodeURIComponent(proj.id); }
+
+/* ---------- live data defaults ---------- */
+async function nlGather(proj){
+  var d=nlBlank();
+  d.reviewUrl=nlReviewUrl(proj);
+  d.latest.url=nlLatestStackUrl(proj)||d.reviewUrl;
+  d.title=(proj.title||'Project')+' update';
+  // current phase from project_status
+  try{ var ps=await sb.from('project_status').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',proj.id).maybeSingle(); if(ps&&ps.data){ d.phase=ps.data.phase||ps.data.label||ps.data.current||''; } }catch(e){}
+  // next review date from calendar (soonest upcoming)
+  try{
+    var today=new Date().toISOString().slice(0,10);
+    var ev=await sb.from('calendar_events').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_id',proj.id).gte('date',today).order('date',{ascending:true}).limit(1);
+    if(ev&&ev.data&&ev.data[0]){ d.review.date=ev.data[0].date; d.review.label=ev.data[0].title||''; }
+  }catch(e){}
+  // what happened — recent comments + announcements
+  try{
+    var cm=await sb.from('comments').select('author_name,body,created_at,asset_id').eq('review_slug',CONFIG.REVIEW_SLUG).like('asset_id',proj.id+':%').order('created_at',{ascending:false}).limit(5);
+    if(cm&&cm.data){ cm.data.forEach(function(c){ var who=c.author_name||'Someone'; var snip=(c.body||'').replace(/\s+/g,' ').slice(0,70); d.happened.push(who+' commented'+(snip?(': \u201c'+snip+'\u201d'):'')); }); }
+  }catch(e){}
+  try{
+    var an=await sb.from('announcements').select('message,section,created_at').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project',proj.id).order('created_at',{ascending:false}).limit(3);
+    if(an&&an.data){ an.data.forEach(function(a){ d.happened.push((a.section?(a.section+': '):'')+(a.message||'New work posted for review')); }); }
+  }catch(e){}
+  // tasks: needs-eyes + locked
+  try{
+    var tk=await sb.from('tasks').select('title,status').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',proj.id);
+    if(tk&&tk.data){
+      tk.data.forEach(function(t){
+        if(['needs_client_feedback','needs_approval','needs_changes'].indexOf(t.status)>-1) d.eyes.push({ text:t.title, url:'' });
+        if(t.status==='complete') d.locked.push(t.title);
+      });
+    }
+  }catch(e){}
+  if(!d.happened.length) d.happened.push('Latest cut posted for review');
+  return d;
+}
+async function nlMembers(proj){
+  var list=[];
+  try{ var r=await sb.from('profiles').select('email,full_name').eq('review_slug',CONFIG.REVIEW_SLUG); if(r&&r.data){ r.data.forEach(function(p){ if(p.email) list.push({ email:p.email, name:p.full_name||p.email }); }); } }catch(e){}
+  var seen={}, out=[]; list.forEach(function(m){ var k=m.email.toLowerCase(); if(!seen[k]){ seen[k]=1; out.push(m); } });
+  return out;
+}
+
+/* ---------- EMAIL HTML (inline styles, table-based) ---------- */
+function nlTitleHTML(d, accentColor, whiteColor){
+  var words=(d.title||'').split(/\s+/).filter(Boolean);
+  return words.map(function(w,i){ var c=d.titleGreen[i]?accentColor:whiteColor; return '<span style="color:'+c+'">'+nlEsc(w)+'</span>'; }).join(' ');
+}
+function nlEmailHTML(d){
+  var ACID='#B4C828', BONE='#ECECEA', VOID='#0A0A0B', INK2='#111113', INK3='#1A1A1D', G3='#9A9A9E', G4='#6B6B70', LINE='#2A2A2E';
+  var mono="'Space Mono',ui-monospace,Menlo,monospace", disp="'Bricolage Grotesque',Helvetica,Arial,sans-serif";
+  function eyebrow(t){ return '<div style="font-family:'+mono+';font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:'+ACID+';font-weight:700;margin:0 0 12px;">'+nlEsc(t)+'</div>'; }
+  function sectionWrap(inner){ return '<tr><td style="padding:26px 30px 0;">'+inner+'</td></tr>'; }
+  var H='';
+
+  // HERO (composed image = title baked over the frame). Fallback: image then title band.
+  var heroImg = d.hero.composed || d.hero.url;
+  if(heroImg){
+    H+='<tr><td style="padding:0;"><img src="'+nlEsc(heroImg)+'" width="600" alt="" style="display:block;width:100%;max-width:600px;border:0;"></td></tr>';
+    if(!d.hero.composed && d.title){
+      H+='<tr><td style="padding:22px 30px 4px;background:'+VOID+';">'+eyebrow(d.eyebrow||'Project Update Newsletter')
+        +'<div style="font-family:'+disp+';font-size:30px;line-height:1.08;font-weight:800;letter-spacing:-.03em;">'+nlTitleHTML(d,ACID,'#FFFFFF')+'</div>'
+        +(d.sub?'<div style="font-family:'+disp+';font-size:14px;line-height:1.5;color:'+G3+';margin-top:10px;">'+nlEsc(d.sub)+'</div>':'')+'</td></tr>';
+    } else if(d.sub){
+      H+='<tr><td style="padding:18px 30px 0;"><div style="font-family:'+disp+';font-size:14px;line-height:1.5;color:'+G3+';">'+nlEsc(d.sub)+'</div></td></tr>';
+    }
+  } else {
+    H+='<tr><td style="padding:30px 30px 6px;">'+eyebrow(d.eyebrow||'Project Update Newsletter')
+      +'<div style="font-family:'+disp+';font-size:30px;line-height:1.08;font-weight:800;letter-spacing:-.03em;">'+nlTitleHTML(d,ACID,'#FFFFFF')+'</div>'
+      +(d.sub?'<div style="font-family:'+disp+';font-size:14px;line-height:1.5;color:'+G3+';margin-top:10px;">'+nlEsc(d.sub)+'</div>':'')+'</td></tr>';
+  }
+
+  // STATUS GRID (Latest Item / Current Phase / Next Review)
+  function statCell(label, val, accent, href){
+    var inner = href ? '<a href="'+nlEsc(href)+'" style="color:'+(accent?ACID:BONE)+';text-decoration:none;">'+nlEsc(val)+' &rsaquo;</a>' : '<span style="color:'+(accent?ACID:BONE)+';">'+nlEsc(val||'\u2014')+'</span>';
+    return '<td width="33%" valign="top" style="padding:0 6px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:'+INK2+';border:1px solid '+(accent?'rgba(180,200,40,.45)':LINE)+';border-radius:12px;"><tr><td style="padding:14px 14px 16px;"><div style="font-family:'+mono+';font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:'+G4+';margin-bottom:9px;">'+nlEsc(label)+'</div><div style="font-family:'+disp+';font-size:16px;font-weight:700;line-height:1.2;">'+inner+'</div></td></tr></table></td>';
+  }
+  var reviewVal = d.review.date ? nlDatePretty(d.review.date) : (d.review.label||'TBD');
+  H+=sectionWrap('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 -6px;"><tr>'
+    + statCell('Latest Item', d.latest.label||'Latest cut', true, d.latest.url)
+    + statCell('Current Phase', d.phase||'In progress', false, '')
+    + statCell('Next Review', reviewVal, false, '')
+    + '</tr></table>');
+
+  // WHERE THINGS STAND
+  if(d.stand){
+    H+=sectionWrap(eyebrow('Where things stand')
+      +'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:'+INK2+';border:1px solid '+LINE+';border-left:3px solid '+ACID+';border-radius:12px;"><tr><td style="padding:16px 18px;font-family:'+disp+';font-size:15px;line-height:1.6;color:'+BONE+';">'+nlEsc(d.stand).replace(/\n/g,'<br>')+'</td></tr></table>');
+  }
+  // WHAT HAPPENED
+  if(d.happened.length){
+    var rows=d.happened.map(function(t,i){ return '<tr><td width="30" valign="top" style="font-family:'+mono+';font-size:13px;color:'+ACID+';padding:7px 10px 7px 0;">'+String(i+1).padStart(2,'0')+'</td><td style="font-family:'+disp+';font-size:14px;line-height:1.5;color:'+BONE+';padding:7px 0;border-bottom:1px solid '+INK3+';">'+nlEsc(t)+'</td></tr>'; }).join('');
+    H+=sectionWrap(eyebrow('What happened')+'<table role="presentation" width="100%" cellpadding="0" cellspacing="0">'+rows+'</table>');
+  }
+  // NEEDS YOUR EYES
+  if(d.eyes.length){
+    var ecards=d.eyes.map(function(e){
+      var btn = e.url ? '<div style="margin-top:10px;"><a href="'+nlEsc(e.url)+'" style="display:inline-block;font-family:'+mono+';font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:'+VOID+';background:'+ACID+';padding:8px 14px;border-radius:7px;text-decoration:none;">Open review</a></div>' : '';
+      return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:'+INK2+';border:1px solid '+LINE+';border-radius:12px;margin-bottom:10px;"><tr><td style="padding:15px 17px;"><div style="font-family:'+disp+';font-size:15px;font-weight:600;color:'+BONE+';">'+nlEsc(e.text)+'</div>'+btn+'</td></tr></table>';
+    }).join('');
+    var openAll = d.reviewUrl ? '<div style="margin-top:4px;"><a href="'+nlEsc(d.reviewUrl)+'" style="display:inline-block;font-family:'+mono+';font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:'+BONE+';border:1px solid '+G4+';padding:9px 15px;border-radius:7px;text-decoration:none;">Open the review &rsaquo;</a></div>' : '';
+    H+=sectionWrap(eyebrow('Needs your eyes')+ecards+openAll);
+  }
+  // MILESTONES
+  if(d.milestones.length){
+    var ms=d.milestones.map(function(m){
+      var tag = m.tag ? '<span style="font-family:'+mono+';font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:'+G3+';border:1px solid '+LINE+';border-radius:999px;padding:3px 9px;margin-left:8px;white-space:nowrap;">'+nlEsc(m.tag)+'</span>' : '';
+      return '<tr><td width="16" valign="top" style="padding:8px 0;"><div style="width:8px;height:8px;border-radius:50%;background:'+ACID+';margin-top:6px;"></div></td><td style="font-family:'+disp+';font-size:14px;line-height:1.5;color:'+BONE+';padding:8px 0 8px 4px;">'+nlEsc(m.text)+tag+'</td></tr>';
+    }).join('');
+    H+=sectionWrap(eyebrow('Milestones')+'<table role="presentation" width="100%" cellpadding="0" cellspacing="0">'+ms+'</table>');
+  }
+  // DECISIONS NEEDED
+  if(d.decisions.length){
+    var qs=d.decisions.map(function(t){ return '<tr><td width="22" valign="top" style="font-family:'+disp+';font-size:16px;font-weight:800;color:'+ACID+';padding:8px 8px 8px 0;">?</td><td style="font-family:'+disp+';font-size:14px;line-height:1.5;color:'+BONE+';padding:8px 0;border-bottom:1px solid '+INK3+';">'+nlEsc(t)+'</td></tr>'; }).join('');
+    H+=sectionWrap(eyebrow('Decisions needed')+'<table role="presentation" width="100%" cellpadding="0" cellspacing="0">'+qs+'</table>');
+  }
+  // WHAT IS LOCKED
+  if(d.locked.length){
+    var lk=d.locked.map(function(t){ return '<tr><td width="22" valign="top" style="font-size:14px;color:'+ACID+';padding:7px 8px 7px 0;">\u2713</td><td style="font-family:'+disp+';font-size:14px;line-height:1.5;color:'+G3+';padding:7px 0;">'+nlEsc(t)+'</td></tr>'; }).join('');
+    H+=sectionWrap(eyebrow('What is locked')+'<table role="presentation" width="100%" cellpadding="0" cellspacing="0">'+lk+'</table>');
+  }
+
+  return '<div style="margin:0;padding:0;background:'+VOID+';">'
+    +'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:'+VOID+';padding:26px 0;font-family:'+disp+';"><tr><td align="center">'
+    +'<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px;max-width:600px;background:'+INK2+';border:1px solid '+LINE+';border-radius:18px;overflow:hidden;">'
+    +'<tr><td style="padding:18px 30px;border-bottom:1px solid '+LINE+';"><img src="https://supernerd.tv/email-logo.png" alt="Supernerd" height="24" style="height:24px;display:block;"></td></tr>'
+    +H
+    +'<tr><td style="padding:26px 30px 28px;"><div style="border-top:1px solid '+LINE+';padding-top:18px;font-family:'+mono+';font-size:11px;color:'+G4+';line-height:1.6;">Supernerd Studios &middot; Harlem, NYC &middot; <a href="https://supernerd.tv" style="color:'+ACID+';text-decoration:none;">supernerd.tv</a></div></td></tr>'
+    +'</table></td></tr></table></div>';
+}
+function nlDatePretty(d){ try{ var x=new Date(d+'T00:00:00'); return x.toLocaleDateString([], {weekday:'short', month:'short', day:'numeric'}); }catch(e){ return d; } }
+
+/* ---------- builder entry ---------- */
+async function nlLoad(projId){
+  var proj=CONFIG.PROJECTS.find(function(p){return p.id===projId;}); if(!proj) return;
+  NL.proj=projId; NL.projObj=proj;
+  var m=document.getElementById('nlmount'); if(m) m.innerHTML='<div class="cal-loading">Loading newsletter studio\u2026</div>';
+  NL.videos=nlProjVideos(proj);
+  NL.members=await nlMembers(proj);
+  var draft=null;
+  try{ var r=await sb.from('newsletters').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',projId).maybeSingle(); if(r&&r.data&&r.data.data&&r.data.data.title!=null) draft=r.data.data; }catch(e){}
+  NL.data = draft ? nlMerge(nlBlank(), draft) : await nlGather(proj);
+  if(!NL.data.hero.uid && !NL.data.hero.url && NL.videos[0]){ NL.data.hero.uid=NL.videos[0].uid; NL.data.hero.t=0; }
+  NL._heroSig=null;
+  nlRender();
+}
+function nlMerge(base, over){ Object.keys(over||{}).forEach(function(k){ base[k]=over[k]; }); base.titleGreen=base.titleGreen||{}; base.hero=base.hero||{uid:'',t:0,url:'',composed:''}; base.latest=base.latest||{label:'',url:''}; base.review=base.review||{date:'',label:''}; ['happened','eyes','milestones','decisions','locked'].forEach(function(k){ if(!Array.isArray(base[k])) base[k]=[]; }); return base; }
+
+/* ---------- collectors ---------- */
+function nlV(id){ var e=document.getElementById(id); return e?e.value:''; }
+function nlInputs(sel){ var out=[]; document.querySelectorAll(sel).forEach(function(i){ var v=(i.value||'').trim(); if(v) out.push(v); }); return out; }
+function nlPairs(rowSel, aSel, bSel, mk, keepIf){ var out=[]; document.querySelectorAll(rowSel).forEach(function(r){ var a=r.querySelector(aSel), b=r.querySelector(bSel); var av=a?(a.value||'').trim():'', bv=b?(b.value||'').trim():''; var o=mk(av,bv); if(keepIf(o)) out.push(o); }); return out; }
+function nlCollect(){
+  var d=NL.data;
+  d.eyebrow=nlV('nlEyebrow'); d.title=nlV('nlTitle'); d.sub=nlV('nlSub');
+  d.latest.label=nlV('nlLatLabel'); d.latest.url=nlV('nlLatUrl');
+  d.phase=nlV('nlPhase'); d.review.date=nlV('nlRevDate'); d.review.label=nlV('nlRevLabel');
+  d.stand=nlV('nlStand');
+  d.happened=nlInputs('.nl-hap');
+  d.eyes=nlPairs('.nl-eye-row','.nl-eye-t','.nl-eye-u',function(t,u){return {text:t,url:u};},function(o){return o.text;});
+  d.milestones=nlPairs('.nl-ms-row','.nl-ms-t','.nl-ms-g',function(t,g){return {text:t,tag:g};},function(o){return o.text;});
+  d.decisions=nlInputs('.nl-dec');
+  d.locked=nlInputs('.nl-lock');
+}
+
+/* ---------- render ---------- */
+function nlTitleChips(){
+  var d=NL.data; var words=(d.title||'').split(/\s+/).filter(Boolean);
+  if(!words.length) return '<span class="nl-chip-hint">Type a title above, then tap words to make them acid-green.</span>';
+  return words.map(function(w,i){ return '<button type="button" class="nl-wchip'+(d.titleGreen[i]?' on':'')+'" data-wi="'+i+'">'+nlEsc(w)+'</button>'; }).join('');
+}
+function nlRender(){
+  var m=document.getElementById('nlmount'); if(!m) return; var d=NL.data;
+  var vidOpts='<option value="">\u2014 No video / pick later \u2014</option>'+NL.videos.map(function(v){ return '<option value="'+nlEsc(v.uid)+'"'+(d.hero.uid===v.uid?' selected':'')+'>'+nlEsc(v.label)+' \u00b7 '+nlEsc(v.section)+'</option>'; }).join('');
+  var thumb = d.hero.uid ? nlStreamThumb(d.hero.uid, d.hero.t) : (d.hero.url||'');
+  function listRows(kind){
+    if(kind==='hap') return (d.happened.length?d.happened:['']).map(function(t){ return '<div class="nl-row"><input class="nl-hap" value="'+nlEsc(t)+'" placeholder="e.g. Client color notes were applied"><button type="button" class="nl-x" data-rm>\u00d7</button></div>'; }).join('');
+    if(kind==='eye') return (d.eyes.length?d.eyes:[{text:'',url:''}]).map(function(e){ return '<div class="nl-row nl-eye-row"><input class="nl-eye-t" value="'+nlEsc(e.text)+'" placeholder="What needs their eyes"><input class="nl-eye-u" value="'+nlEsc(e.url)+'" placeholder="Link (optional)"><button type="button" class="nl-x" data-rm>\u00d7</button></div>'; }).join('');
+    if(kind==='ms') return (d.milestones.length?d.milestones:[{text:'',tag:''}]).map(function(e){ return '<div class="nl-row nl-ms-row"><input class="nl-ms-t" value="'+nlEsc(e.text)+'" placeholder="Milestone"><input class="nl-ms-g" value="'+nlEsc(e.tag)+'" placeholder="Tag / date"><button type="button" class="nl-x" data-rm>\u00d7</button></div>'; }).join('');
+    if(kind==='dec') return (d.decisions.length?d.decisions:['']).map(function(t){ return '<div class="nl-row"><input class="nl-dec" value="'+nlEsc(t)+'" placeholder="A decision you need from them"><button type="button" class="nl-x" data-rm>\u00d7</button></div>'; }).join('');
+    if(kind==='lock') return (d.locked.length?d.locked:['']).map(function(t){ return '<div class="nl-row"><input class="nl-lock" value="'+nlEsc(t)+'" placeholder="Something approved / locked"><button type="button" class="nl-x" data-rm>\u00d7</button></div>'; }).join('');
+    return '';
+  }
+  function block(title, hint, inner, addKind){
+    return '<div class="nl-block"><div class="nl-bh"><h4>'+title+'</h4>'+(hint?'<span class="nl-bhint">'+hint+'</span>':'')+'</div>'+inner+(addKind?'<button type="button" class="nl-add" data-add="'+addKind+'">+ Add</button>':'')+'</div>';
+  }
+  var recHTML = NL.members.length
+    ? NL.members.map(function(mm){ return '<label class="nl-rec-row"><input type="checkbox" class="nl-rec" value="'+nlEsc(mm.email)+'" checked><span>'+nlEsc(mm.name)+' <i>'+nlEsc(mm.email)+'</i></span></label>'; }).join('')
+    : '<div class="nl-empty-sm">No project partners have onboarded yet. Add a recipient below, or send yourself a preview.</div>';
+
+  m.innerHTML=''
+  + '<div class="nl-studio">'
+  // HERO
+  + block('Header image', 'Pick a video, scrub to the frame you want. The title gets baked onto it.', ''
+      +'<div class="nl-hero-pick">'
+      +'<div class="nl-hp-l"><label class="nl-l">Video</label><select id="nlVid" class="nl-i">'+vidOpts+'</select>'
+      +'<label class="nl-l">Timecode <span id="nlTlabel" class="nl-tlabel">'+nlFmtT(d.hero.t)+'</span></label>'
+      +'<input id="nlT" class="nl-range" type="range" min="0" max="600" step="1" value="'+(d.hero.t||0)+'">'
+      +'<div class="nl-trow"><input id="nlTnum" class="nl-i sm" type="number" min="0" step="1" value="'+(d.hero.t||0)+'"><span class="nl-unit">seconds</span></div></div>'
+      +'<div class="nl-hp-r"><div class="nl-hero-prev" id="nlHeroPrev">'+(thumb?'<img id="nlHeroImg" src="'+nlEsc(thumb)+'" alt="">':'<div class="nl-hero-none">No frame yet</div>')+'</div></div>'
+      +'</div>')
+  // TITLE
+  + block('Title &amp; intro','', ''
+      +'<label class="nl-l">Eyebrow</label><input id="nlEyebrow" class="nl-i" value="'+nlEsc(d.eyebrow)+'" placeholder="Project Update Newsletter">'
+      +'<label class="nl-l">Title</label><input id="nlTitle" class="nl-i" value="'+nlEsc(d.title)+'" placeholder="Brand film is moving into Rough Cut">'
+      +'<div class="nl-wchips" id="nlTitleWords">'+nlTitleChips()+'</div>'
+      +'<label class="nl-l">Subtitle</label><input id="nlSub" class="nl-i" value="'+nlEsc(d.sub)+'" placeholder="One line under the title (optional)">')
+  // STATUS GRID
+  + block('Status cards','', ''
+      +'<div class="nl-grid3">'
+      +'<div><label class="nl-l">Latest Item</label><input id="nlLatLabel" class="nl-i" value="'+nlEsc(d.latest.label)+'" placeholder="On Track / Rough Cut v2"><input id="nlLatUrl" class="nl-i mt" value="'+nlEsc(d.latest.url)+'" placeholder="Link to latest cut"></div>'
+      +'<div><label class="nl-l">Current Phase</label><input id="nlPhase" class="nl-i" value="'+nlEsc(d.phase)+'" placeholder="Storyboarding"></div>'
+      +'<div><label class="nl-l">Next Review</label><input id="nlRevDate" class="nl-i" type="date" value="'+nlEsc(d.review.date)+'"><input id="nlRevLabel" class="nl-i mt" value="'+nlEsc(d.review.label)+'" placeholder="Label (optional)"></div>'
+      +'</div>')
+  // WHERE THINGS STAND
+  + block('Where things stand','Talk to them directly.', '<textarea id="nlStand" class="nl-ta" rows="4" placeholder="A short, human note on where the project is.">'+nlEsc(d.stand)+'</textarea>')
+  // WHAT HAPPENED
+  + block('What happened','Auto-filled from recent activity \u2014 edit freely.', '<div id="nlHapList">'+listRows('hap')+'</div>','hap')
+  // NEEDS YOUR EYES
+  + block('Needs your eyes','', '<div id="nlEyeList">'+listRows('eye')+'</div>','eye')
+  // MILESTONES
+  + block('Milestones','', '<div id="nlMsList">'+listRows('ms')+'</div>','ms')
+  // DECISIONS
+  + block('Decisions needed','', '<div id="nlDecList">'+listRows('dec')+'</div>','dec')
+  // LOCKED
+  + block('What is locked','Approved / locked items.', '<div id="nlLockList">'+listRows('lock')+'</div>','lock')
+  // RECIPIENTS
+  + block('Recipients','You get a copy automatically; everyone here is BCC\u2019d.', '<div class="nl-recs">'+recHTML+'</div><div class="nl-row"><input id="nlAddRec" class="nl-i" placeholder="Add an email\u2026"><button type="button" class="nl-add inline" id="nlAddRecBtn">Add</button></div>')
+  // ACTIONS
+  + '<div class="nl-actions"><button class="ca-btn ghost" id="nlSaveBtn" type="button">Save draft</button><button class="ca-btn ghost" id="nlPreviewBtn" type="button">Preview</button><button class="ca-btn" id="nlSendBtn" type="button">Send to project</button><span class="nl-status" id="nlStatus"></span></div>'
+  + '</div>';
+  nlWire();
+}
+function nlFmtT(t){ t=Math.max(0,Math.floor(t||0)); var mm=Math.floor(t/60), ss=t%60; return mm+':'+String(ss).padStart(2,'0'); }
+
+/* ---------- wiring ---------- */
+function nlWire(){
+  var d=NL.data;
+  var vid=document.getElementById('nlVid'); if(vid) vid.onchange=function(){ d.hero.uid=vid.value; d.hero.url=''; d.hero.composed=''; nlUpdHero(); };
+  var rng=document.getElementById('nlT'), num=document.getElementById('nlTnum'), tl=document.getElementById('nlTlabel');
+  function setT(v){ v=Math.max(0,parseInt(v,10)||0); d.hero.t=v; d.hero.composed=''; if(rng&&+rng.value!==v) rng.value=v; if(num&&+num.value!==v) num.value=v; if(tl) tl.textContent=nlFmtT(v); nlUpdHeroDeb(); }
+  if(rng) rng.oninput=function(){ setT(rng.value); };
+  if(num) num.oninput=function(){ setT(num.value); };
+  var ti=document.getElementById('nlTitle'); if(ti) ti.oninput=function(){ d.title=ti.value; var box=document.getElementById('nlTitleWords'); if(box){ box.innerHTML=nlTitleChips(); nlWireChips(); } };
+  nlWireChips();
+  document.querySelectorAll('.nl-add[data-add]').forEach(function(b){ b.onclick=function(){ nlCollect(); var k=b.dataset.add; var map={hap:'happened',dec:'decisions',lock:'locked'}; if(map[k]){ d[map[k]].push(''); } else if(k==='eye'){ d.eyes.push({text:'',url:''}); } else if(k==='ms'){ d.milestones.push({text:'',tag:''}); } nlRender(); }; });
+  document.querySelectorAll('.nl-x[data-rm]').forEach(function(b){ b.onclick=function(){ var row=b.closest('.nl-row'); if(row) row.parentNode.removeChild(row); nlCollect(); }; });
+  var ar=document.getElementById('nlAddRecBtn'); if(ar) ar.onclick=function(){ var inp=document.getElementById('nlAddRec'); var em=(inp.value||'').trim(); if(!em||em.indexOf('@')<0) return; var recs=document.querySelector('.nl-recs'); var lbl=document.createElement('label'); lbl.className='nl-rec-row'; lbl.innerHTML='<input type="checkbox" class="nl-rec" value="'+nlEsc(em)+'" checked><span>'+nlEsc(em)+'</span>'; var empty=recs.querySelector('.nl-empty-sm'); if(empty) empty.remove(); recs.appendChild(lbl); inp.value=''; };
+  var sb1=document.getElementById('nlSaveBtn'); if(sb1) sb1.onclick=function(){ nlSaveDraft(false); };
+  var pb=document.getElementById('nlPreviewBtn'); if(pb) pb.onclick=nlPreview;
+  var snd=document.getElementById('nlSendBtn'); if(snd) snd.onclick=nlSend;
+}
+function nlWireChips(){ document.querySelectorAll('.nl-wchip').forEach(function(c){ c.onclick=function(){ var i=+c.dataset.wi; NL.data.titleGreen[i]=!NL.data.titleGreen[i]; c.classList.toggle('on'); }; }); }
+var _nlHeroTimer=null;
+function nlUpdHeroDeb(){ clearTimeout(_nlHeroTimer); _nlHeroTimer=setTimeout(nlUpdHero, 280); }
+function nlUpdHero(){
+  var d=NL.data; var box=document.getElementById('nlHeroPrev'); if(!box) return;
+  var src = d.hero.uid ? nlStreamThumb(d.hero.uid, d.hero.t) : (d.hero.url||'');
+  box.innerHTML = src ? '<img id="nlHeroImg" src="'+nlEsc(src)+'" alt="">' : '<div class="nl-hero-none">No frame yet</div>';
+}
+
+/* ---------- hero compositor (frame + scrim + title baked in) ---------- */
+function nlLoadImg(src){ return new Promise(function(res,rej){ var im=new Image(); im.crossOrigin='anonymous'; im.onload=function(){res(im);}; im.onerror=function(){rej(new Error('img'));}; im.src=src; }); }
+async function nlEnsureFont(){ try{ if(document.fonts&&document.fonts.load){ await document.fonts.load('800 64px "Bricolage Grotesque"'); await document.fonts.load('700 22px "Space Mono"'); if(document.fonts.ready) await document.fonts.ready; } }catch(e){} }
+function nlDrawTracked(ctx, text, x, y, ls){ for(var i=0;i<text.length;i++){ ctx.fillText(text[i], x, y); x+=ctx.measureText(text[i]).width+ls; } }
+function nlWrapWords(ctx, words, maxW){ var lines=[], cur=[], curW=0; for(var i=0;i<words.length;i++){ var ww=ctx.measureText(words[i]+' ').width; if(curW+ww>maxW && cur.length){ lines.push(cur); cur=[]; curW=0; } cur.push({w:words[i], gi:i}); curW+=ww; } if(cur.length) lines.push(cur); return lines; }
+async function nlUploadHero(blob){ try{ var path=CONFIG.REVIEW_SLUG+'/'+NL.proj+'/newsletter/hero-'+Date.now()+'.jpg'; var up=await sb.storage.from('client-assets').upload(path, blob, {upsert:false, cacheControl:'3600', contentType:'image/jpeg'}); if(up.error) return ''; var pub=sb.storage.from('client-assets').getPublicUrl(path); return (pub&&pub.data)?pub.data.publicUrl:''; }catch(e){ return ''; } }
+async function nlComposeHero(){
+  var d=NL.data; var src=d.hero.url || (d.hero.uid?nlStreamThumb(d.hero.uid,d.hero.t):''); if(!src) return '';
+  await nlEnsureFont();
+  var img=await nlLoadImg(src);
+  var W=1200, Hh=675; var cv=document.createElement('canvas'); cv.width=W; cv.height=Hh; var ctx=cv.getContext('2d');
+  var ar=img.width/img.height, car=W/Hh, dw,dh,dx,dy;
+  if(ar>car){ dh=Hh; dw=Hh*ar; dx=(W-dw)/2; dy=0; } else { dw=W; dh=W/ar; dx=0; dy=(Hh-dh)/2; }
+  ctx.drawImage(img,dx,dy,dw,dh);
+  var g=ctx.createLinearGradient(0,Hh*0.22,0,Hh); g.addColorStop(0,'rgba(10,10,11,0)'); g.addColorStop(1,'rgba(10,10,11,0.95)'); ctx.fillStyle=g; ctx.fillRect(0,0,W,Hh);
+  var g2=ctx.createLinearGradient(0,0,W*0.66,0); g2.addColorStop(0,'rgba(10,10,11,0.55)'); g2.addColorStop(1,'rgba(10,10,11,0)'); ctx.fillStyle=g2; ctx.fillRect(0,0,W,Hh);
+  var padX=66;
+  ctx.textBaseline='alphabetic'; ctx.font='700 22px "Space Mono", monospace'; ctx.fillStyle='#B4C828';
+  nlDrawTracked(ctx,(d.eyebrow||'PROJECT UPDATE NEWSLETTER').toUpperCase(), padX, Hh-176, 3);
+  var words=(d.title||'').split(/\s+/).filter(Boolean);
+  if(words.length){
+    var fs=64; ctx.font='800 '+fs+'px "Bricolage Grotesque", sans-serif';
+    var lines=nlWrapWords(ctx, words, W-padX*2); var lh=fs*1.05; var startY=Hh-58-(lines.length-1)*lh;
+    lines.forEach(function(line,li){ var x=padX, y=startY+li*lh; line.forEach(function(it){ ctx.fillStyle=d.titleGreen[it.gi]?'#B4C828':'#FFFFFF'; ctx.fillText(it.w, x, y); x+=ctx.measureText(it.w+' ').width; }); });
+  }
+  var blob=await new Promise(function(res){ cv.toBlob(res,'image/jpeg',0.9); });
+  if(!blob) return '';
+  return await nlUploadHero(blob);
+}
+async function nlMaybeCompose(){
+  var d=NL.data;
+  if(!d.hero.uid && !d.hero.url){ d.hero.composed=''; return; }
+  if(d.hero.uid) d.hero.url=nlStreamThumb(d.hero.uid,d.hero.t);
+  var sig=(d.hero.url)+'|'+d.title+'|'+Object.keys(d.titleGreen).filter(function(k){return d.titleGreen[k];}).join(',');
+  if(NL._heroSig===sig && d.hero.composed) return;
+  var url=await nlComposeHero();
+  if(url){ d.hero.composed=url; NL._heroSig=sig; }
+}
+
+/* ---------- preview / send / save ---------- */
+function nlStatus(msg, cls){ var s=document.getElementById('nlStatus'); if(s){ s.textContent=msg; s.className='nl-status '+(cls||''); if(cls==='ok') setTimeout(function(){ if(s) s.textContent=''; }, 3000); } }
+function nlOpenPreview(html){ var safe=html.replace(/"/g,'&quot;'); openOverlay('<div class="nl-preview-wrap"><div class="nl-preview-bar">Email preview</div><iframe class="nl-preview-frame" srcdoc="'+safe+'"></iframe></div>', true); }
+async function nlPreview(){
+  nlCollect(); var btn=document.getElementById('nlPreviewBtn'); if(btn){ btn.disabled=true; btn.textContent='Building\u2026'; }
+  try{ await nlMaybeCompose(); }catch(e){}
+  var html=nlEmailHTML(NL.data);
+  if(btn){ btn.disabled=false; btn.textContent='Preview'; }
+  nlOpenPreview(html);
+}
+async function nlSaveDraft(loud){
+  nlCollect();
+  var row={ review_slug:CONFIG.REVIEW_SLUG, project_key:NL.proj, data:NL.data, updated_by:myEmail(), updated_at:new Date().toISOString() };
+  try{ var r=await sb.from('newsletters').upsert(row,{onConflict:'review_slug,project_key'}); if(r.error){ if(loud) nlStatus('Save failed: '+r.error.message,'err'); return false; } if(loud) nlStatus('Draft saved \u2713','ok'); return true; }catch(e){ if(loud) nlStatus('Save failed.','err'); return false; }
+}
+async function nlSend(){
+  nlCollect();
+  var recips=[]; document.querySelectorAll('.nl-rec:checked').forEach(function(c){ if(c.value) recips.push(c.value); });
+  if(!recips.length){ nlStatus('Pick at least one recipient.','err'); return; }
+  if(!confirm('Send this newsletter to '+recips.length+' recipient'+(recips.length>1?'s':'')+'? You\u2019ll get a copy too.')) return;
+  var btn=document.getElementById('nlSendBtn'); if(btn){ btn.disabled=true; btn.textContent='Sending\u2026'; }
+  try{
+    await nlMaybeCompose();
+    var html=nlEmailHTML(NL.data);
+    var subj=(NL.data.title||(NL.projObj&&NL.projObj.title)||'Project')+' \u2014 update from Supernerd';
+    var me=myEmail();
+    await sendEmail({ to:[me||recips[0]], bcc:recips, subject:subj, html:html });
+    try{ await sb.from('newsletters').upsert({ review_slug:CONFIG.REVIEW_SLUG, project_key:NL.proj, data:NL.data, updated_by:me, updated_at:new Date().toISOString(), last_sent_at:new Date().toISOString() },{onConflict:'review_slug,project_key'}); }catch(e){}
+    nlStatus('Sent to '+recips.length+' \u2713','ok');
+  }catch(e){ nlStatus('Send failed: '+(e.message||'unknown'),'err'); }
+  if(btn){ btn.disabled=false; btn.textContent='Send to project'; }
 }
 
 </script>
