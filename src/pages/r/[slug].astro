@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v18';
+  const VERSION = 'v19';
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   const items    = (await getCollection('reviewItems')).filter(i => i.data.published !== false);
@@ -1178,6 +1178,116 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
 /* ===== v18: date-picker button uses the calendar icon (matches dashboard) ===== */
 .dk-calbtn svg{width:18px; height:18px; display:block; stroke:currentColor}
 .dk-calbtn{display:inline-flex; align-items:center; justify-content:center; color:var(--bone)}
+
+/* ============================================================
+   v19 — Client Assets / Colors / Creative Brief / Final / TZ
+   ============================================================ */
+
+/* top logos — client reads equal to Supernerd's */
+.logo-img{height:32px}
+.cobrand{height:40px; max-width:210px}
+.brand-plus{font-size:22px; opacity:.8}
+
+/* partner card local time */
+.pc-tz{display:flex; align-items:center; gap:5px; margin-top:5px; font:500 11px/1 var(--mono); color:var(--dim); letter-spacing:.01em}
+.pc-tz svg{width:13px; height:13px; flex:0 0 auto; opacity:.85}
+
+/* nav: Final group */
+.nav-final a .n-ico svg{width:17px;height:17px}
+
+/* shared svg sizing inside buttons/cards */
+.ca-svg{width:17px; height:17px; flex:0 0 auto}
+
+/* ---- Client Assets shell ---- */
+.ca-wrap{margin-top:4px}
+.ca-tabs{display:flex; flex-wrap:wrap; gap:8px; padding-bottom:16px; margin-bottom:18px; border-bottom:1px solid var(--hair)}
+.ca-tab{display:inline-flex; align-items:center; gap:7px; padding:8px 14px; border-radius:999px; border:1px solid var(--hair); background:rgba(255,255,255,.02); color:var(--dim); font:600 12px/1 var(--mono); letter-spacing:.03em; text-transform:uppercase; cursor:pointer; transition:all .16s var(--ease-out)}
+.ca-tab:hover{color:var(--bone); border-color:rgba(186,192,30,.35)}
+.ca-tab.active{background:var(--green); border-color:var(--green); color:#0a0a08}
+.ca-tab .ca-n{display:inline-flex; align-items:center; justify-content:center; min-width:17px; height:17px; padding:0 5px; border-radius:999px; background:rgba(0,0,0,.18); font-size:10px}
+.ca-tab.active .ca-n{background:rgba(0,0,0,.22)}
+
+.ca-bar{display:flex; align-items:flex-end; justify-content:space-between; gap:16px; margin-bottom:16px; flex-wrap:wrap}
+.ca-bar-l h3{font:600 19px/1.1 var(--disp); margin:0 0 4px; color:var(--bone)}
+.ca-hint{font:400 12.5px/1.4 var(--mono); color:var(--dim); max-width:520px}
+.ca-add{display:flex; gap:9px; flex:0 0 auto}
+
+.ca-btn{display:inline-flex; align-items:center; gap:8px; padding:9px 15px; border-radius:10px; border:1px solid var(--green); background:var(--green); color:#0a0a08; font:700 12.5px/1 var(--mono); letter-spacing:.02em; cursor:pointer; transition:filter .16s var(--ease-out),transform .12s var(--ease-out)}
+.ca-btn:hover{filter:brightness(1.08)} .ca-btn:active{transform:translateY(1px)}
+.ca-btn[disabled]{opacity:.6; cursor:default}
+.ca-btn.ghost{background:transparent; color:var(--bone); border-color:var(--hair)}
+.ca-btn.ghost:hover{border-color:rgba(186,192,30,.45); filter:none}
+.ca-btn.sm{padding:7px 13px; font-size:12px}
+
+.ca-linkform{display:flex; flex-wrap:wrap; gap:9px; align-items:center; padding:14px; margin-bottom:16px; border:1px solid var(--hair); border-radius:13px; background:rgba(255,255,255,.02)}
+.ca-linkform input{flex:1 1 180px; min-width:150px; padding:9px 12px; border-radius:9px; border:1px solid var(--hair); background:rgba(0,0,0,.3); color:var(--bone); font:400 13px var(--mono)}
+.ca-linkform input:focus{outline:none; border-color:var(--green)}
+.ca-lf-act{display:flex; gap:8px; flex:0 0 auto}
+
+.ca-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:14px}
+.ca-card{position:relative; border-radius:14px; border:1px solid var(--hair); background:rgba(13,14,16,.55); overflow:hidden; transition:transform .18s var(--ease-out),border-color .18s var(--ease-out)}
+.ca-card:hover{transform:translateY(-3px); border-color:rgba(186,192,30,.4)}
+.ca-card-in{display:flex; align-items:center; gap:13px; padding:13px; color:inherit; text-decoration:none}
+.ca-thumb{flex:0 0 auto; width:54px; height:54px; border-radius:10px; background:#1a1c20 center/cover no-repeat; display:flex; align-items:center; justify-content:center; font:700 12px var(--mono); color:var(--green); border:1px solid var(--hair)}
+.ca-thumb.ext{letter-spacing:.04em}
+.ca-ico{flex:0 0 auto; width:54px; height:54px; border-radius:10px; display:flex; align-items:center; justify-content:center; background:rgba(186,192,30,.1); color:var(--green); border:1px solid rgba(186,192,30,.25)}
+.ca-ico svg{width:22px;height:22px}
+.ca-meta{min-width:0; flex:1 1 auto}
+.ca-name{font:600 13.5px/1.25 var(--disp); color:var(--bone); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.ca-note{font:400 12px/1.3 var(--mono); color:var(--dim); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.ca-sub{font:500 10.5px/1 var(--mono); color:var(--green); letter-spacing:.03em; text-transform:uppercase; margin-top:6px; opacity:.85}
+.ca-del{position:absolute; top:7px; right:7px; z-index:2; width:24px; height:24px; border-radius:7px; border:1px solid var(--hair); background:rgba(10,10,12,.85); color:var(--dim); font-size:16px; line-height:1; cursor:pointer; opacity:0; transition:opacity .16s var(--ease-out),color .16s}
+.ca-card:hover .ca-del{opacity:1}
+.ca-del:hover{color:#ff6b6b; border-color:rgba(255,107,107,.5)}
+.ca-empty{padding:30px 22px; border:1px dashed var(--hair); border-radius:13px; color:var(--dim); font:400 13px/1.5 var(--mono); text-align:center}
+
+/* ---- Colors builder ---- */
+.col-form{padding:16px; margin-bottom:18px; border:1px solid var(--hair); border-radius:14px; background:rgba(255,255,255,.02)}
+.col-form-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:13px}
+.cf.wide{grid-column:1/-1}
+.cf label{display:block; font:600 10.5px/1 var(--mono); letter-spacing:.05em; text-transform:uppercase; color:var(--dim); margin-bottom:6px}
+.cf .cf-opt{text-transform:none; letter-spacing:0; opacity:.6; font-weight:400}
+.cf input{width:100%; padding:9px 11px; border-radius:9px; border:1px solid var(--hair); background:rgba(0,0,0,.3); color:var(--bone); font:400 13px var(--mono)}
+.cf input:focus{outline:none; border-color:var(--green)}
+.cf-hex{display:flex; gap:8px; align-items:center}
+.cf-hex input[type=color]{width:42px; height:38px; padding:0; border:1px solid var(--hair); border-radius:9px; background:none; cursor:pointer; flex:0 0 auto}
+.cf-hex input[type=text],.cf-hex input:not([type=color]){flex:1 1 auto}
+
+.col-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:16px}
+.col-card{position:relative; border-radius:16px; overflow:hidden; border:1px solid var(--hair); background:rgba(13,14,16,.55); transition:transform .18s var(--ease-out),border-color .18s}
+.col-card:hover{transform:translateY(-3px); border-color:rgba(186,192,30,.35)}
+.col-swatch{height:120px; width:100%; border-bottom:1px solid var(--hair)}
+.col-body{padding:13px 14px 15px}
+.col-name{font:700 15px/1.15 var(--disp); color:var(--bone)}
+.col-usage{font:400 11.5px/1.3 var(--mono); color:var(--dim); margin-top:3px}
+.col-codes{margin-top:11px; display:flex; flex-direction:column; gap:5px}
+.code-copy{display:flex; align-items:center; gap:9px; width:100%; padding:6px 9px; border-radius:8px; border:1px solid var(--hair); background:rgba(255,255,255,.02); cursor:pointer; text-align:left; transition:border-color .14s,background .14s}
+.code-copy:hover{border-color:rgba(186,192,30,.45); background:rgba(186,192,30,.06)}
+.code-copy.copied{border-color:var(--green); background:rgba(186,192,30,.12)}
+.code-k{flex:0 0 58px; font:700 9.5px/1 var(--mono); letter-spacing:.06em; text-transform:uppercase; color:var(--dim)}
+.code-v{flex:1 1 auto; font:500 12.5px/1 var(--mono); color:var(--bone); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.code-copy.copied .code-v{color:var(--green)}
+.code-ic{flex:0 0 auto; color:var(--dim)} .code-ic svg{width:14px;height:14px}
+.code-copy:hover .code-ic{color:var(--green)}
+.col-del{position:absolute; top:8px; right:8px; z-index:2; width:25px; height:25px; border-radius:7px; border:1px solid rgba(0,0,0,.3); background:rgba(10,10,12,.6); color:#fff; font-size:16px; line-height:1; cursor:pointer; opacity:0; transition:opacity .16s}
+.col-card:hover .col-del{opacity:1}
+.col-del:hover{background:rgba(255,80,80,.85)}
+
+/* ---- Creative Brief ---- */
+.cb-card{max-width:760px}
+.cb-field{margin-bottom:16px}
+.cb-field label{display:block; font:600 11px/1 var(--mono); letter-spacing:.05em; text-transform:uppercase; color:var(--bone); margin-bottom:7px}
+.cb-field .cb-hint{text-transform:none; letter-spacing:0; color:var(--dim); font-weight:400; margin-left:6px}
+.cb-field textarea{width:100%; padding:12px 14px; border-radius:11px; border:1px solid var(--hair); background:rgba(0,0,0,.3); color:var(--bone); font:400 14px/1.55 var(--mono); resize:vertical; min-height:64px}
+.cb-field textarea:focus{outline:none; border-color:var(--green)}
+.cb-actions{display:flex; align-items:center; gap:14px; margin-top:6px}
+.cb-saved{font:500 12px var(--mono)} .cb-saved.ok{color:var(--green)} .cb-saved.err{color:#ff6b6b}
+.cb-meta{margin-top:14px; font:400 11.5px var(--mono); color:var(--dim)}
+
+@media (max-width:600px){
+  .ca-bar{align-items:flex-start} .ca-add{width:100%}
+  .ca-grid,.col-grid{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
@@ -1484,7 +1594,7 @@ function renderProject(proj, sec, stack, folder){
     const n=s.stacks.reduce((m,st)=>m+st.versions.length,0);
     return '<a href="#p='+encodeURIComponent(proj.id)+'&s='+encodeURIComponent(s.id)+'" class="'+(s.id===sec.id?'active':'')+'"><span class="n-num">'+String(i+1).padStart(2,'0')+'</span><span class="n-name">'+esc(s.name)+'</span><span class="n-ct">'+(n||'')+'</span></a>';
   }).join('');
-  const FOLDERS=[{k:'calendar',name:'Calendar',ico:'cal'},{k:'tasks',name:'Task Manager',ico:'task'},{k:'assets',name:'Client Assets',ico:'pal',soon:true},{k:'partners',name:'Project Partners',ico:'ppl'}];
+  const FOLDERS=[{k:'calendar',name:'Calendar',ico:'cal'},{k:'tasks',name:'Task Manager',ico:'task'},{k:'assets',name:'Client Assets',ico:'pal'},{k:'brief',name:'Creative Brief',ico:'brief'},{k:'partners',name:'Project Partners',ico:'ppl'}];
   const folderNav=FOLDERS.map(function(ff){
     if(ff.soon) return '<a class="soon"><span class="n-ico">'+calNavIcon(ff.ico)+'</span><span class="n-name">'+esc(ff.name)+'</span><span class="soon-tag">soon</span></a>';
     var badge = ff.k==='tasks' ? '<span class="n-badge" id="taskBadge" hidden></span>' : '';
@@ -1492,6 +1602,7 @@ function renderProject(proj, sec, stack, folder){
   }).join('');
   // Presentations lives ABOVE the Project group. Admin always sees it; clients only when a deck is published.
   const decksNav='<nav class="nav nav-decks"><a id="decksNav" href="#p='+encodeURIComponent(proj.id)+'&f=decks" class="'+(folder==='decks'?'active':'')+'"'+(ADMIN?'':' style="display:none"')+'><span class="n-ico">'+calNavIcon('deck')+'</span><span class="n-name">Presentations</span></a></nav>';
+  const finalNav='<div class="nav-group">Final</div><nav class="nav nav-final"><a href="#p='+encodeURIComponent(proj.id)+'&f=final" class="'+(folder==='final'?'active':'')+'"><span class="n-ico">'+calNavIcon('final')+'</span><span class="n-name">Final Deliverables</span></a></nav>';
   const adminHTML = ADMIN ? adminStrip(proj,sec) : '';
   let head, body;
   if(folder){
@@ -1499,7 +1610,10 @@ function renderProject(proj, sec, stack, folder){
     else if(folder==='decks'){ head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>Presentations</h2><div class="pp-sub">Live Canva decks — they stay current as you edit them in Canva.</div></div>'; body='<div id="deckmount" class="decks"><div class="cal-loading">Loading presentations\u2026</div></div>'; }
     else if(folder==='tasks'){ head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>Task Manager</h2><div class="pp-sub">Shared checklist. Both sides can add tasks, assign an owner &amp; due date, and set status.</div></div>'; body='<div id="taskmount" class="tasks-wrap"><div class="cal-loading">Loading tasks\u2026</div></div>'; }
     else if(folder==='partners'){ head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>Project Partners</h2><div class="pp-sub">Everyone onboarded to this project.</div></div>'; body='<div id="ppmount"><div class="cal-loading">Loading partners\u2026</div></div>'; }
-    else { head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>Client Assets</h2></div>'; body='<div class="folder-soon"><p>Client Assets is coming soon.</p><p class="fs-sub">Pantone / hex picker, logo uploads, and a brand-guide PDF will live here.</p></div>'; }
+    else if(folder==='assets'){ head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>Client Assets</h2><div class="pp-sub">Brand kit for this project. Anyone on the team can add to it.</div></div>'; body='<div id="camount" class="ca-wrap"><div class="cal-loading">Loading assets\u2026</div></div>'; }
+    else if(folder==='brief'){ head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>Creative Brief</h2><div class="pp-sub">The single source of truth for this project. Anyone on the team can edit it.</div></div>'; body='<div id="cbmount"><div class="cal-loading">Loading brief\u2026</div></div>'; }
+    else if(folder==='final'){ head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>Final Deliverables</h2><div class="pp-sub">The locked, approved cut \u2014 ready to download.</div></div>'; body='<div id="fdmount"><div class="cal-loading">Loading\u2026</div></div>'; }
+    else { head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>Client Assets</h2></div>'; body='<div id="camount" class="ca-wrap"><div class="cal-loading">Loading assets\u2026</div></div>'; }
   } else if(stack){
     head='<div class="main-head"><a class="crumb" href="#p='+encodeURIComponent(proj.id)+'&s='+encodeURIComponent(sec.id)+'">← '+esc(sec.name)+'</a><h2>'+esc(stack.title)+'</h2></div>';
     body=stackHTML(proj,sec,stack);
@@ -1508,7 +1622,7 @@ function renderProject(proj, sec, stack, folder){
     body = sec.stacks.length ? '<div class="rgrid" data-cols="'+Math.min(sec.stacks.length,3)+'">'+sec.stacks.map(st=>gridCardHTML(proj,sec,st)).join('')+'</div>' : '<div class="sec-empty">Nothing in '+esc(sec.name)+' yet.</div>';
   }
   var _cl=(CONFIG.CLIENTS||[]).find(function(x){return x.key===proj.client;}); var _clName=_cl?_cl.name:CONFIG.COMPANY.name;
-  app.innerHTML='<div class="pv"><aside class="side"><a class="back" href="#c='+encodeURIComponent(proj.client||'')+'">← '+esc(_clName)+'</a><div class="pv-eyebrow">Project</div><h2 class="pv-title">'+esc(proj.title)+'</h2><div id="projStatusBox" class="pstat-box"></div><nav class="nav">'+nav+'</nav>'+decksNav+'<div class="nav-group">Client Dashboard</div><nav class="nav nav-folders">'+folderNav+'</nav></aside><div class="mainsec">'+head+adminHTML+body+'</div></div>';
+  app.innerHTML='<div class="pv"><aside class="side"><a class="back" href="#c='+encodeURIComponent(proj.client||'')+'">← '+esc(_clName)+'</a><div class="pv-eyebrow">Project</div><h2 class="pv-title">'+esc(proj.title)+'</h2><div id="projStatusBox" class="pstat-box"></div><nav class="nav">'+nav+'</nav>'+decksNav+'<div class="nav-group">Client Dashboard</div><nav class="nav nav-folders">'+folderNav+'</nav>'+finalNav+'</aside><div class="mainsec">'+head+adminHTML+body+'</div></div>';
   if(!ADMIN) decksReveal(proj.id);
   projStatusLoad(proj.id);
   taskBadgeLoad(proj.id);
@@ -1518,6 +1632,9 @@ function renderProject(proj, sec, stack, folder){
     else if(folder==='decks') deckLoad(proj.id);
     else if(folder==='tasks') taskLoad(proj.id);
     else if(folder==='partners') loadPartners();
+    else if(folder==='assets') caLoad(proj.id);
+    else if(folder==='brief') briefLoad(proj.id);
+    else if(folder==='final') finalLoad(proj.id);
   } else if(stack){
     wireVersion(proj, sec, stack.versions[0]);
     wireResizer();
@@ -2047,7 +2164,9 @@ function calNavIcon(n){
     deck:'<rect x="3" y="4" width="18" height="13" rx="2"></rect><path d="M12 17v3M8.5 20h7"></path>',
     task:'<path d="M4 6h10M4 12h10M4 18h7"></path><path d="M17.5 5.5l1.5 1.5 2.5-2.5"></path><path d="M17.5 11.5l1.5 1.5 2.5-2.5"></path>',
     pal:'<path d="M12 3a9 9 0 1 0 0 18 1.8 1.8 0 0 0 1.7-2.6 1.8 1.8 0 0 1 1.6-2.6H17a4 4 0 0 0 4-4c0-4.4-4-6.2-9-6.2Z"></path><circle cx="7.5" cy="11.5" r="1.1"></circle><circle cx="12" cy="8" r="1.1"></circle><circle cx="16.5" cy="11" r="1.1"></circle>',
-    ppl:'<circle cx="9" cy="8" r="3"></circle><path d="M3.5 19a5.5 5.5 0 0 1 11 0"></path><path d="M16.2 5.7a3 3 0 0 1 0 5.2M17.5 19a5.6 5.6 0 0 0-2-4.3"></path>'};
+    ppl:'<circle cx="9" cy="8" r="3"></circle><path d="M3.5 19a5.5 5.5 0 0 1 11 0"></path><path d="M16.2 5.7a3 3 0 0 1 0 5.2M17.5 19a5.6 5.6 0 0 0-2-4.3"></path>',
+    brief:'<path d="M6 3h9l4 4v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"></path><path d="M14 3v4h4M8.5 12h7M8.5 16h7"></path>',
+    final:'<path d="M5 4.5h14M6.5 4.5v6a5.5 5.5 0 0 0 11 0v-6"></path><path d="M9.5 20h5M12 16v4"></path><path d="M3.5 6.5a2.5 2.5 0 0 0 3 2.4M20.5 6.5a2.5 2.5 0 0 1-3 2.4"></path>'};
   return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'+(p[n]||'')+'</svg>';
 }
 function calTodayK(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
@@ -2580,7 +2699,7 @@ async function loadProfile(){
   try{ var ro=await sb.from('review_settings').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).maybeSingle(); d=ro&&ro.data; }catch(e){}
   var ownerUid=d&&d.owner_uid&&d.owner_uid===AUTH.user.id;
   if(ownerEmail||ownerUid){
-    AUTH.profile={ id:AUTH.user.id, owner:true, full_name:(d&&d.owner_name)||'Supernerd', position:(d&&d.owner_position)||'', company_id:(d&&d.owner_company_id)||'supernerd', avatar_url:(d&&d.owner_avatar_url)||null, phone:(d&&d.owner_phone)||null };
+    AUTH.profile={ id:AUTH.user.id, owner:true, full_name:(d&&d.owner_name)||'Supernerd', position:(d&&d.owner_position)||'', company_id:(d&&d.owner_company_id)||'supernerd', avatar_url:(d&&d.owner_avatar_url)||null, phone:(d&&d.owner_phone)||null, timezone:(d&&d.owner_timezone)||null };
     return;
   }
   try{ var r=await sb.from('profiles').select('*').eq('id',AUTH.user.id).maybeSingle(); AUTH.profile=r.data||null; }catch(e){ AUTH.profile=null; }
@@ -2672,6 +2791,7 @@ function onbFormHTML(p){
     +'<div class="onb-field"><label>Full name</label><input id="fName" placeholder="Jordan Rivera" value="'+ppEsc(nm)+'"></div>'
     +'<div class="onb-field"><label>Job position</label><input id="fRole" placeholder="Creative Director" value="'+ppEsc(rl)+'"></div>'
     +'<div class="onb-field"><label>Phone <span style="opacity:.45;text-transform:none;letter-spacing:0">optional</span></label><input id="fPhone" type="tel" placeholder="(917) 555-0148" value="'+ppEsc(ph)+'"></div>'
+    +'<div class="onb-field"><label>Time zone</label><select id="fTz">'+caTzOptions(p?(p.timezone||''):'')+'</select></div>'
     +'<div class="onb-field"><label>Company</label><input id="fComp" list="compList" autocomplete="off" placeholder="Your company" value="'+ppEsc(cname)+'"><datalist id="compList">'+sugg+'</datalist></div>'
     +'<div class="onb-field"><label>Company logo <span style="opacity:.45;text-transform:none;letter-spacing:0">optional</span></label><div class="logo-row"><div class="logo-prev" id="logoPrev" style="'+logoStyle+'">'+(logoStyle?'':'\u25a2')+'</div><button type="button" class="logo-up" id="logoBtn">'+(logoStyle?'Replace logo':'Upload logo')+'</button><input type="file" id="logoFile" accept="image/*" style="display:none"></div></div>'
     +'<div class="onb-actions"><button class="onb-join" id="joinBtn"'+(p?'':' disabled')+'>'+(p?'Save profile':'Join project')+'</button><button class="onb-cancel" id="cancelBtn">Cancel</button></div><div class="lm-msg" id="onbMsg"></div>';
@@ -2705,11 +2825,12 @@ function wireOnb(){
     var avatarUrl = (ppEditTarget&&ppEditTarget.avatar_url) || null;
     if(ppPendingFile){ var u=await ppUploadAvatar(ppPendingFile); if(u) avatarUrl=u; }
     var err=null, savedName=fName.value.trim();
+    var fTz=document.getElementById('fTz'); var savedTz=fTz?fTz.value:null;
     if(isOwner){
-      try{ var ro=await sb.from('review_settings').upsert({review_slug:CONFIG.REVIEW_SLUG, owner_name:savedName, owner_position:fRole.value.trim(), owner_company_id:cid, owner_avatar_url:avatarUrl, owner_phone:fPhone?fPhone.value.trim():null, owner_uid:AUTH.user.id, updated_at:new Date().toISOString()},{onConflict:'review_slug'}); if(ro.error) err=ro.error; }catch(e){ err=e; }
-      if(!err){ OWNER={ id:'__owner__', uid:AUTH.user.id, full_name:savedName, position:fRole.value.trim(), company_id:cid, avatar_url:avatarUrl, phone:fPhone?fPhone.value.trim():null, owner:true }; if(avatarUrl) AVA_BY_EMAIL[String(OWNER_EMAIL).toLowerCase()]=avatarUrl; }
+      try{ var ro=await sb.from('review_settings').upsert({review_slug:CONFIG.REVIEW_SLUG, owner_name:savedName, owner_position:fRole.value.trim(), owner_company_id:cid, owner_avatar_url:avatarUrl, owner_phone:fPhone?fPhone.value.trim():null, owner_timezone:savedTz, owner_uid:AUTH.user.id, updated_at:new Date().toISOString()},{onConflict:'review_slug'}); if(ro.error) err=ro.error; }catch(e){ err=e; }
+      if(!err){ OWNER={ id:'__owner__', uid:AUTH.user.id, full_name:savedName, position:fRole.value.trim(), company_id:cid, avatar_url:avatarUrl, phone:fPhone?fPhone.value.trim():null, timezone:savedTz, owner:true }; if(avatarUrl) AVA_BY_EMAIL[String(OWNER_EMAIL).toLowerCase()]=avatarUrl; }
     } else {
-      var row={ id:AUTH.user.id, review_slug:CONFIG.REVIEW_SLUG, email:AUTH.user.email, full_name:savedName, position:fRole.value.trim(), phone:fPhone?fPhone.value.trim():null, company_id:cid, avatar_url:avatarUrl, updated_at:new Date().toISOString() };
+      var row={ id:AUTH.user.id, review_slug:CONFIG.REVIEW_SLUG, email:AUTH.user.email, full_name:savedName, position:fRole.value.trim(), phone:fPhone?fPhone.value.trim():null, company_id:cid, avatar_url:avatarUrl, timezone:savedTz, updated_at:new Date().toISOString() };
       try{ var r=await sb.from('profiles').upsert(row,{onConflict:'id'}); if(r.error) err=r.error; }catch(e){ err=e; }
       if(!err){ AUTH.profile=row; if(avatarUrl && AUTH.user.email) AVA_BY_EMAIL[String(AUTH.user.email).toLowerCase()]=avatarUrl; }
     }
@@ -2817,7 +2938,7 @@ async function editMe(){
   try{
     var ro=await sb.from('review_settings').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).maybeSingle();
     if(ro && ro.data && ro.data.owner_uid && ro.data.owner_uid===AUTH.user.id){
-      tgt={ id:'__owner__', uid:ro.data.owner_uid, owner:true, full_name:ro.data.owner_name||'', position:ro.data.owner_position||'', company_id:ro.data.owner_company_id||'', avatar_url:ro.data.owner_avatar_url||null, phone:ro.data.owner_phone||null };
+      tgt={ id:'__owner__', uid:ro.data.owner_uid, owner:true, full_name:ro.data.owner_name||'', position:ro.data.owner_position||'', company_id:ro.data.owner_company_id||'', avatar_url:ro.data.owner_avatar_url||null, phone:ro.data.owner_phone||null, timezone:ro.data.owner_timezone||null };
       OWNER=tgt;
     }
   }catch(e){}
@@ -2862,7 +2983,7 @@ function ppCardHTML(p){
   var tipTxt=ppEsc((ts&&ts.titles||[]).join(' \u00b7 '));
   var statusPill = ts ? '<div class="pc-task" data-tip="'+tipTxt+'" title="'+tipTxt+'"><span class="task-light blink" style="--c:'+ts.color+'"></span><span class="pc-task-l">'+ppEsc(ts.label)+'</span></div>' : '';
   return '<div class="pcard" data-pid="'+ppEsc(p.id)+'">'+rm+'<div class="pc-top"><div class="pc-avwrap"><div class="avatar" style="'+ppAvStyle(p)+'">'+(p.avatar_url?'':ppEsc(ppInitials(p.full_name).toUpperCase()))+'</div><span class="pc-dot'+online+'" data-dot="'+ppEsc(dotKey)+'"></span></div>'
-    +'<div class="pc-id"><div class="pc-name">'+ppEsc(p.full_name)+'</div><div class="pc-role">'+ppEsc(p.position)+'</div></div>'+statusPill+'</div>'
+    +'<div class="pc-id"><div class="pc-name">'+ppEsc(p.full_name)+'</div><div class="pc-role">'+ppEsc(p.position)+'</div>'+(p.timezone?'<div class="pc-tz">'+caIcon('clock')+'<span>'+ppEsc(caLocalTime(p.timezone))+' \u00b7 '+ppEsc(caTzShort(p.timezone))+'</span></div>':'')+'</div>'+statusPill+'</div>'
     +'<div class="pc-foot">'+logo+'<span class="pc-company">'+ppEsc(c.name)+'</span></div></div>';
 }
 function renderPartners(profiles){
@@ -2915,7 +3036,7 @@ async function loadOwner(){
   try{
     var r=await sb.from('review_settings').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).maybeSingle();
     if(r && r.data){
-      OWNER={ id:'__owner__', uid:r.data.owner_uid||null, full_name:r.data.owner_name||'Shaun Harrison', position:r.data.owner_position||'Creative Director', company_id:r.data.owner_company_id||'supernerd', avatar_url:r.data.owner_avatar_url||null, phone:r.data.owner_phone||null, owner:true };
+      OWNER={ id:'__owner__', uid:r.data.owner_uid||null, full_name:r.data.owner_name||'Shaun Harrison', position:r.data.owner_position||'Creative Director', company_id:r.data.owner_company_id||'supernerd', avatar_url:r.data.owner_avatar_url||null, phone:r.data.owner_phone||null, timezone:r.data.owner_timezone||null, owner:true };
     }
   }catch(e){}
   try{
@@ -3027,6 +3148,253 @@ async function deleteProfile(id){ try{ await sb.from('profiles').delete().eq('id
 
 
 authInit();
+
+/* ============================================================
+   v19 — CLIENT ASSETS / COLORS / CREATIVE BRIEF / FINAL DELIVERABLES
+   ============================================================ */
+var CA = { proj:null, cat:'logos', items:[], colors:[] };
+var CB = { proj:null, row:{} };
+var FD = { proj:null, items:[] };
+
+var CA_CATS = [
+  { k:'logos',     name:'Logos',            hint:'PNG, SVG, EPS \u2014 white / black / color versions', mode:'file' },
+  { k:'colors',    name:'Colors',           hint:'Hex, RGB, CMYK, Pantone \u2014 click any code to copy', mode:'colors' },
+  { k:'fonts',     name:'Fonts',            hint:'Font files + Google / Adobe font links, usage notes', mode:'file+link' },
+  { k:'brand',     name:'Brand Guidelines', hint:'PDFs, decks, tone guides', mode:'file' },
+  { k:'refs',      name:'References',        hint:'Moodboards, inspiration, competitors', mode:'file+link' },
+  { k:'footage',   name:'Footage',          hint:'Raw video, selects, b-roll \u2014 paste a link (Drive, Frame, WeTransfer\u2026)', mode:'link' },
+  { k:'audio',     name:'Audio',            hint:'Music, VO, stems, sound logos \u2014 paste a link', mode:'link' },
+  { k:'paperwork', name:'Paperwork',        hint:'Talent releases, usage rights, licenses', mode:'file' }
+];
+
+var CB_FIELDS = [
+  { k:'overview',     name:'Project Overview', ph:'What is this project, in a few lines?' },
+  { k:'main_client',  name:'Main Client',      ph:'Who is the end client / brand?' },
+  { k:'deliverables', name:'Deliverables',     ph:'What are we delivering? (e.g. 1x 60s hero, 3x :15 cutdowns)' },
+  { k:'platform',     name:'Platform',         ph:'YouTube, Broadcast, In-House, LED Wall, Social Media\u2026', hint:'Where it runs' },
+  { k:'refs',         name:'References',        ph:'Links, boards, look & feel' },
+  { k:'final_output', name:'Final Video Output',ph:'Format / Specs / Codec / Frame Rate', hint:'Delivery specs' }
+];
+
+function caIcon(n){
+  var p={
+    up:'<path d="M12 16V5M7 10l5-5 5 5"/><path d="M5 19h14"/>',
+    link:'<path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1"/><path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1"/>',
+    plus:'<path d="M12 5v14M5 12h14"/>',
+    copy:'<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>',
+    clock:'<circle cx="12" cy="12" r="8.5"/><path d="M12 8v4.2l2.8 1.6"/>',
+    dl:'<path d="M12 4v10M8 11l4 4 4-4"/><path d="M5 20h14"/>'
+  };
+  return '<svg class="ca-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+(p[n]||'')+'</svg>';
+}
+function caSafe(s){ return String(s||'file').toLowerCase().replace(/[^a-z0-9._-]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60)||'file'; }
+function caExt(fn){ fn=String(fn||''); var i=fn.lastIndexOf('.'); return i>-1?fn.slice(i+1).toUpperCase():'FILE'; }
+function caIsImg(t,fn){ t=String(t||''); if(t.indexOf('image/')===0 && t.indexOf('svg')<0) return true; return /\.(png|jpe?g|gif|webp|avif)$/i.test(String(fn||'')); }
+function caHuman(b){ b=+b||0; if(b<1024) return b+' B'; if(b<1048576) return (b/1024).toFixed(0)+' KB'; return (b/1048576).toFixed(1)+' MB'; }
+function caMine(it){ var e=(myEmail()||'').toLowerCase(); return e && it.created_by && String(it.created_by).toLowerCase()===e; }
+function caHexRgb(h){ h=String(h||'').replace('#',''); if(h.length===3) h=h.split('').map(function(c){return c+c;}).join(''); if(!/^[0-9a-f]{6}$/i.test(h)) return ''; var n=parseInt(h,16); return ((n>>16)&255)+', '+((n>>8)&255)+', '+(n&255); }
+function caCopy(val, btn){
+  function done(){ if(!btn) return; var o=btn.getAttribute('data-l')||''; btn.classList.add('copied'); var t=btn.querySelector('.cc-t'); if(t){ t.textContent='Copied'; } setTimeout(function(){ btn.classList.remove('copied'); if(t) t.textContent=o; },1200); }
+  try{ navigator.clipboard.writeText(val).then(done, function(){ caCopyFallback(val); done(); }); }
+  catch(e){ caCopyFallback(val); done(); }
+}
+function caCopyFallback(val){ try{ var ta=document.createElement('textarea'); ta.value=val; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); }catch(e){} }
+function caLocalTime(tz){ if(!tz) return ''; try{ return new Intl.DateTimeFormat([], {timeZone:tz, hour:'numeric', minute:'2-digit'}).format(new Date()); }catch(e){ return ''; } }
+function caTzShort(tz){ if(!tz) return ''; var p=String(tz).split('/'); return (p[p.length-1]||tz).replace(/_/g,' '); }
+function caAgo(iso){ try{ var d=new Date(iso), s=(Date.now()-d.getTime())/1000; if(s<60) return 'just now'; if(s<3600) return Math.floor(s/60)+'m ago'; if(s<86400) return Math.floor(s/3600)+'h ago'; return d.toLocaleDateString([], {month:'short', day:'numeric'}); }catch(e){ return ''; } }
+
+/* ---------- Client Assets ---------- */
+async function caLoad(projId){
+  CA.proj=projId; if(!CA.cat) CA.cat='logos'; CA.items=[]; CA.colors=[];
+  var m=document.getElementById('camount'); if(m) m.innerHTML='<div class="cal-loading">Loading assets\u2026</div>';
+  try{
+    var r=await sb.from('client_assets').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',projId).order('created_at',{ascending:true});
+    if(r&&r.data) CA.items=r.data.filter(function(x){return x.category!=='final';});
+  }catch(e){}
+  try{
+    var c=await sb.from('brand_colors').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',projId).order('ord',{ascending:true}).order('created_at',{ascending:true});
+    if(c&&c.data) CA.colors=c.data;
+  }catch(e){}
+  caRender();
+}
+function caRender(){
+  var m=document.getElementById('camount'); if(!m) return;
+  var tabs=CA_CATS.map(function(c){
+    var n=(c.k==='colors')?CA.colors.length:CA.items.filter(function(x){return x.category===c.k;}).length;
+    return '<button class="ca-tab'+(CA.cat===c.k?' active':'')+'" data-cat="'+c.k+'">'+esc(c.name)+(n?'<span class="ca-n">'+n+'</span>':'')+'</button>';
+  }).join('');
+  m.innerHTML='<div class="ca-tabs">'+tabs+'</div><div class="ca-panel" id="caPanel"></div>';
+  m.querySelectorAll('.ca-tab').forEach(function(b){ b.onclick=function(){ CA.cat=b.dataset.cat; caRender(); }; });
+  caPanel();
+}
+function caItemCard(it){
+  var canDel = (typeof ADMIN!=='undefined' && ADMIN) || caMine(it);
+  var del = canDel ? '<button class="ca-del" data-del="'+it.id+'" title="Remove">\u00d7</button>' : '';
+  if(it.kind==='link'){
+    return '<div class="ca-card link">'+del+'<a class="ca-card-in" href="'+esc(it.url)+'" target="_blank" rel="noopener"><span class="ca-ico">'+caIcon('link')+'</span><div class="ca-meta"><div class="ca-name">'+esc(it.name||it.url)+'</div>'+(it.note?'<div class="ca-note">'+esc(it.note)+'</div>':'')+'<div class="ca-sub">Open link \u2197</div></div></a></div>';
+  }
+  var thumb = caIsImg(it.file_type,it.file_name) ? '<span class="ca-thumb" style="background-image:url('+esc(it.url)+')"></span>' : '<span class="ca-thumb ext">'+caExt(it.file_name)+'</span>';
+  var sub = caExt(it.file_name)+(it.size_bytes?(' \u00b7 '+caHuman(it.size_bytes)):'')+' \u00b7 Download';
+  return '<div class="ca-card file">'+del+'<a class="ca-card-in" href="'+esc(it.url)+'" target="_blank" rel="noopener" download>'+thumb+'<div class="ca-meta"><div class="ca-name">'+esc(it.name||it.file_name)+'</div>'+(it.note?'<div class="ca-note">'+esc(it.note)+'</div>':'')+'<div class="ca-sub">'+sub+'</div></div></a></div>';
+}
+function caPanel(){
+  var host=document.getElementById('caPanel'); if(!host) return;
+  var cat=CA_CATS.filter(function(c){return c.k===CA.cat;})[0]; if(!cat) return;
+  if(cat.k==='colors'){ caColorsPanel(host); return; }
+  var items=CA.items.filter(function(x){return x.category===cat.k;});
+  var canFile = cat.mode.indexOf('file')>-1, canLink = cat.mode.indexOf('link')>-1;
+  var ctr='<div class="ca-add">';
+  if(canFile) ctr+='<button class="ca-btn" id="caFileBtn">'+caIcon('up')+'Upload file</button><input type="file" id="caFile" multiple style="display:none">';
+  if(canLink) ctr+='<button class="ca-btn ghost" id="caLinkBtn">'+caIcon('link')+'Add link</button>';
+  ctr+='</div>';
+  var lf='<div class="ca-linkform" id="caLinkForm" hidden><input id="caLkLabel" placeholder="Label (e.g. Hero b-roll)"><input id="caLkUrl" placeholder="https://\u2026"><input id="caLkNote" placeholder="Note (optional)"><div class="ca-lf-act"><button class="ca-btn sm" id="caLkSave">Add</button><button class="ca-btn ghost sm" id="caLkCancel">Cancel</button></div></div>';
+  var grid = items.length ? '<div class="ca-grid">'+items.map(caItemCard).join('')+'</div>' : '<div class="ca-empty">'+esc(cat.hint)+'</div>';
+  host.innerHTML='<div class="ca-bar"><div class="ca-bar-l"><h3>'+esc(cat.name)+'</h3><div class="ca-hint">'+esc(cat.hint)+'</div></div>'+ctr+'</div>'+lf+grid;
+
+  var fileBtn=document.getElementById('caFileBtn'), fileIn=document.getElementById('caFile');
+  if(fileBtn&&fileIn){ fileBtn.onclick=function(){ fileIn.click(); }; fileIn.onchange=async function(){ var fs=Array.prototype.slice.call(fileIn.files||[]); fileIn.value=''; if(!fs.length) return; fileBtn.disabled=true; fileBtn.innerHTML=caIcon('up')+'Uploading\u2026'; for(var i=0;i<fs.length;i++){ var row=await caInsertFile(fs[i], cat.k); if(row) CA.items.push(row); } fileBtn.disabled=false; caRender(); }; }
+  var linkBtn=document.getElementById('caLinkBtn'), form=document.getElementById('caLinkForm');
+  if(linkBtn&&form){ linkBtn.onclick=function(){ form.hidden=!form.hidden; if(!form.hidden){ var l=document.getElementById('caLkLabel'); if(l) l.focus(); } };
+    var cancel=document.getElementById('caLkCancel'); if(cancel) cancel.onclick=function(){ form.hidden=true; };
+    var save=document.getElementById('caLkSave'); if(save) save.onclick=async function(){ var url=(document.getElementById('caLkUrl').value||'').trim(); if(!url){ return; } if(!/^https?:\/\//i.test(url)) url='https://'+url; var label=(document.getElementById('caLkLabel').value||'').trim(); var note=(document.getElementById('caLkNote').value||'').trim(); save.disabled=true; var row={ review_slug:CONFIG.REVIEW_SLUG, project_key:CA.proj, category:cat.k, kind:'link', name:label||url, note:note, url:url, created_by:myEmail() }; try{ var r=await sb.from('client_assets').insert(row).select().single(); if(r.error){ alert('Could not add: '+r.error.message); save.disabled=false; return; } CA.items.push(r.data); caRender(); }catch(e){ alert('Could not add link.'); save.disabled=false; } };
+  }
+  host.querySelectorAll('.ca-del').forEach(function(b){ b.onclick=function(e){ e.preventDefault(); e.stopPropagation(); caDelete(b.dataset.del); }; });
+}
+async function caInsertFile(file, cat){
+  try{
+    var path=CONFIG.REVIEW_SLUG+'/'+(cat==='final'?FD.proj:CA.proj)+'/'+cat+'/'+Date.now()+'_'+caSafe(file.name);
+    var up=await sb.storage.from('client-assets').upload(path, file, {upsert:false, cacheControl:'3600'});
+    if(up.error){ alert('Upload failed: '+up.error.message); return null; }
+    var pub=sb.storage.from('client-assets').getPublicUrl(path);
+    var row={ review_slug:CONFIG.REVIEW_SLUG, project_key:(cat==='final'?FD.proj:CA.proj), category:cat, kind:'file', name:file.name, note:'', url:pub.data.publicUrl, file_name:file.name, file_type:file.type||'', size_bytes:file.size||null, created_by:myEmail() };
+    var r=await sb.from('client_assets').insert(row).select().single();
+    if(r.error){ alert('Uploaded, but could not record it: '+r.error.message); return null; }
+    return r.data;
+  }catch(e){ alert('Upload error.'); return null; }
+}
+async function caDelete(id){
+  if(!confirm('Remove this asset?')) return;
+  try{ var r=await sb.from('client_assets').delete().eq('id', id); if(r.error){ alert('Could not remove: '+r.error.message); return; } }catch(e){ alert('Could not remove.'); return; }
+  CA.items=CA.items.filter(function(x){return x.id!==id;});
+  FD.items=FD.items.filter(function(x){return x.id!==id;});
+  if(currentFolder==='final') finalRender(); else caRender();
+}
+
+/* ---------- Colors builder ---------- */
+function caColorsPanel(host){
+  var add='<div class="ca-add"><button class="ca-btn" id="colAdd">'+caIcon('plus')+'Add color</button></div>';
+  var form='<div class="col-form" id="colForm" hidden>'
+    +'<div class="col-form-grid">'
+    +'<div class="cf"><label>Color name</label><input id="cfName" placeholder="Brand Red"></div>'
+    +'<div class="cf"><label>Hex</label><div class="cf-hex"><input type="color" id="cfHexPick" value="#bac01e"><input id="cfHex" placeholder="#E2231A"></div></div>'
+    +'<div class="cf"><label>Pantone</label><input id="cfPan" placeholder="186 C"></div>'
+    +'<div class="cf"><label>CMYK</label><input id="cfCmyk" placeholder="0, 93, 89, 0"></div>'
+    +'<div class="cf"><label>RGB <span class="cf-opt">auto from hex</span></label><input id="cfRgb" placeholder="226, 35, 26"></div>'
+    +'<div class="cf wide"><label>Usage note</label><input id="cfUse" placeholder="Primary CTA / Background only"></div>'
+    +'</div><div class="ca-lf-act"><button class="ca-btn sm" id="cfSave">Add color</button><button class="ca-btn ghost sm" id="cfCancel">Cancel</button></div></div>';
+  var grid = CA.colors.length ? '<div class="col-grid">'+CA.colors.map(caColorCard).join('')+'</div>' : '<div class="ca-empty">Build the palette \u2014 hex, RGB, CMYK, Pantone, with a usage note for each. It reads like a brand guide.</div>';
+  host.innerHTML='<div class="ca-bar"><div class="ca-bar-l"><h3>Colors</h3><div class="ca-hint">Click any code to copy it.</div></div>'+add+'</div>'+form+grid;
+
+  var addBtn=document.getElementById('colAdd'), form2=document.getElementById('colForm');
+  if(addBtn&&form2){ addBtn.onclick=function(){ form2.hidden=!form2.hidden; if(!form2.hidden){ var n=document.getElementById('cfName'); if(n) n.focus(); } }; }
+  var pick=document.getElementById('cfHexPick'), hexI=document.getElementById('cfHex'), rgbI=document.getElementById('cfRgb');
+  if(pick&&hexI){ pick.oninput=function(){ hexI.value=pick.value.toUpperCase(); if(rgbI&&!rgbI.value) rgbI.placeholder=caHexRgb(pick.value)||'226, 35, 26'; }; hexI.oninput=function(){ var v=hexI.value.trim(); if(/^#?[0-9a-f]{3,6}$/i.test(v)){ if(v[0]!=='#') v='#'+v; try{ pick.value=v.length===4?('#'+v[1]+v[1]+v[2]+v[2]+v[3]+v[3]):v; }catch(e){} if(rgbI&&!rgbI.value) rgbI.placeholder=caHexRgb(v)||rgbI.placeholder; } }; }
+  var cancel=document.getElementById('cfCancel'); if(cancel) cancel.onclick=function(){ form2.hidden=true; };
+  var save=document.getElementById('cfSave'); if(save) save.onclick=async function(){
+    var hex=(hexI.value||'').trim(); if(hex && hex[0]!=='#') hex='#'+hex;
+    var row={ review_slug:CONFIG.REVIEW_SLUG, project_key:CA.proj, name:(document.getElementById('cfName').value||'').trim(), hex:hex, pantone:(document.getElementById('cfPan').value||'').trim(), cmyk:(document.getElementById('cfCmyk').value||'').trim(), rgb:(rgbI.value||'').trim(), usage:(document.getElementById('cfUse').value||'').trim(), ord:CA.colors.length, created_by:myEmail() };
+    if(!row.name && !row.hex){ alert('Give the color a name or a hex.'); return; }
+    save.disabled=true;
+    try{ var r=await sb.from('brand_colors').insert(row).select().single(); if(r.error){ alert('Could not save: '+r.error.message); save.disabled=false; return; } CA.colors.push(r.data); caRender(); }catch(e){ alert('Could not save color.'); save.disabled=false; }
+  };
+  host.querySelectorAll('.code-copy').forEach(function(b){ b.onclick=function(){ caCopy(b.dataset.copy, b); }; });
+  host.querySelectorAll('.col-del').forEach(function(b){ b.onclick=function(){ caColorDelete(b.dataset.del); }; });
+}
+function caColorCard(c){
+  var hex=String(c.hex||'').trim(); if(hex && hex[0]!=='#') hex='#'+hex;
+  var rgb=(c.rgb||'').trim() || (hex?caHexRgb(hex):'');
+  var rows='';
+  if(hex) rows+=caCodeRow('HEX', hex);
+  if(rgb) rows+=caCodeRow('RGB', rgb);
+  if((c.cmyk||'').trim()) rows+=caCodeRow('CMYK', c.cmyk.trim());
+  if((c.pantone||'').trim()) rows+=caCodeRow('PANTONE', c.pantone.trim());
+  var canDel=(typeof ADMIN!=='undefined' && ADMIN) || caMine(c);
+  var del=canDel?'<button class="col-del" data-del="'+c.id+'" title="Remove">\u00d7</button>':'';
+  return '<div class="col-card">'+del+'<div class="col-swatch" style="background:'+(hex||'#222428')+'"></div>'
+    +'<div class="col-body"><div class="col-name">'+esc(c.name||'Untitled')+'</div>'+((c.usage||'').trim()?'<div class="col-usage">'+esc(c.usage.trim())+'</div>':'')+'<div class="col-codes">'+rows+'</div></div></div>';
+}
+function caCodeRow(label,val){
+  return '<button class="code-copy" data-copy="'+esc(val)+'" data-l="'+label+'" title="Copy '+label+'"><span class="code-k">'+label+'</span><span class="code-v cc-t">'+esc(val)+'</span><span class="code-ic">'+caIcon('copy')+'</span></button>';
+}
+async function caColorDelete(id){
+  if(!confirm('Remove this color?')) return;
+  try{ var r=await sb.from('brand_colors').delete().eq('id', id); if(r.error){ alert('Could not remove: '+r.error.message); return; } }catch(e){ return; }
+  CA.colors=CA.colors.filter(function(x){return x.id!==id;}); caRender();
+}
+
+/* ---------- Creative Brief ---------- */
+async function briefLoad(projId){
+  CB.proj=projId; CB.row={};
+  var m=document.getElementById('cbmount'); if(m) m.innerHTML='<div class="cal-loading">Loading brief\u2026</div>';
+  try{ var r=await sb.from('creative_brief').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',projId).maybeSingle(); if(r&&r.data) CB.row=r.data; }catch(e){}
+  briefRender();
+}
+function briefRender(){
+  var m=document.getElementById('cbmount'); if(!m) return;
+  var r=CB.row||{};
+  var fields=CB_FIELDS.map(function(f){
+    return '<div class="cb-field"><label>'+esc(f.name)+(f.hint?' <span class="cb-hint">'+esc(f.hint)+'</span>':'')+'</label><textarea id="cb_'+f.k+'" rows="3" placeholder="'+esc(f.ph||'')+'">'+esc(r[f.k]||'')+'</textarea></div>';
+  }).join('');
+  var meta=r.updated_by ? '<div class="cb-meta">Last updated by '+esc(r.updated_by)+(r.updated_at?(' \u00b7 '+caAgo(r.updated_at)):'')+'</div>' : '';
+  m.innerHTML='<div class="cb-card">'+fields+'<div class="cb-actions"><button class="ca-btn" id="cbSave">Save brief</button><span class="cb-saved" id="cbSaved"></span></div>'+meta+'</div>';
+  var btn=document.getElementById('cbSave'); if(btn) btn.onclick=briefSave;
+}
+async function briefSave(){
+  var row={ review_slug:CONFIG.REVIEW_SLUG, project_key:CB.proj, updated_by:(myEmail()||'someone'), updated_at:new Date().toISOString() };
+  CB_FIELDS.forEach(function(f){ var el=document.getElementById('cb_'+f.k); row[f.k]= el?el.value:''; });
+  var btn=document.getElementById('cbSave'), s=document.getElementById('cbSaved');
+  if(btn){ btn.disabled=true; btn.textContent='Saving\u2026'; }
+  try{ var r=await sb.from('creative_brief').upsert(row,{onConflict:'review_slug,project_key'}); if(btn){ btn.disabled=false; btn.textContent='Save brief'; } if(r.error){ if(s){ s.textContent='Could not save: '+r.error.message; s.className='cb-saved err'; } return; } }
+  catch(e){ if(btn){ btn.disabled=false; btn.textContent='Save brief'; } if(s){ s.textContent='Could not save.'; s.className='cb-saved err'; } return; }
+  CB.row=row; if(s){ s.textContent='Saved \u2713'; s.className='cb-saved ok'; setTimeout(function(){ if(s) s.textContent=''; },2400); }
+}
+
+/* ---------- Final Deliverables ---------- */
+async function finalLoad(projId){
+  FD.proj=projId; FD.items=[];
+  var m=document.getElementById('fdmount'); if(m) m.innerHTML='<div class="cal-loading">Loading\u2026</div>';
+  try{ var r=await sb.from('client_assets').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',projId).eq('category','final').order('created_at',{ascending:false}); if(r&&r.data) FD.items=r.data; }catch(e){}
+  finalRender();
+}
+function finalRender(){
+  var m=document.getElementById('fdmount'); if(!m) return;
+  var isAdmin=(typeof ADMIN!=='undefined' && ADMIN);
+  var up = isAdmin ? '<div class="ca-add"><button class="ca-btn" id="fdBtn">'+caIcon('up')+'Upload final</button><input type="file" id="fdFile" multiple style="display:none"></div>' : '';
+  var grid = FD.items.length ? '<div class="ca-grid">'+FD.items.map(caItemCard).join('')+'</div>'
+    : '<div class="ca-empty fd">'+(isAdmin?'Once a cut is approved, upload the final, locked file here for the client to download. (Auto-push on approval lands with the approval flow.)':'Your final, approved deliverables will appear here to download.')+'</div>';
+  m.innerHTML='<div class="ca-bar"><div class="ca-bar-l"><h3>Final Deliverables</h3><div class="ca-hint">The locked, approved cut \u2014 ready to download.</div></div>'+up+'</div>'+grid;
+  var b=document.getElementById('fdBtn'), f=document.getElementById('fdFile');
+  if(b&&f){ b.onclick=function(){ f.click(); }; f.onchange=async function(){ var fs=Array.prototype.slice.call(f.files||[]); f.value=''; if(!fs.length) return; b.disabled=true; b.innerHTML=caIcon('up')+'Uploading\u2026'; for(var i=0;i<fs.length;i++){ var row=await caInsertFile(fs[i], 'final'); if(row) FD.items.unshift(row); } b.disabled=false; finalRender(); }; }
+  m.querySelectorAll('.ca-del').forEach(function(bb){ bb.onclick=function(e){ e.preventDefault(); e.stopPropagation(); caDelete(bb.dataset.del); }; });
+}
+
+/* ---------- timezone options for onboarding ---------- */
+function caTzOptions(cur){
+  var detected=''; try{ detected=Intl.DateTimeFormat().resolvedOptions().timeZone||''; }catch(e){}
+  var sel=cur||detected||'America/New_York';
+  var list=[
+    ['America/New_York','Eastern \u2014 New York'],['America/Chicago','Central \u2014 Chicago'],
+    ['America/Denver','Mountain \u2014 Denver'],['America/Phoenix','Arizona \u2014 Phoenix'],
+    ['America/Los_Angeles','Pacific \u2014 Los Angeles'],['America/Anchorage','Alaska \u2014 Anchorage'],
+    ['Pacific/Honolulu','Hawaii \u2014 Honolulu'],['America/Toronto','Toronto'],['America/Mexico_City','Mexico City'],
+    ['America/Sao_Paulo','S\u00e3o Paulo'],['Europe/London','London \u2014 GMT/BST'],['Europe/Paris','Paris \u2014 CET'],
+    ['Europe/Berlin','Berlin'],['Africa/Lagos','Lagos \u2014 WAT'],['Africa/Johannesburg','Johannesburg'],
+    ['Asia/Dubai','Dubai'],['Asia/Kolkata','India \u2014 Kolkata'],['Asia/Singapore','Singapore'],
+    ['Asia/Tokyo','Tokyo'],['Australia/Sydney','Sydney']
+  ];
+  var found=list.some(function(z){return z[0]===sel;}); if(!found && sel){ list.unshift([sel, caTzShort(sel)]); }
+  return list.map(function(z){ return '<option value="'+z[0]+'"'+(z[0]===sel?' selected':'')+'>'+esc(z[1])+'</option>'; }).join('');
+}
 
 </script>
 </body>
