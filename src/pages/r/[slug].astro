@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v22';
+  const VERSION = 'v23';
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   const items    = (await getCollection('reviewItems')).filter(i => i.data.published !== false);
@@ -1355,6 +1355,19 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
   .nl-grid3{grid-template-columns:1fr}
   .nl-hero-pick{grid-template-columns:1fr}
 }
+
+/* v23 — Creative Brief: deliverables rows, output dropdowns, refs */
+.cb-out-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:13px; margin-bottom:13px}
+.cb-sublabel{display:block; font:600 10px/1 var(--mono); letter-spacing:.05em; text-transform:uppercase; color:var(--dim); margin-bottom:6px}
+.cb-sublabel i{font-style:normal; opacity:.6; text-transform:none; letter-spacing:0; margin-left:5px}
+.cb-led{margin-top:2px}
+select.nl-i{appearance:none; -webkit-appearance:none; cursor:pointer; padding-right:34px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23BAC01E' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 11px center; background-size:15px}
+select.nl-i option{background:#15161a; color:var(--bone)}
+.cb-field .nl-row .cb-deliv{flex:1 1 auto}
+.cb-field .nl-add{margin-top:2px}
+@media (max-width:600px){ .cb-out-grid{grid-template-columns:1fr} }
 </style>
 </head>
 <body>
@@ -2371,13 +2384,13 @@ function projStatusRender(projKey){
   var box=document.getElementById('projStatusBox'); if(!box) return;
   var st=pstatGet(PSTAT_CACHE[projKey]);
   var btn = ADMIN ? '<button class="pstat-edit" id="pstatEdit">Change</button>' : '';
-  box.innerHTML='<div class="pstat-h"><span>Project Status</span>'+btn+'</div><div class="pstat-pill"><span class="pstat-dot" style="background:'+esc(st.color)+'"></span><span class="pstat-name">'+esc(st.phase)+'</span></div>';
+  box.innerHTML='<div class="pstat-h"><span>Project Status</span>'+btn+'</div><div class="pstat-pill"><span class="pstat-dot" style="background:'+esc(st.color)+';color:'+esc(st.color)+'"></span><span class="pstat-name">'+esc(st.phase)+'</span></div>';
   if(ADMIN){ var e=document.getElementById('pstatEdit'); if(e) e.onclick=function(){ projStatusOpen(projKey); }; }
 }
 function projStatusOpen(projKey){
   var st=pstatGet(PSTAT_CACHE[projKey]); var phases=st.phases.map(function(p){return {name:p.name,color:p.color};}); var chosen=st.phase;
   var ov=document.createElement('div'); ov.className='onb show'; ov.id='pstatOv';
-  function rowsHTML(){ return phases.map(function(p,i){ return '<div class="psrow"><button type="button" class="psrow-pick'+(p.name===chosen?' on':'')+'" data-i="'+i+'"><span class="pstat-dot" style="background:'+esc(p.color)+'"></span>'+esc(p.name)+'</button><input type="color" class="psrow-col" data-i="'+i+'" value="'+esc(p.color)+'"><button type="button" class="psrow-del" data-i="'+i+'">\u2715</button></div>'; }).join(''); }
+  function rowsHTML(){ return phases.map(function(p,i){ return '<div class="psrow"><button type="button" class="psrow-pick'+(p.name===chosen?' on':'')+'" data-i="'+i+'"><span class="pstat-dot" style="background:'+esc(p.color)+';color:'+esc(p.color)+'"></span>'+esc(p.name)+'</button><input type="color" class="psrow-col" data-i="'+i+'" value="'+esc(p.color)+'"><button type="button" class="psrow-del" data-i="'+i+'">\u2715</button></div>'; }).join(''); }
   function redraw(){ var c=document.getElementById('psList'); if(c){ c.innerHTML=rowsHTML(); wire(); } }
   function wire(){
     ov.querySelectorAll('.psrow-pick').forEach(function(b){ b.onclick=function(){ chosen=phases[+b.dataset.i].name; ov.querySelectorAll('.psrow-pick').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); }; });
@@ -3404,25 +3417,83 @@ async function caColorDelete(id){
 }
 
 /* ---------- Creative Brief ---------- */
+var CB_OUT_OPTS = {
+  format: ['MP4','MOV','MXF','ProRes (.mov)','Image Sequence (EXR/DPX/PNG)','WebM','GIF','Other'],
+  specs:  ['1920\u00d71080 (1080p)','3840\u00d72160 (4K UHD)','4096\u00d72160 (DCI 4K)','1280\u00d7720 (720p)','1080\u00d71920 (9:16 vertical)','1080\u00d71080 (1:1 square)','2560\u00d71440 (1440p)','7680\u00d74320 (8K)','LED pixel map (custom)','Other'],
+  codec:  ['H.264','H.265 / HEVC','ProRes 422','ProRes 422 HQ','ProRes 4444','DNxHD','DNxHR','VP9','AV1','Uncompressed','Other'],
+  fps:    ['23.976','24','25','29.97','30','50','59.94','60','120']
+};
+function cbParseArr(v){ if(Array.isArray(v)) return v; if(!v) return []; try{ var p=JSON.parse(v); if(Array.isArray(p)) return p; }catch(e){} return String(v).split('\n').map(function(s){return s.trim();}).filter(Boolean); }
+function cbParseObj(v){ if(v&&typeof v==='object') return v; if(!v) return {}; try{ var p=JSON.parse(v); if(p&&typeof p==='object') return p; }catch(e){} return {}; }
+
 async function briefLoad(projId){
-  CB.proj=projId; CB.row={};
+  CB.proj=projId; CB.row={}; CB.deliv=[]; CB.out={}; CB.refs=[];
   var m=document.getElementById('cbmount'); if(m) m.innerHTML='<div class="cal-loading">Loading brief\u2026</div>';
   try{ var r=await sb.from('creative_brief').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',projId).maybeSingle(); if(r&&r.data) CB.row=r.data; }catch(e){}
+  CB.deliv=cbParseArr(CB.row.deliverables);
+  CB.out=cbParseObj(CB.row.final_output);
+  try{ var ra=await sb.from('client_assets').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',projId).eq('category','brief_refs').order('created_at',{ascending:true}); if(ra&&ra.data) CB.refs=ra.data; }catch(e){}
   briefRender();
 }
+function cbTextField(k,name,ph,hint,rows){ var r=CB.row||{}; return '<div class="cb-field"><label>'+esc(name)+(hint?' <span class="cb-hint">'+esc(hint)+'</span>':'')+'</label><textarea id="cb_'+k+'" rows="'+(rows||3)+'" placeholder="'+esc(ph||'')+'">'+esc(r[k]||'')+'</textarea></div>'; }
+function cbDelivRows(){ return (CB.deliv.length?CB.deliv:['']).map(function(t){ return '<div class="nl-row"><input class="cb-deliv" value="'+esc(t)+'" placeholder="e.g. 1\u00d7 60s hero film"><button type="button" class="nl-x" data-rm>\u00d7</button></div>'; }).join(''); }
+function cbSel(k){ var cur=CB.out[k]||''; var opts='<option value="">\u2014 select \u2014</option>'+CB_OUT_OPTS[k].map(function(o){ return '<option'+(o===cur?' selected':'')+'>'+esc(o)+'</option>'; }).join(''); return '<select class="nl-i" id="cbout_'+k+'">'+opts+'</select>'; }
 function briefRender(){
-  var m=document.getElementById('cbmount'); if(!m) return;
-  var r=CB.row||{};
-  var fields=CB_FIELDS.map(function(f){
-    return '<div class="cb-field"><label>'+esc(f.name)+(f.hint?' <span class="cb-hint">'+esc(f.hint)+'</span>':'')+'</label><textarea id="cb_'+f.k+'" rows="3" placeholder="'+esc(f.ph||'')+'">'+esc(r[f.k]||'')+'</textarea></div>';
-  }).join('');
+  var m=document.getElementById('cbmount'); if(!m) return; var r=CB.row||{};
+  var deliv='<div class="cb-field"><label>Deliverables <span class="cb-hint">Add each as its own line</span></label><div id="cbDelivList">'+cbDelivRows()+'</div><button type="button" class="nl-add" id="cbDelivAdd">+ Add deliverable</button></div>';
+  var refsGrid = CB.refs.length ? '<div class="ca-grid">'+CB.refs.map(caItemCard).join('')+'</div>' : '<div class="ca-empty">Add boards (upload) or links \u2014 moodboards, look &amp; feel, competitors.</div>';
+  var refs='<div class="cb-field"><label>References <span class="cb-hint">Boards &amp; links</span></label>'
+    +'<div class="ca-add" style="margin-bottom:12px"><button class="ca-btn" id="cbRefFileBtn" type="button">'+caIcon('up')+'Upload board</button><input type="file" id="cbRefFile" multiple style="display:none"><button class="ca-btn ghost" id="cbRefLinkBtn" type="button">'+caIcon('link')+'Add link</button></div>'
+    +'<div class="ca-linkform" id="cbRefLinkForm" hidden><input id="cbRefLkLabel" placeholder="Label"><input id="cbRefLkUrl" placeholder="https://\u2026"><div class="ca-lf-act"><button class="ca-btn sm" id="cbRefLkSave" type="button">Add</button><button class="ca-btn ghost sm" id="cbRefLkCancel" type="button">Cancel</button></div></div>'
+    +refsGrid+'</div>';
+  var out='<div class="cb-field"><label>Final Video Output <span class="cb-hint">Delivery specs</span></label>'
+    +'<div class="cb-out-grid">'
+    +'<div><span class="cb-sublabel">Format</span>'+cbSel('format')+'</div>'
+    +'<div><span class="cb-sublabel">Specs</span>'+cbSel('specs')+'</div>'
+    +'<div><span class="cb-sublabel">Codec</span>'+cbSel('codec')+'</div>'
+    +'<div><span class="cb-sublabel">Frame Rate</span>'+cbSel('fps')+'</div>'
+    +'</div>'
+    +'<div class="cb-led"><span class="cb-sublabel">LED pixel map <i>optional</i></span><input class="nl-i" id="cbout_ledmap" value="'+esc(CB.out.ledmap||'')+'" placeholder="e.g. 3456 \u00d7 1200 px \u00b7 2.6mm pitch"></div></div>';
   var meta=r.updated_by ? '<div class="cb-meta">Last updated by '+esc(r.updated_by)+(r.updated_at?(' \u00b7 '+caAgo(r.updated_at)):'')+'</div>' : '';
-  m.innerHTML='<div class="cb-card">'+fields+'<div class="cb-actions"><button class="ca-btn" id="cbSave">Save brief</button><span class="cb-saved" id="cbSaved"></span></div>'+meta+'</div>';
-  var btn=document.getElementById('cbSave'); if(btn) btn.onclick=briefSave;
+  m.innerHTML='<div class="cb-card">'
+    + cbTextField('overview','Project Overview','What is this project, in a few lines?')
+    + cbTextField('main_client','Main Client','Who is the end client / brand?',null,2)
+    + deliv
+    + cbTextField('platform','Platform','YouTube, Broadcast, In-House, LED Wall, Social Media\u2026','Where it runs',2)
+    + refs
+    + out
+    + '<div class="cb-actions"><button class="ca-btn" id="cbSave" type="button">Save brief</button><span class="cb-saved" id="cbSaved"></span></div>'+meta+'</div>';
+  briefWire();
+}
+function cbCollectDeliv(){ var out=[]; document.querySelectorAll('.cb-deliv').forEach(function(i){ var v=(i.value||'').trim(); if(v) out.push(v); }); CB.deliv=out; }
+function briefWire(){
+  var add=document.getElementById('cbDelivAdd'); if(add) add.onclick=function(){ cbCollectDeliv(); CB.deliv.push(''); briefRender(); };
+  document.querySelectorAll('#cbDelivList .nl-x[data-rm]').forEach(function(b){ b.onclick=function(){ var row=b.closest('.nl-row'); if(row) row.parentNode.removeChild(row); cbCollectDeliv(); }; });
+  var save=document.getElementById('cbSave'); if(save) save.onclick=briefSave;
+  var fb=document.getElementById('cbRefFileBtn'), fi=document.getElementById('cbRefFile');
+  if(fb&&fi){ fb.onclick=function(){ fi.click(); }; fi.onchange=async function(){ var fs=Array.prototype.slice.call(fi.files||[]); fi.value=''; if(!fs.length) return; fb.disabled=true; fb.innerHTML=caIcon('up')+'Uploading\u2026'; for(var i=0;i<fs.length;i++){ var row=await briefRefUpload(fs[i]); if(row) CB.refs.push(row); } fb.disabled=false; briefRender(); }; }
+  var lb=document.getElementById('cbRefLinkBtn'), form=document.getElementById('cbRefLinkForm');
+  if(lb&&form){ lb.onclick=function(){ form.hidden=!form.hidden; if(!form.hidden){ var l=document.getElementById('cbRefLkLabel'); if(l) l.focus(); } };
+    var cancel=document.getElementById('cbRefLkCancel'); if(cancel) cancel.onclick=function(){ form.hidden=true; };
+    var s=document.getElementById('cbRefLkSave'); if(s) s.onclick=async function(){ var url=(document.getElementById('cbRefLkUrl').value||'').trim(); if(!url) return; if(!/^https?:\/\//i.test(url)) url='https://'+url; var label=(document.getElementById('cbRefLkLabel').value||'').trim(); s.disabled=true; var row={ review_slug:CONFIG.REVIEW_SLUG, project_key:CB.proj, category:'brief_refs', kind:'link', name:label||url, note:'', url:url, created_by:myEmail() }; try{ var r=await sb.from('client_assets').insert(row).select().single(); if(r.error){ alert('Could not add: '+r.error.message); s.disabled=false; return; } CB.refs.push(r.data); briefRender(); }catch(e){ s.disabled=false; } }; }
+  document.querySelectorAll('.cb-card .ca-del').forEach(function(b){ b.onclick=function(e){ e.preventDefault(); e.stopPropagation(); briefRefDelete(b.dataset.del); }; });
+}
+async function briefRefUpload(file){
+  try{ var path=CONFIG.REVIEW_SLUG+'/'+CB.proj+'/brief_refs/'+Date.now()+'_'+caSafe(file.name); var up=await sb.storage.from('client-assets').upload(path, file, {upsert:false, cacheControl:'3600'}); if(up.error){ alert('Upload failed: '+up.error.message); return null; } var pub=sb.storage.from('client-assets').getPublicUrl(path); var row={ review_slug:CONFIG.REVIEW_SLUG, project_key:CB.proj, category:'brief_refs', kind:'file', name:file.name, note:'', url:pub.data.publicUrl, file_name:file.name, file_type:file.type||'', size_bytes:file.size||null, created_by:myEmail() }; var r=await sb.from('client_assets').insert(row).select().single(); if(r.error){ alert('Could not record: '+r.error.message); return null; } return r.data; }catch(e){ return null; }
+}
+async function briefRefDelete(id){
+  if(!confirm('Remove this reference?')) return;
+  try{ var r=await sb.from('client_assets').delete().eq('id', id); if(r.error){ alert('Could not remove: '+r.error.message); return; } }catch(e){ return; }
+  CB.refs=CB.refs.filter(function(x){return x.id!==id;}); briefRender();
 }
 async function briefSave(){
-  var row={ review_slug:CONFIG.REVIEW_SLUG, project_key:CB.proj, updated_by:(myEmail()||'someone'), updated_at:new Date().toISOString() };
-  CB_FIELDS.forEach(function(f){ var el=document.getElementById('cb_'+f.k); row[f.k]= el?el.value:''; });
+  cbCollectDeliv();
+  function tv(k){ var e=document.getElementById('cb_'+k); return e?e.value:''; }
+  var out={}; ['format','specs','codec','fps'].forEach(function(k){ var el=document.getElementById('cbout_'+k); if(el&&el.value) out[k]=el.value; });
+  var led=document.getElementById('cbout_ledmap'); if(led&&led.value.trim()) out.ledmap=led.value.trim();
+  var row={ review_slug:CONFIG.REVIEW_SLUG, project_key:CB.proj, updated_by:(myEmail()||'someone'), updated_at:new Date().toISOString(),
+    overview:tv('overview'), main_client:tv('main_client'), platform:tv('platform'),
+    deliverables:JSON.stringify(CB.deliv), final_output:JSON.stringify(out) };
   var btn=document.getElementById('cbSave'), s=document.getElementById('cbSaved');
   if(btn){ btn.disabled=true; btn.textContent='Saving\u2026'; }
   try{ var r=await sb.from('creative_brief').upsert(row,{onConflict:'review_slug,project_key'}); if(btn){ btn.disabled=false; btn.textContent='Save brief'; } if(r.error){ if(s){ s.textContent='Could not save: '+r.error.message; s.className='cb-saved err'; } return; } }
