@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v20';
+  const VERSION = 'v21';
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   const items    = (await getCollection('reviewItems')).filter(i => i.data.published !== false);
@@ -3417,9 +3417,12 @@ function emailShell(heading, inner){
     +'<tr><td style="padding:18px 30px 24px;border-top:1px solid #1c1e22;"><div style="font-size:12px;color:#6c7075;line-height:1.5;">Supernerd Studios &middot; Harlem, NYC &middot; <a href="https://supernerd.tv" style="color:#BAC01E;text-decoration:none;">supernerd.tv</a></div></td></tr>'
     +'</table></td></tr></table></div>';
 }
+// Supabase auto-named this function's slug "dynamic-processor" at creation
+// (the display name "Send-Email" does not change the endpoint URL).
+var EMAIL_FN = 'dynamic-processor';
 async function sendEmail(opts){
   // opts: { to:[], bcc:[], subject, html, replyTo }
-  var res = await sb.functions.invoke('send-email', { body: opts });
+  var res = await sb.functions.invoke(EMAIL_FN, { body: opts });
   if(res.error){
     var detail='';
     try{ if(res.error.context && typeof res.error.context.json==='function'){ var j=await res.error.context.json(); detail=(j&&j.error)||''; } }catch(_){}
