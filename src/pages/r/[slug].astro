@@ -2,6 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
+  const BUILD = new Date().toISOString().replace('T',' ').slice(0,16) + ' UTC';
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   const items    = (await getCollection('reviewItems')).filter(i => i.data.published !== false);
@@ -101,7 +102,7 @@ export async function getStaticPaths() {
     }
     const CLIENTS = cOrder.map(k => cMap.get(k));
 
-    const data = { REVIEW_SLUG: co.key, OWNER_LOGINS: ["hello@supernerd.tv","shaun@supernerd.tv"], COMPANY: { name: co.name, logo: co.logo || '' }, CLIENTS, PROJECTS };
+    const data = { REVIEW_SLUG: co.key, OWNER_LOGINS: ["hello@supernerd.tv","shaun@supernerd.tv"], BUILD, COMPANY: { name: co.name, logo: co.logo || '' }, CLIENTS, PROJECTS };
     return { params: { slug: co.url_slug }, props: { data } };
   });
 }
@@ -1071,6 +1072,10 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
 .dk-hint{font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:7px;line-height:1.5}
 .dk-cb{display:flex;align-items:center;gap:9px;font-family:var(--disp);font-size:14px;color:var(--bone);margin-top:16px;cursor:pointer}
 .dk-cb input{accent-color:var(--green);width:16px;height:16px}
+
+/* ===================== v14: build stamp + Presentations nav placement ===================== */
+.build-stamp{display:block;margin-top:7px;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:rgba(236,236,234,.30)}
+.nav-decks{margin-top:8px}
 </style>
 </head>
 <body>
@@ -1090,7 +1095,7 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
 
 <div id="overlay" onclick="if(event.target===this)closeOverlay()"><button class="ov-close" onclick="closeOverlay()" aria-label="Close">×</button><div class="ov-inner"></div></div>
 
-<footer><div class="wrap"><a class="mk" href="https://supernerd.tv" target="_blank" rel="noopener">Crafted by <b>Supernerd</b></a></div></footer>
+<footer><div class="wrap"><a class="mk" href="https://supernerd.tv" target="_blank" rel="noopener">Crafted by <b>Supernerd</b></a><span class="build-stamp" id="buildStamp"></span></div></footer>
 
 <script is:inline>
 /* Ambient backdrop — "Field Dynamics": a seeded Perlin flow-field of fine
@@ -1152,7 +1157,7 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
 const CONFIG = Object.assign({ SUPABASE_URL, SUPABASE_KEY, STREAM_CUSTOMER, ADMIN_KEY }, data);
 const sb = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY, { auth: { persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, flowType:"pkce" } });
 var currentFolder=null;
-const ADMIN = !!CONFIG.ADMIN_KEY && new URLSearchParams(location.search).get('admin') === CONFIG.ADMIN_KEY;
+let ADMIN = !!CONFIG.ADMIN_KEY && new URLSearchParams(location.search).get('admin') === CONFIG.ADMIN_KEY;
 let players = {};
 let recorders = {};      // itemId -> MediaRecorder
 let pendingAudio = {};   // itemId -> Blob
@@ -1377,8 +1382,10 @@ function renderProject(proj, sec, stack, folder){
     const n=s.stacks.reduce((m,st)=>m+st.versions.length,0);
     return '<a href="#p='+encodeURIComponent(proj.id)+'&s='+encodeURIComponent(s.id)+'" class="'+(s.id===sec.id?'active':'')+'"><span class="n-num">'+String(i+1).padStart(2,'0')+'</span><span class="n-name">'+esc(s.name)+'</span><span class="n-ct">'+(n||'')+'</span></a>';
   }).join('');
-  const FOLDERS=[{k:'calendar',name:'Calendar',ico:'cal'},{k:'decks',name:'Presentations',ico:'deck'},{k:'assets',name:'Client Assets',ico:'pal',soon:true},{k:'partners',name:'Project Partners',ico:'ppl'}];
+  const FOLDERS=[{k:'calendar',name:'Calendar',ico:'cal'},{k:'assets',name:'Client Assets',ico:'pal',soon:true},{k:'partners',name:'Project Partners',ico:'ppl'}];
   const folderNav=FOLDERS.map(function(ff){ return ff.soon ? '<a class="soon"><span class="n-ico">'+calNavIcon(ff.ico)+'</span><span class="n-name">'+esc(ff.name)+'</span><span class="soon-tag">soon</span></a>' : '<a href="#p='+encodeURIComponent(proj.id)+'&f='+ff.k+'" class="'+(folder===ff.k?'active':'')+'"><span class="n-ico">'+calNavIcon(ff.ico)+'</span><span class="n-name">'+esc(ff.name)+'</span></a>'; }).join('');
+  // Presentations lives ABOVE the Project group. Admin always sees it; clients only when a deck is published.
+  const decksNav='<nav class="nav nav-decks"><a id="decksNav" href="#p='+encodeURIComponent(proj.id)+'&f=decks" class="'+(folder==='decks'?'active':'')+'"'+(ADMIN?'':' style="display:none"')+'><span class="n-ico">'+calNavIcon('deck')+'</span><span class="n-name">Presentations</span></a></nav>';
   const adminHTML = ADMIN ? adminStrip(proj,sec) : '';
   let head, body;
   if(folder){
@@ -1394,7 +1401,8 @@ function renderProject(proj, sec, stack, folder){
     body = sec.stacks.length ? '<div class="rgrid">'+sec.stacks.map(st=>gridCardHTML(proj,sec,st)).join('')+'</div>' : '<div class="sec-empty">Nothing in '+esc(sec.name)+' yet.</div>';
   }
   var _cl=(CONFIG.CLIENTS||[]).find(function(x){return x.key===proj.client;}); var _clName=_cl?_cl.name:CONFIG.COMPANY.name;
-  app.innerHTML='<div class="pv"><aside class="side"><a class="back" href="#c='+encodeURIComponent(proj.client||'')+'">← '+esc(_clName)+'</a><h2 class="pv-title">'+esc(proj.title)+'</h2><nav class="nav">'+nav+'</nav><div class="nav-group">Project</div><nav class="nav nav-folders">'+folderNav+'</nav></aside><div class="mainsec">'+head+adminHTML+body+'</div></div>';
+  app.innerHTML='<div class="pv"><aside class="side"><a class="back" href="#c='+encodeURIComponent(proj.client||'')+'">← '+esc(_clName)+'</a><h2 class="pv-title">'+esc(proj.title)+'</h2><nav class="nav">'+nav+'</nav>'+decksNav+'<div class="nav-group">Project</div><nav class="nav nav-folders">'+folderNav+'</nav></aside><div class="mainsec">'+head+adminHTML+body+'</div></div>';
+  if(!ADMIN) decksReveal(proj.id);
 
   if(folder){
     if(folder==='calendar') calLoad(proj.id);
@@ -1891,6 +1899,7 @@ document.addEventListener('click', (e)=>{ if(!e.target.closest('.share-pop') && 
 document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeOverlay(); });
 (function(){ const o=document.getElementById('overlay'); if(o){ o.addEventListener('click', (e)=>{ if(e.target===o) closeOverlay(); }); const x=o.querySelector('.ov-close'); if(x) x.addEventListener('click', closeOverlay); } })();
 chrome();
+(function(){ var b=document.getElementById('buildStamp'); if(b && CONFIG.BUILD) b.textContent='build '+CONFIG.BUILD; })();
 window.addEventListener('hashchange', route);
 loadInvites().finally(route);
 
@@ -1916,6 +1925,13 @@ function calKey(dt){ return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStar
 
 /* ---------- Presentations (live Canva decks) ---------- */
 var DECKS_CACHE={};
+function decksReveal(projKey){
+  try{
+    sb.from('presentations').select('id').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',projKey).eq('published',true).limit(1).then(function(r){
+      if(!r.error && r.data && r.data.length){ var el=document.getElementById('decksNav'); if(el) el.style.display=''; }
+    });
+  }catch(e){}
+}
 function canvaEmbed(url){
   if(!url) return '';
   url=String(url).trim();
@@ -2280,11 +2296,13 @@ async function authInit(){
     if(!urlHasAuth()){ gateRedirect(); return; }       // logged out, no pending sign-in -> bounce to login
     setTimeout(function(){ if(!AUTH.user) gateRedirect(); }, 4500); // sign-in didn't complete -> bounce
   } else { gateClear(); }
+  if(AUTH.profile && AUTH.profile.owner) ADMIN=true;
   AUTH.ready=true; renderAuthSlot(); startPresence(); try{ route(); }catch(e){}
   sb.auth.onAuthStateChange(function(ev, session){
     AUTH.user = session ? session.user : null;
     setTimeout(async function(){
       if(AUTH.user){ await loadProfile(); gateClear(); } else { AUTH.profile=null; }
+      if(AUTH.profile && AUTH.profile.owner) ADMIN=true;
       renderAuthSlot(); startPresence();
       if(AUTH.user && !AUTH.profile && !(typeof ADMIN!=='undefined' && ADMIN)) openOnboarding();
       try{ route(); }catch(e){}
