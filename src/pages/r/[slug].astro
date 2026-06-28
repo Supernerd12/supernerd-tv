@@ -1035,6 +1035,42 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
 .pa-msg{font-family:var(--mono);font-size:12px;color:var(--dim)}
 .pa-msg.ok{color:var(--green)}
 .pa-msg.err{color:#e0676c}
+
+/* ===================== v13: Presentations (live Canva decks) ===================== */
+.deck-add{font-family:var(--mono);font-size:11px;letter-spacing:.04em;text-transform:uppercase;font-weight:800;color:#0c0d0e;background:var(--green);border:0;border-radius:9px;padding:9px 15px;cursor:pointer;margin-bottom:18px}
+.deck-add:hover{background:var(--green-hi)}
+.deck-list{display:flex;flex-direction:column;gap:26px}
+.deck-card{border:1px solid var(--hair);border-radius:16px;padding:16px 16px 18px;background:rgba(255,255,255,.012)}
+.deck-head{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:12px}
+.deck-name{display:flex;align-items:center;gap:10px;font-family:var(--disp);font-size:18px;font-weight:800;color:var(--bone)}
+.deck-badge{font-family:var(--mono);font-size:9px;letter-spacing:.14em;font-weight:800;padding:3px 7px;border-radius:4px}
+.deck-badge.live{color:#0c0d0e;background:var(--green)}
+.deck-badge.hid{color:var(--dim);background:rgba(255,255,255,.06);border:1px solid var(--hair)}
+.deck-vers{display:flex;gap:6px;flex-wrap:wrap}
+.deck-vchip{font-family:var(--mono);font-size:12px;color:var(--bone);background:rgba(255,255,255,.04);border:1px solid var(--hair);border-radius:999px;padding:4px 12px;cursor:pointer}
+.deck-vchip.on{color:#0c0d0e;background:var(--green);border-color:var(--green)}
+.deck-vchip.off{opacity:.5}
+.deck-frame{position:relative;width:100%;padding-top:60%;border-radius:12px;overflow:hidden;border:1px solid var(--hair);background:#0c0d0e}
+.deck-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}
+.deck-foot{margin-top:10px}
+.deck-open{font-family:var(--mono);font-size:12px;color:var(--dim);text-decoration:none}
+.deck-open:hover{color:var(--green)}
+.deck-empty{padding:24px;text-align:center;color:var(--dim);font-family:var(--mono);font-size:13px}
+.deck-admin{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin-top:14px;padding-top:14px;border-top:1px solid var(--hair)}
+.deck-vrow{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:12px;color:var(--dim)}
+.deck-vrow b{color:var(--bone)}
+.deck-pub,.deck-edit,.deck-del,.deck-addver{font-family:var(--mono);font-size:11px;border:1px solid var(--hair);background:rgba(255,255,255,.03);color:var(--bone);border-radius:7px;padding:4px 10px;cursor:pointer}
+.deck-pub.on{color:#0c0d0e;background:var(--green);border-color:var(--green)}
+.deck-pub:hover,.deck-edit:hover,.deck-del:hover,.deck-addver:hover{border-color:var(--green)}
+.deck-del:hover{border-color:#e0676c;color:#e0676c}
+.deck-addver{color:var(--green)}
+/* add/edit modal */
+.dk-l{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin:14px 0 6px}
+.dk-i{width:100%;font-family:var(--disp);font-size:15px;color:var(--bone);background:#000;border:1px solid var(--line);border-radius:9px;padding:11px 13px}
+.dk-i[readonly]{opacity:.6}
+.dk-hint{font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:7px;line-height:1.5}
+.dk-cb{display:flex;align-items:center;gap:9px;font-family:var(--disp);font-size:14px;color:var(--bone);margin-top:16px;cursor:pointer}
+.dk-cb input{accent-color:var(--green);width:16px;height:16px}
 </style>
 </head>
 <body>
@@ -1341,12 +1377,13 @@ function renderProject(proj, sec, stack, folder){
     const n=s.stacks.reduce((m,st)=>m+st.versions.length,0);
     return '<a href="#p='+encodeURIComponent(proj.id)+'&s='+encodeURIComponent(s.id)+'" class="'+(s.id===sec.id?'active':'')+'"><span class="n-num">'+String(i+1).padStart(2,'0')+'</span><span class="n-name">'+esc(s.name)+'</span><span class="n-ct">'+(n||'')+'</span></a>';
   }).join('');
-  const FOLDERS=[{k:'calendar',name:'Calendar',ico:'cal'},{k:'assets',name:'Client Assets',ico:'pal',soon:true},{k:'partners',name:'Project Partners',ico:'ppl'}];
+  const FOLDERS=[{k:'calendar',name:'Calendar',ico:'cal'},{k:'decks',name:'Presentations',ico:'deck'},{k:'assets',name:'Client Assets',ico:'pal',soon:true},{k:'partners',name:'Project Partners',ico:'ppl'}];
   const folderNav=FOLDERS.map(function(ff){ return ff.soon ? '<a class="soon"><span class="n-ico">'+calNavIcon(ff.ico)+'</span><span class="n-name">'+esc(ff.name)+'</span><span class="soon-tag">soon</span></a>' : '<a href="#p='+encodeURIComponent(proj.id)+'&f='+ff.k+'" class="'+(folder===ff.k?'active':'')+'"><span class="n-ico">'+calNavIcon(ff.ico)+'</span><span class="n-name">'+esc(ff.name)+'</span></a>'; }).join('');
   const adminHTML = ADMIN ? adminStrip(proj,sec) : '';
   let head, body;
   if(folder){
     if(folder==='calendar'){ head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>Calendar</h2></div>'; body='<div class="cal" id="calmount"><div class="cal-loading">Loading calendar\u2026</div></div>'; }
+    else if(folder==='decks'){ head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>Presentations</h2><div class="pp-sub">Live Canva decks — they stay current as you edit them in Canva.</div></div>'; body='<div id="deckmount" class="decks"><div class="cal-loading">Loading presentations\u2026</div></div>'; }
     else if(folder==='partners'){ head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>Project Partners</h2><div class="pp-sub">Everyone onboarded to this project.</div></div>'; body='<div id="ppmount"><div class="cal-loading">Loading partners\u2026</div></div>'; }
     else { head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>Client Assets</h2></div>'; body='<div class="folder-soon"><p>Client Assets is coming soon.</p><p class="fs-sub">Pantone / hex picker, logo uploads, and a brand-guide PDF will live here.</p></div>'; }
   } else if(stack){
@@ -1356,10 +1393,12 @@ function renderProject(proj, sec, stack, folder){
     head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>'+esc(sec.name)+'</h2></div>';
     body = sec.stacks.length ? '<div class="rgrid">'+sec.stacks.map(st=>gridCardHTML(proj,sec,st)).join('')+'</div>' : '<div class="sec-empty">Nothing in '+esc(sec.name)+' yet.</div>';
   }
-  app.innerHTML='<div class="pv"><aside class="side"><a class="back" href="#">← '+esc(CONFIG.COMPANY.name)+'</a><h2 class="pv-title">'+esc(proj.title)+'</h2><nav class="nav">'+nav+'</nav><div class="nav-group">Project</div><nav class="nav nav-folders">'+folderNav+'</nav></aside><div class="mainsec">'+head+adminHTML+body+'</div></div>';
+  var _cl=(CONFIG.CLIENTS||[]).find(function(x){return x.key===proj.client;}); var _clName=_cl?_cl.name:CONFIG.COMPANY.name;
+  app.innerHTML='<div class="pv"><aside class="side"><a class="back" href="#c='+encodeURIComponent(proj.client||'')+'">← '+esc(_clName)+'</a><h2 class="pv-title">'+esc(proj.title)+'</h2><nav class="nav">'+nav+'</nav><div class="nav-group">Project</div><nav class="nav nav-folders">'+folderNav+'</nav></aside><div class="mainsec">'+head+adminHTML+body+'</div></div>';
 
   if(folder){
     if(folder==='calendar') calLoad(proj.id);
+    else if(folder==='decks') deckLoad(proj.id);
     else if(folder==='partners') loadPartners();
   } else if(stack){
     wireVersion(proj, sec, stack.versions[0]);
@@ -1866,6 +1905,7 @@ var CAL_DOWF=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Satur
 var CAL_MON=['January','February','March','April','May','June','July','August','September','October','November','December'];
 function calNavIcon(n){
   var p={cal:'<rect x="3" y="4.5" width="18" height="16" rx="2"></rect><path d="M3 9.5h18M8 3v3M16 3v3"></path>',
+    deck:'<rect x="3" y="4" width="18" height="13" rx="2"></rect><path d="M12 17v3M8.5 20h7"></path>',
     pal:'<path d="M12 3a9 9 0 1 0 0 18 1.8 1.8 0 0 0 1.7-2.6 1.8 1.8 0 0 1 1.6-2.6H17a4 4 0 0 0 4-4c0-4.4-4-6.2-9-6.2Z"></path><circle cx="7.5" cy="11.5" r="1.1"></circle><circle cx="12" cy="8" r="1.1"></circle><circle cx="16.5" cy="11" r="1.1"></circle>',
     ppl:'<circle cx="9" cy="8" r="3"></circle><path d="M3.5 19a5.5 5.5 0 0 1 11 0"></path><path d="M16.2 5.7a3 3 0 0 1 0 5.2M17.5 19a5.6 5.6 0 0 0-2-4.3"></path>'};
   return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'+(p[n]||'')+'</svg>';
@@ -1873,6 +1913,107 @@ function calNavIcon(n){
 function calTodayK(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function calToday(){ var d=new Date(); return new Date(d.getFullYear(),d.getMonth(),d.getDate()); }
 function calKey(dt){ return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0'); }
+
+/* ---------- Presentations (live Canva decks) ---------- */
+var DECKS_CACHE={};
+function canvaEmbed(url){
+  if(!url) return '';
+  url=String(url).trim();
+  var m=url.match(/canva\.com\/design\/([^/?#]+)(?:\/([^/?#]+))?/i);
+  if(m){ var id=m[1], tok=m[2]||''; return 'https://www.canva.com/design/'+id+(tok?('/'+tok):'')+'/view?embed'; }
+  if(/canva\.com/i.test(url)){ return url.split('#')[0].split('?')[0].replace(/\/(edit|view)\/?$/,'/view')+'?embed'; }
+  return url;
+}
+function deckEmbedHTML(row){
+  var src=canvaEmbed(row.url);
+  if(!src) return '<div class="deck-empty">No link yet.</div>';
+  return '<div class="deck-frame"><iframe loading="lazy" src="'+esc(src)+'" allow="fullscreen" allowfullscreen referrerpolicy="no-referrer"></iframe></div>'
+    +'<div class="deck-foot"><a class="deck-open" href="'+esc(row.url)+'" target="_blank" rel="noopener">Open in Canva \u2197</a></div>';
+}
+async function deckLoad(projKey){
+  var mount=document.getElementById('deckmount'); if(!mount) return;
+  var rows=[];
+  try{
+    var r=await sb.from('presentations').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',projKey).order('sort',{ascending:true}).order('created_at',{ascending:true});
+    if(r.error) throw r.error; rows=r.data||[];
+  }catch(e){ console.error('decks load failed', e); mount.innerHTML='<div class="sec-empty">Could not load presentations. Run presentations.sql in Supabase first.</div>'; return; }
+  DECKS_CACHE[projKey]=rows;
+  var visible = ADMIN ? rows : rows.filter(function(x){ return x.published; });
+  var order=[], map={};
+  visible.forEach(function(x){ var n=x.name||'Presentation'; if(!map[n]){ map[n]=[]; order.push(n); } map[n].push(x); });
+  var addBtn = ADMIN ? '<button class="deck-add" id="deckAdd">+ Add presentation</button>' : '';
+  if(!order.length){ mount.innerHTML=addBtn+'<div class="sec-empty">'+(ADMIN?'No presentations yet. Add one with a Canva link.':'No presentations shared yet.')+'</div>'; if(ADMIN){ var b0=document.getElementById('deckAdd'); if(b0) b0.onclick=function(){ deckOpen(projKey,null); }; } return; }
+  var html=addBtn+'<div class="deck-list">';
+  order.forEach(function(n,gi){
+    var vers=map[n].slice().sort(function(a,b){ return String(b.version||'').localeCompare(String(a.version||''),undefined,{numeric:true}); });
+    var anyPub=vers.some(function(v){return v.published;});
+    var did='deck-'+gi;
+    var badge = ADMIN ? (anyPub?'<span class="deck-badge live">LIVE</span>':'<span class="deck-badge hid">HIDDEN</span>') : '';
+    var chips = vers.length>1 ? '<div class="deck-vers">'+vers.map(function(v,vi){ return '<button class="deck-vchip'+(vi===0?' on':'')+(ADMIN&&!v.published?' off':'')+'" data-did="'+did+'" data-vid="'+esc(v.id)+'">'+esc(v.version||('v'+(vers.length-vi)))+'</button>'; }).join('')+'</div>' : '';
+    var adminRow = ADMIN ? '<div class="deck-admin">'
+        +vers.map(function(v){ return '<span class="deck-vrow"><b>'+esc(v.version||'v1')+'</b> <button class="deck-pub'+(v.published?' on':'')+'" data-vid="'+esc(v.id)+'" data-proj="'+esc(projKey)+'">'+(v.published?'Live':'Hidden')+'</button> <button class="deck-edit" data-vid="'+esc(v.id)+'" data-proj="'+esc(projKey)+'">Edit</button> <button class="deck-del" data-vid="'+esc(v.id)+'" data-proj="'+esc(projKey)+'">Delete</button></span>'; }).join('')
+        +'<button class="deck-addver" data-name="'+esc(n)+'" data-proj="'+esc(projKey)+'">+ Add version</button></div>' : '';
+    html+='<div class="deck-card" id="'+did+'" data-proj="'+esc(projKey)+'">'
+      +'<div class="deck-head"><div class="deck-name">'+esc(n)+badge+'</div>'+chips+'</div>'
+      +'<div class="deck-body" data-vid="'+esc(vers[0].id)+'">'+deckEmbedHTML(vers[0])+'</div>'
+      +adminRow+'</div>';
+  });
+  html+='</div>';
+  mount.innerHTML=html;
+  var ab=document.getElementById('deckAdd'); if(ab) ab.onclick=function(){ deckOpen(projKey,null); };
+  mount.querySelectorAll('.deck-vchip').forEach(function(ch){ ch.onclick=function(){
+    var card=document.getElementById(ch.dataset.did); if(!card) return;
+    card.querySelectorAll('.deck-vchip').forEach(function(c){ c.classList.remove('on'); }); ch.classList.add('on');
+    var row=(DECKS_CACHE[projKey]||[]).find(function(x){return x.id===ch.dataset.vid;});
+    var body=card.querySelector('.deck-body'); if(body && row){ body.dataset.vid=row.id; body.innerHTML=deckEmbedHTML(row); }
+  }; });
+  if(ADMIN){
+    mount.querySelectorAll('.deck-pub').forEach(function(b){ b.onclick=function(){ deckTogglePublish(b.dataset.proj, b.dataset.vid); }; });
+    mount.querySelectorAll('.deck-edit').forEach(function(b){ b.onclick=function(){ var row=(DECKS_CACHE[b.dataset.proj]||[]).find(function(x){return x.id===b.dataset.vid;}); deckOpen(b.dataset.proj, row); }; });
+    mount.querySelectorAll('.deck-del').forEach(function(b){ b.onclick=function(){ deckDelete(b.dataset.proj, b.dataset.vid); }; });
+    mount.querySelectorAll('.deck-addver').forEach(function(b){ b.onclick=function(){ deckOpen(b.dataset.proj, { name:b.dataset.name, _newVersion:true }); }; });
+  }
+}
+async function deckTogglePublish(projKey, id){
+  var row=(DECKS_CACHE[projKey]||[]).find(function(x){return x.id===id;}); if(!row) return;
+  try{ var r=await sb.from('presentations').update({ published: !row.published }).eq('id', id); if(r.error) throw r.error; deckLoad(projKey); }
+  catch(e){ console.error('toggle failed', e); alert('Could not change visibility — make sure presentations.sql is run and you are signed in as the owner.'); }
+}
+async function deckDelete(projKey, id){
+  if(!confirm('Delete this presentation / version? This cannot be undone.')) return;
+  try{ var r=await sb.from('presentations').delete().eq('id', id); if(r.error) throw r.error; deckLoad(projKey); }
+  catch(e){ console.error('delete failed', e); alert('Could not delete.'); }
+}
+function deckOpen(projKey, row){
+  row=row||{}; var editing=!!row.id;
+  var ov=document.createElement('div'); ov.className='onb show'; ov.id='deckOv';
+  var nameVal=esc(row.name||''), urlVal=esc(row.url||''), verVal=esc(row.version||(row._newVersion?'':'v1')), pub=row.published?'checked':'';
+  ov.innerHTML='<div class="lm-modal">'
+    +'<div class="lm-title" style="font-size:19px">'+(editing?'Edit presentation':(row._newVersion?'Add a version':'Add presentation'))+'</div>'
+    +'<label class="dk-l">Name'+(row._newVersion?' (locked to this presentation)':'')+'</label><input class="dk-i" id="dkName" value="'+nameVal+'" placeholder="e.g. Brand Pitch Deck"'+(row._newVersion?' readonly':'')+'>'
+    +'<label class="dk-l">Canva link</label><input class="dk-i" id="dkUrl" value="'+urlVal+'" placeholder="Paste the Canva share link">'
+    +'<div class="dk-hint">In Canva: Share \u2192 copy link, set to \u201Canyone with the link can view.\u201D It stays live as you edit it.</div>'
+    +'<label class="dk-l">Version label</label><input class="dk-i" id="dkVer" value="'+verVal+'" placeholder="v1">'
+    +'<label class="dk-cb"><input type="checkbox" id="dkPub" '+pub+'> Live for clients now</label>'
+    +'<div class="lm-foot"><button id="dkCancel">Cancel</button><button id="dkSave" class="post">Save</button><span class="msg" id="dkMsg"></span></div></div>';
+  document.body.appendChild(ov);
+  ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); });
+  document.getElementById('dkCancel').onclick=function(){ ov.remove(); };
+  document.getElementById('dkSave').onclick=async function(){
+    var name=(document.getElementById('dkName').value||'').trim();
+    var url=(document.getElementById('dkUrl').value||'').trim();
+    var ver=(document.getElementById('dkVer').value||'').trim()||'v1';
+    var pubd=document.getElementById('dkPub').checked; var msg=document.getElementById('dkMsg');
+    if(!name){ msg.className='msg err'; msg.textContent='Give it a name.'; return; }
+    if(!url){ msg.className='msg err'; msg.textContent='Paste a Canva link.'; return; }
+    var btn=document.getElementById('dkSave'); btn.disabled=true; btn.textContent='Saving\u2026';
+    try{
+      if(editing){ var r=await sb.from('presentations').update({ name:name, url:url, version:ver, published:pubd }).eq('id', row.id); if(r.error) throw r.error; }
+      else { var r2=await sb.from('presentations').insert({ review_slug:CONFIG.REVIEW_SLUG, project_key:projKey, name:name, url:url, version:ver, published:pubd }); if(r2.error) throw r2.error; }
+      ov.remove(); deckLoad(projKey);
+    }catch(e){ console.error('save deck failed', e); msg.className='msg err'; msg.textContent='Could not save — run presentations.sql and sign in as owner.'; btn.disabled=false; btn.textContent='Save'; }
+  };
+}
 function calParse(s){ var a=String(s).split('-'); return new Date(+a[0],+a[1]-1,+a[2]); }
 function calSameDay(a,b){ return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate(); }
 function calTypeC(t){ return CAL.TYPES[t]?CAL.TYPES[t].c:'#8b8f98'; }
