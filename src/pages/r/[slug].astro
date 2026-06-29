@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v23';
+  const VERSION = 'v24';
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   const items    = (await getCollection('reviewItems')).filter(i => i.data.published !== false);
@@ -1368,6 +1368,50 @@ select.nl-i option{background:#15161a; color:var(--bone)}
 .cb-field .nl-row .cb-deliv{flex:1 1 auto}
 .cb-field .nl-add{margin-top:2px}
 @media (max-width:600px){ .cb-out-grid{grid-template-columns:1fr} }
+
+/* ============================================================
+   v24 — Finals folders + picker, Brief read-view + output cards
+   ============================================================ */
+/* multiple output cards in the brief editor */
+.cb-out-card{padding:14px; border:1px solid var(--hair); border-radius:12px; background:rgba(255,255,255,.02); margin-bottom:12px}
+.cb-out-h{display:flex; align-items:center; justify-content:space-between; margin-bottom:11px}
+.cb-out-n{font:600 11px var(--mono); letter-spacing:.04em; text-transform:uppercase; color:var(--green)}
+.cb-out-rm{width:26px; height:26px; border-radius:7px; border:1px solid var(--hair); background:rgba(255,255,255,.02); color:var(--dim); font-size:16px; line-height:1; cursor:pointer}
+.cb-out-rm:hover{color:#ff6b6b; border-color:rgba(255,107,107,.5)}
+
+/* finals: folder tabs + add button + delete x */
+.fd-tabs{margin-bottom:18px}
+.ca-tab.add{border-style:dashed; color:var(--green)}
+.ca-tab.add:hover{background:rgba(186,192,30,.06)}
+.fd-foldel{display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; margin-left:7px; border-radius:50%; font-size:13px; line-height:1; opacity:.5}
+.fd-foldel:hover{opacity:1; color:#ff6b6b}
+.ca-card .ca-note{font:400 11px var(--mono); color:var(--green); margin-top:1px; opacity:.85}
+
+/* finals: push-from-project picker */
+.fp-wrap{width:min(560px,94vw); max-height:86vh; display:flex; flex-direction:column; background:#101114; border:1px solid var(--hair-2); border-radius:14px; overflow:hidden}
+.fp-head{padding:16px 20px 4px; font:700 17px var(--disp); color:var(--bone)}
+.fp-hint{padding:0 20px 14px; font:400 12.5px/1.5 var(--mono); color:var(--dim); border-bottom:1px solid var(--hair)}
+.fp-list{padding:8px 14px; overflow:auto; flex:1 1 auto}
+.fp-sec-h{font:600 10px var(--mono); letter-spacing:.06em; text-transform:uppercase; color:var(--dim); margin:12px 6px 6px}
+.fp-row{display:flex; align-items:center; gap:11px; padding:8px 8px; border-radius:10px; cursor:pointer}
+.fp-row:hover{background:rgba(255,255,255,.03)}
+.fp-pick{accent-color:var(--green); width:16px; height:16px; flex:0 0 auto}
+.fp-th{width:46px; height:30px; flex:0 0 auto; border-radius:6px; background:#1a1c20 center/cover no-repeat; border:1px solid var(--hair); display:flex; align-items:center; justify-content:center; font:700 9px var(--mono); color:var(--green)}
+.fp-name{font:500 13.5px var(--disp); color:var(--bone)}
+.fp-foot{display:flex; justify-content:flex-end; gap:9px; padding:13px 18px; border-top:1px solid var(--hair)}
+
+/* creative brief read-view inside Client Assets */
+.cb-view{max-width:720px}
+.cbv-row{display:flex; gap:18px; padding:14px 0; border-bottom:1px solid var(--hair); align-items:flex-start}
+.cbv-row:last-child{border-bottom:0}
+.cbv-k{flex:0 0 150px; font:600 11px var(--mono); letter-spacing:.04em; text-transform:uppercase; color:var(--dim); padding-top:2px}
+.cbv-v{flex:1 1 auto; font:400 14.5px/1.6 var(--disp); color:var(--bone)}
+.cbv-list{margin:0; padding-left:18px} .cbv-list li{margin:3px 0}
+.cbv-out{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px}
+.cbv-out-n{flex:1 0 100%; font:600 10px var(--mono); letter-spacing:.05em; text-transform:uppercase; color:var(--green); margin-bottom:2px}
+.cbv-spec{display:inline-flex; align-items:center; gap:6px; padding:5px 10px; border-radius:8px; border:1px solid var(--hair); background:rgba(255,255,255,.02); font:500 12.5px var(--mono); color:var(--bone)}
+.cbv-spec i{font-style:normal; font-size:9.5px; letter-spacing:.05em; text-transform:uppercase; color:var(--dim)}
+.cb-view-foot{margin-top:20px}
 </style>
 </head>
 <body>
@@ -3238,9 +3282,10 @@ authInit();
    ============================================================ */
 var CA = { proj:null, cat:'logos', items:[], colors:[] };
 var CB = { proj:null, row:{} };
-var FD = { proj:null, items:[] };
+var FD = { proj:null, folders:[], items:[], folder:null };
 
 var CA_CATS = [
+  { k:'brief',     name:'Creative Brief',   hint:'The single source of truth for this project.', mode:'brief' },
   { k:'logos',     name:'Logos',            hint:'PNG, SVG, EPS \u2014 white / black / color versions', mode:'file' },
   { k:'colors',    name:'Colors',           hint:'Hex, RGB, CMYK, Pantone \u2014 click any code to copy', mode:'colors' },
   { k:'fonts',     name:'Fonts',            hint:'Font files + Google / Adobe font links, usage notes', mode:'file+link' },
@@ -3325,6 +3370,7 @@ function caPanel(){
   var host=document.getElementById('caPanel'); if(!host) return;
   var cat=CA_CATS.filter(function(c){return c.k===CA.cat;})[0]; if(!cat) return;
   if(cat.k==='colors'){ caColorsPanel(host); return; }
+  if(cat.k==='brief'){ caBriefPanel(host); return; }
   var items=CA.items.filter(function(x){return x.category===cat.k;});
   var canFile = cat.mode.indexOf('file')>-1, canLink = cat.mode.indexOf('link')>-1;
   var ctr='<div class="ca-add">';
@@ -3365,6 +3411,37 @@ async function caDelete(id){
 }
 
 /* ---------- Colors builder ---------- */
+async function caBriefPanel(host){
+  host.innerHTML='<div class="cal-loading">Loading brief\u2026</div>';
+  var row=null, refs=[];
+  try{ var r=await sb.from('creative_brief').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',CA.proj).maybeSingle(); row=(r&&r.data)?r.data:null; }catch(e){}
+  try{ var ra=await sb.from('client_assets').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',CA.proj).eq('category','brief_refs').order('created_at',{ascending:true}); refs=(ra&&ra.data)||[]; }catch(e){}
+  var editLink='<div class="cb-view-foot"><a class="ca-btn ghost" href="#p='+encodeURIComponent(CA.proj)+'&f=brief">Open &amp; edit the brief \u2192</a></div>';
+  var deliv = row?cbParseArr(row.deliverables):[];
+  var outs = row?cbParseOuts(row.final_output):[];
+  var hasOut = outs.some(function(o){ return o && Object.keys(o).length; });
+  var filled = row && (row.overview||row.main_client||deliv.length||row.platform||refs.length||hasOut);
+  if(!filled){ host.innerHTML='<div class="ca-empty">The creative brief hasn\u2019t been filled in yet.</div>'+editLink; return; }
+  function refCard(it){ if(it.kind==='link') return '<a class="ca-card link" href="'+esc(it.url)+'" target="_blank" rel="noopener"><span class="ca-card-in"><span class="ca-ico">'+caIcon('link')+'</span><span class="ca-meta"><span class="ca-name">'+esc(it.name||it.url)+'</span><span class="ca-sub">Open \u2197</span></span></span></a>'; var thumb=caIsImg(it.file_type,it.file_name)?'<span class="ca-thumb" style="background-image:url('+esc(it.url)+')"></span>':'<span class="ca-thumb ext">'+caExt(it.file_name)+'</span>'; return '<a class="ca-card file" href="'+esc(it.url)+'" target="_blank" rel="noopener"><span class="ca-card-in">'+thumb+'<span class="ca-meta"><span class="ca-name">'+esc(it.name||it.file_name)+'</span><span class="ca-sub">Download</span></span></span></a>'; }
+  function blk(label, val){ if(!val) return ''; return '<div class="cbv-row"><div class="cbv-k">'+esc(label)+'</div><div class="cbv-v">'+val+'</div></div>'; }
+  var H='<div class="cb-view">';
+  H+=blk('Project Overview', row.overview?esc(row.overview).replace(/\n/g,'<br>'):'');
+  H+=blk('Main Client', row.main_client?esc(row.main_client):'');
+  if(deliv.length) H+=blk('Deliverables', '<ul class="cbv-list">'+deliv.map(function(d){return '<li>'+esc(d)+'</li>';}).join('')+'</ul>');
+  H+=blk('Platform', row.platform?esc(row.platform).replace(/\n/g,'<br>'):'');
+  if(refs.length) H+=blk('References', '<div class="ca-grid">'+refs.map(refCard).join('')+'</div>');
+  if(hasOut){
+    var ov=outs.filter(function(o){return o&&Object.keys(o).length;}).map(function(o,i){
+      var parts=[]; var lbl={format:'Format',specs:'Specs',codec:'Codec',fps:'FPS'};
+      ['format','specs','codec','fps'].forEach(function(k){ if(o[k]) parts.push('<span class="cbv-spec"><i>'+lbl[k]+'</i>'+esc(o[k])+'</span>'); });
+      if(o.ledmap) parts.push('<span class="cbv-spec"><i>LED</i>'+esc(o.ledmap)+'</span>');
+      return '<div class="cbv-out">'+(outs.length>1?'<div class="cbv-out-n">Output '+(i+1)+'</div>':'')+parts.join('')+'</div>';
+    }).join('');
+    H+=blk('Final Video Output', ov);
+  }
+  H+='</div>'+editLink;
+  host.innerHTML=H;
+}
 function caColorsPanel(host){
   var add='<div class="ca-add"><button class="ca-btn" id="colAdd">'+caIcon('plus')+'Add color</button></div>';
   var form='<div class="col-form" id="colForm" hidden>'
@@ -3425,19 +3502,31 @@ var CB_OUT_OPTS = {
 };
 function cbParseArr(v){ if(Array.isArray(v)) return v; if(!v) return []; try{ var p=JSON.parse(v); if(Array.isArray(p)) return p; }catch(e){} return String(v).split('\n').map(function(s){return s.trim();}).filter(Boolean); }
 function cbParseObj(v){ if(v&&typeof v==='object') return v; if(!v) return {}; try{ var p=JSON.parse(v); if(p&&typeof p==='object') return p; }catch(e){} return {}; }
+function cbParseOuts(v){ if(!v) return [{}]; try{ var p=JSON.parse(v); if(Array.isArray(p)) return p.length?p:[{}]; if(p&&typeof p==='object'&&Object.keys(p).length) return [p]; }catch(e){} return [{}]; }
 
 async function briefLoad(projId){
   CB.proj=projId; CB.row={}; CB.deliv=[]; CB.out={}; CB.refs=[];
   var m=document.getElementById('cbmount'); if(m) m.innerHTML='<div class="cal-loading">Loading brief\u2026</div>';
   try{ var r=await sb.from('creative_brief').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',projId).maybeSingle(); if(r&&r.data) CB.row=r.data; }catch(e){}
   CB.deliv=cbParseArr(CB.row.deliverables);
-  CB.out=cbParseObj(CB.row.final_output);
+  CB.outs=cbParseOuts(CB.row.final_output);
   try{ var ra=await sb.from('client_assets').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',projId).eq('category','brief_refs').order('created_at',{ascending:true}); if(ra&&ra.data) CB.refs=ra.data; }catch(e){}
   briefRender();
 }
 function cbTextField(k,name,ph,hint,rows){ var r=CB.row||{}; return '<div class="cb-field"><label>'+esc(name)+(hint?' <span class="cb-hint">'+esc(hint)+'</span>':'')+'</label><textarea id="cb_'+k+'" rows="'+(rows||3)+'" placeholder="'+esc(ph||'')+'">'+esc(r[k]||'')+'</textarea></div>'; }
 function cbDelivRows(){ return (CB.deliv.length?CB.deliv:['']).map(function(t){ return '<div class="nl-row"><input class="cb-deliv" value="'+esc(t)+'" placeholder="e.g. 1\u00d7 60s hero film"><button type="button" class="nl-x" data-rm>\u00d7</button></div>'; }).join(''); }
-function cbSel(k){ var cur=CB.out[k]||''; var opts='<option value="">\u2014 select \u2014</option>'+CB_OUT_OPTS[k].map(function(o){ return '<option'+(o===cur?' selected':'')+'>'+esc(o)+'</option>'; }).join(''); return '<select class="nl-i" id="cbout_'+k+'">'+opts+'</select>'; }
+function cbSel(i,k){ var cur=(CB.outs[i]||{})[k]||''; var opts='<option value="">\u2014 select \u2014</option>'+CB_OUT_OPTS[k].map(function(o){ return '<option'+(o===cur?' selected':'')+'>'+esc(o)+'</option>'; }).join(''); return '<select class="nl-i cbout" data-oi="'+i+'" data-ok="'+k+'">'+opts+'</select>'; }
+function cbOutCard(i){ var o=CB.outs[i]||{}; var multi=CB.outs.length>1;
+  return '<div class="cb-out-card" data-oi="'+i+'">'+(multi?'<div class="cb-out-h"><span class="cb-out-n">Output '+(i+1)+'</span><button type="button" class="cb-out-rm" data-oi="'+i+'" title="Remove">\u00d7</button></div>':'')
+    +'<div class="cb-out-grid">'
+    +'<div><span class="cb-sublabel">Format</span>'+cbSel(i,'format')+'</div>'
+    +'<div><span class="cb-sublabel">Specs</span>'+cbSel(i,'specs')+'</div>'
+    +'<div><span class="cb-sublabel">Codec</span>'+cbSel(i,'codec')+'</div>'
+    +'<div><span class="cb-sublabel">Frame Rate</span>'+cbSel(i,'fps')+'</div>'
+    +'</div>'
+    +'<div class="cb-led"><span class="cb-sublabel">LED pixel map <i>optional</i></span><input class="nl-i cbled" data-oi="'+i+'" value="'+esc(o.ledmap||'')+'" placeholder="e.g. 3456 \u00d7 1200 px \u00b7 2.6mm pitch"></div></div>';
+}
+function cbCollectOuts(){ var arr=[]; document.querySelectorAll('.cb-out-card').forEach(function(card){ var o={}; card.querySelectorAll('.cbout').forEach(function(sel){ if(sel.value) o[sel.dataset.ok]=sel.value; }); var led=card.querySelector('.cbled'); if(led&&led.value.trim()) o.ledmap=led.value.trim(); arr.push(o); }); CB.outs=arr.length?arr:[{}]; }
 function briefRender(){
   var m=document.getElementById('cbmount'); if(!m) return; var r=CB.row||{};
   var deliv='<div class="cb-field"><label>Deliverables <span class="cb-hint">Add each as its own line</span></label><div id="cbDelivList">'+cbDelivRows()+'</div><button type="button" class="nl-add" id="cbDelivAdd">+ Add deliverable</button></div>';
@@ -3446,14 +3535,7 @@ function briefRender(){
     +'<div class="ca-add" style="margin-bottom:12px"><button class="ca-btn" id="cbRefFileBtn" type="button">'+caIcon('up')+'Upload board</button><input type="file" id="cbRefFile" multiple style="display:none"><button class="ca-btn ghost" id="cbRefLinkBtn" type="button">'+caIcon('link')+'Add link</button></div>'
     +'<div class="ca-linkform" id="cbRefLinkForm" hidden><input id="cbRefLkLabel" placeholder="Label"><input id="cbRefLkUrl" placeholder="https://\u2026"><div class="ca-lf-act"><button class="ca-btn sm" id="cbRefLkSave" type="button">Add</button><button class="ca-btn ghost sm" id="cbRefLkCancel" type="button">Cancel</button></div></div>'
     +refsGrid+'</div>';
-  var out='<div class="cb-field"><label>Final Video Output <span class="cb-hint">Delivery specs</span></label>'
-    +'<div class="cb-out-grid">'
-    +'<div><span class="cb-sublabel">Format</span>'+cbSel('format')+'</div>'
-    +'<div><span class="cb-sublabel">Specs</span>'+cbSel('specs')+'</div>'
-    +'<div><span class="cb-sublabel">Codec</span>'+cbSel('codec')+'</div>'
-    +'<div><span class="cb-sublabel">Frame Rate</span>'+cbSel('fps')+'</div>'
-    +'</div>'
-    +'<div class="cb-led"><span class="cb-sublabel">LED pixel map <i>optional</i></span><input class="nl-i" id="cbout_ledmap" value="'+esc(CB.out.ledmap||'')+'" placeholder="e.g. 3456 \u00d7 1200 px \u00b7 2.6mm pitch"></div></div>';
+  var out='<div class="cb-field"><label>Final Video Output <span class="cb-hint">Delivery specs \u2014 add more for multiple formats</span></label><div id="cbOutList">'+CB.outs.map(function(o,i){ return cbOutCard(i); }).join('')+'</div><button type="button" class="nl-add" id="cbOutAdd">+ Add output</button></div>';
   var meta=r.updated_by ? '<div class="cb-meta">Last updated by '+esc(r.updated_by)+(r.updated_at?(' \u00b7 '+caAgo(r.updated_at)):'')+'</div>' : '';
   m.innerHTML='<div class="cb-card">'
     + cbTextField('overview','Project Overview','What is this project, in a few lines?')
@@ -3470,6 +3552,8 @@ function briefWire(){
   var add=document.getElementById('cbDelivAdd'); if(add) add.onclick=function(){ cbCollectDeliv(); CB.deliv.push(''); briefRender(); };
   document.querySelectorAll('#cbDelivList .nl-x[data-rm]').forEach(function(b){ b.onclick=function(){ var row=b.closest('.nl-row'); if(row) row.parentNode.removeChild(row); cbCollectDeliv(); }; });
   var save=document.getElementById('cbSave'); if(save) save.onclick=briefSave;
+  var oadd=document.getElementById('cbOutAdd'); if(oadd) oadd.onclick=function(){ cbCollectOuts(); CB.outs.push({}); briefRender(); };
+  document.querySelectorAll('.cb-out-rm').forEach(function(b){ b.onclick=function(){ cbCollectOuts(); CB.outs.splice(+b.dataset.oi,1); if(!CB.outs.length) CB.outs.push({}); briefRender(); }; });
   var fb=document.getElementById('cbRefFileBtn'), fi=document.getElementById('cbRefFile');
   if(fb&&fi){ fb.onclick=function(){ fi.click(); }; fi.onchange=async function(){ var fs=Array.prototype.slice.call(fi.files||[]); fi.value=''; if(!fs.length) return; fb.disabled=true; fb.innerHTML=caIcon('up')+'Uploading\u2026'; for(var i=0;i<fs.length;i++){ var row=await briefRefUpload(fs[i]); if(row) CB.refs.push(row); } fb.disabled=false; briefRender(); }; }
   var lb=document.getElementById('cbRefLinkBtn'), form=document.getElementById('cbRefLinkForm');
@@ -3487,13 +3571,11 @@ async function briefRefDelete(id){
   CB.refs=CB.refs.filter(function(x){return x.id!==id;}); briefRender();
 }
 async function briefSave(){
-  cbCollectDeliv();
+  cbCollectDeliv(); cbCollectOuts();
   function tv(k){ var e=document.getElementById('cb_'+k); return e?e.value:''; }
-  var out={}; ['format','specs','codec','fps'].forEach(function(k){ var el=document.getElementById('cbout_'+k); if(el&&el.value) out[k]=el.value; });
-  var led=document.getElementById('cbout_ledmap'); if(led&&led.value.trim()) out.ledmap=led.value.trim();
   var row={ review_slug:CONFIG.REVIEW_SLUG, project_key:CB.proj, updated_by:(myEmail()||'someone'), updated_at:new Date().toISOString(),
     overview:tv('overview'), main_client:tv('main_client'), platform:tv('platform'),
-    deliverables:JSON.stringify(CB.deliv), final_output:JSON.stringify(out) };
+    deliverables:JSON.stringify(CB.deliv), final_output:JSON.stringify(CB.outs) };
   var btn=document.getElementById('cbSave'), s=document.getElementById('cbSaved');
   if(btn){ btn.disabled=true; btn.textContent='Saving\u2026'; }
   try{ var r=await sb.from('creative_brief').upsert(row,{onConflict:'review_slug,project_key'}); if(btn){ btn.disabled=false; btn.textContent='Save brief'; } if(r.error){ if(s){ s.textContent='Could not save: '+r.error.message; s.className='cb-saved err'; } return; } }
@@ -3503,21 +3585,80 @@ async function briefSave(){
 
 /* ---------- Final Deliverables ---------- */
 async function finalLoad(projId){
-  FD.proj=projId; FD.items=[];
+  FD.proj=projId; FD.folders=[]; FD.items=[];
   var m=document.getElementById('fdmount'); if(m) m.innerHTML='<div class="cal-loading">Loading\u2026</div>';
-  try{ var r=await sb.from('client_assets').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',projId).eq('category','final').order('created_at',{ascending:false}); if(r&&r.data) FD.items=r.data; }catch(e){}
+  try{ var rf=await sb.from('final_folders').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',projId).order('ord',{ascending:true}).order('created_at',{ascending:true}); if(rf&&rf.data) FD.folders=rf.data; }catch(e){}
+  try{ var ri=await sb.from('final_items').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',projId).order('created_at',{ascending:false}); if(ri&&ri.data) FD.items=ri.data; }catch(e){}
+  if(FD.folder && !FD.folders.some(function(f){return f.id===FD.folder;})) FD.folder=null;
   finalRender();
 }
-function finalRender(){
-  var m=document.getElementById('fdmount'); if(!m) return;
+function fdFolderItems(){ return FD.items.filter(function(it){ return (it.folder_id||null)===(FD.folder||null); }); }
+function fdItemCard(it){
   var isAdmin=(typeof ADMIN!=='undefined' && ADMIN);
-  var up = isAdmin ? '<div class="ca-add"><button class="ca-btn" id="fdBtn">'+caIcon('up')+'Upload final</button><input type="file" id="fdFile" multiple style="display:none"></div>' : '';
-  var grid = FD.items.length ? '<div class="ca-grid">'+FD.items.map(caItemCard).join('')+'</div>'
-    : '<div class="ca-empty fd">'+(isAdmin?'Once a cut is approved, upload the final, locked file here for the client to download. (Auto-push on approval lands with the approval flow.)':'Your final, approved deliverables will appear here to download.')+'</div>';
-  m.innerHTML='<div class="ca-bar"><div class="ca-bar-l"><h3>Final Deliverables</h3><div class="ca-hint">The locked, approved cut \u2014 ready to download.</div></div>'+up+'</div>'+grid;
+  var del = isAdmin ? '<button class="ca-del" data-del="'+it.id+'" title="Remove">\u00d7</button>' : '';
+  if(it.kind==='proj'){
+    var poster = it.poster ? '<span class="ca-thumb" style="background-image:url('+esc(it.poster)+')"></span>' : '<span class="ca-thumb ext">'+((it.file_type==='video')?'VIDEO':'IMG')+'</span>';
+    var href = it.url || ('#p='+encodeURIComponent(FD.proj)+(it.stack_key?('&k='+encodeURIComponent(it.stack_key)):''));
+    return '<div class="ca-card file">'+del+'<a class="ca-card-in" href="'+esc(href)+'">'+poster+'<div class="ca-meta"><div class="ca-name">'+esc(it.title||'Item')+'</div><div class="ca-note">From project</div><div class="ca-sub">Open in review \u2197</div></div></a></div>';
+  }
+  var thumb = caIsImg(it.file_type,it.title) ? '<span class="ca-thumb" style="background-image:url('+esc(it.url)+')"></span>' : '<span class="ca-thumb ext">'+caExt(it.title)+'</span>';
+  var sub = caExt(it.title)+(it.size_bytes?(' \u00b7 '+caHuman(it.size_bytes)):'')+' \u00b7 Download';
+  return '<div class="ca-card file">'+del+'<a class="ca-card-in" href="'+esc(it.url)+'" target="_blank" rel="noopener" download>'+thumb+'<div class="ca-meta"><div class="ca-name">'+esc(it.title)+'</div><div class="ca-sub">'+sub+'</div></div></a></div>';
+}
+function finalRender(){
+  var m=document.getElementById('fdmount'); if(!m) return; var isAdmin=(typeof ADMIN!=='undefined' && ADMIN);
+  var unfiled=FD.items.filter(function(it){return !it.folder_id;}).length;
+  var tabs='<button class="ca-tab'+(FD.folder===null?' active':'')+'" data-fd="">Unfiled'+(unfiled?'<span class="ca-n">'+unfiled+'</span>':'')+'</button>';
+  FD.folders.forEach(function(f){ var n=FD.items.filter(function(it){return it.folder_id===f.id;}).length; tabs+='<button class="ca-tab'+(FD.folder===f.id?' active':'')+'" data-fd="'+f.id+'">'+esc(f.name)+(n?'<span class="ca-n">'+n+'</span>':'')+(isAdmin?'<span class="fd-foldel" data-fdel="'+f.id+'" title="Delete folder">\u00d7</span>':'')+'</button>'; });
+  if(isAdmin) tabs+='<button class="ca-tab add" id="fdNewFolder">+ Folder</button>';
+  var ctr = isAdmin ? '<div class="ca-add"><button class="ca-btn" id="fdBtn">'+caIcon('up')+'Upload final</button><input type="file" id="fdFile" multiple style="display:none"><button class="ca-btn ghost" id="fdFromProj">'+caIcon('plus')+'Add from project</button></div>' : '';
+  var items=fdFolderItems();
+  var grid = items.length ? '<div class="ca-grid">'+items.map(fdItemCard).join('')+'</div>'
+    : '<div class="ca-empty fd">'+(isAdmin?'Upload the locked final here \u2014 or push an already-approved item over from the project (no need to re-upload).':'Your final, approved deliverables will appear here to download.')+'</div>';
+  m.innerHTML='<div class="ca-bar"><div class="ca-bar-l"><h3>Final Deliverables</h3><div class="ca-hint">The locked, approved cut \u2014 organised in folders, ready to download.</div></div>'+ctr+'</div><div class="ca-tabs fd-tabs">'+tabs+'</div>'+grid;
+  m.querySelectorAll('.ca-tab[data-fd]').forEach(function(b){ b.onclick=function(e){ if(e.target.closest&&e.target.closest('.fd-foldel')) return; FD.folder=b.dataset.fd||null; finalRender(); }; });
+  m.querySelectorAll('.fd-foldel').forEach(function(b){ b.onclick=function(e){ e.stopPropagation(); fdDeleteFolder(b.dataset.fdel); }; });
+  var nf=document.getElementById('fdNewFolder'); if(nf) nf.onclick=fdNewFolder;
   var b=document.getElementById('fdBtn'), f=document.getElementById('fdFile');
-  if(b&&f){ b.onclick=function(){ f.click(); }; f.onchange=async function(){ var fs=Array.prototype.slice.call(f.files||[]); f.value=''; if(!fs.length) return; b.disabled=true; b.innerHTML=caIcon('up')+'Uploading\u2026'; for(var i=0;i<fs.length;i++){ var row=await caInsertFile(fs[i], 'final'); if(row) FD.items.unshift(row); } b.disabled=false; finalRender(); }; }
-  m.querySelectorAll('.ca-del').forEach(function(bb){ bb.onclick=function(e){ e.preventDefault(); e.stopPropagation(); caDelete(bb.dataset.del); }; });
+  if(b&&f){ b.onclick=function(){ f.click(); }; f.onchange=async function(){ var fs=Array.prototype.slice.call(f.files||[]); f.value=''; if(!fs.length) return; b.disabled=true; b.innerHTML=caIcon('up')+'Uploading\u2026'; for(var i=0;i<fs.length;i++){ await fdUploadFile(fs[i]); } b.disabled=false; finalRender(); }; }
+  var fp=document.getElementById('fdFromProj'); if(fp) fp.onclick=fdOpenPicker;
+  m.querySelectorAll('.ca-del').forEach(function(bb){ bb.onclick=function(e){ e.preventDefault(); e.stopPropagation(); fdDeleteItem(bb.dataset.del); }; });
+}
+async function fdNewFolder(){
+  var name=(window.prompt('New folder name')||'').trim(); if(!name) return;
+  try{ var r=await sb.from('final_folders').insert({ review_slug:CONFIG.REVIEW_SLUG, project_key:FD.proj, name:name, ord:FD.folders.length, created_by:myEmail() }).select().single(); if(r.error){ alert('Could not create folder: '+r.error.message); return; } FD.folders.push(r.data); FD.folder=r.data.id; finalRender(); }catch(e){ alert('Could not create folder.'); }
+}
+async function fdDeleteFolder(id){
+  if(!confirm('Delete this folder? Its items move to Unfiled.')) return;
+  try{ await sb.from('final_items').update({folder_id:null}).eq('folder_id', id); await sb.from('final_folders').delete().eq('id', id); }catch(e){}
+  FD.folders=FD.folders.filter(function(x){return x.id!==id;}); FD.items.forEach(function(it){ if(it.folder_id===id) it.folder_id=null; }); if(FD.folder===id) FD.folder=null; finalRender();
+}
+async function fdUploadFile(file){
+  try{ var path=CONFIG.REVIEW_SLUG+'/'+FD.proj+'/final/'+Date.now()+'_'+caSafe(file.name); var up=await sb.storage.from('client-assets').upload(path, file, {upsert:false, cacheControl:'3600'}); if(up.error){ alert('Upload failed: '+up.error.message); return; } var pub=sb.storage.from('client-assets').getPublicUrl(path); var row={ review_slug:CONFIG.REVIEW_SLUG, project_key:FD.proj, folder_id:FD.folder, kind:'file', title:file.name, url:pub.data.publicUrl, file_type:file.type||'', size_bytes:file.size||null, created_by:myEmail() }; var r=await sb.from('final_items').insert(row).select().single(); if(r.error){ alert('Could not record: '+r.error.message); return; } FD.items.unshift(r.data); }catch(e){ alert('Upload error.'); }
+}
+async function fdDeleteItem(id){
+  if(!confirm('Remove from Final Deliverables?')) return;
+  try{ var r=await sb.from('final_items').delete().eq('id', id); if(r.error){ alert('Could not remove: '+r.error.message); return; } }catch(e){ return; }
+  FD.items=FD.items.filter(function(x){return x.id!==id;}); finalRender();
+}
+function fdOpenPicker(){
+  var proj=CONFIG.PROJECTS.find(function(p){return p.id===FD.proj;}); if(!proj) return;
+  var rows='';
+  (proj.sections||[]).forEach(function(sec){
+    var stItems=(sec.stacks||[]).map(function(st){ var v=st.versions[0]||{}; var poster=previewFor(v)||''; var thumb=poster?'<span class="fp-th" style="background-image:url('+esc(poster)+')"></span>':'<span class="fp-th ext">'+((v.type==='video')?'VID':'IMG')+'</span>'; return '<label class="fp-row"><input type="checkbox" class="fp-pick" data-k="'+esc(st.id)+'" data-title="'+esc(st.title||'')+'" data-poster="'+esc(poster)+'" data-type="'+esc(v.type||'')+'">'+thumb+'<span class="fp-name">'+esc(st.title||'Item')+(v.version?(' \u00b7 '+esc(v.version)):'')+'</span></label>'; }).join('');
+    if(stItems) rows+='<div class="fp-sec"><div class="fp-sec-h">'+esc(sec.name)+'</div>'+stItems+'</div>';
+  });
+  if(!rows) rows='<div class="ca-empty">No project items to push yet.</div>';
+  var dest = FD.folder ? (FD.folders.filter(function(f){return f.id===FD.folder;})[0]||{}).name : 'Unfiled';
+  openOverlay('<div class="fp-wrap"><div class="fp-head">Push from project</div><div class="fp-hint">Pick approved items already in the project \u2014 they appear in Final Deliverables (\u201c'+esc(dest||'Unfiled')+'\u201d) without re-uploading.</div><div class="fp-list">'+rows+'</div><div class="fp-foot"><button class="ca-btn ghost" onclick="closeOverlay()">Cancel</button><button class="ca-btn" id="fpAdd">Add selected</button></div></div>', true);
+  var add=document.getElementById('fpAdd'); if(add) add.onclick=fdAddPicked;
+}
+async function fdAddPicked(){
+  var picks=[]; document.querySelectorAll('.fp-pick:checked').forEach(function(c){ picks.push({ k:c.dataset.k, title:c.dataset.title, poster:c.dataset.poster, type:c.dataset.type }); });
+  if(!picks.length){ closeOverlay(); return; }
+  var add=document.getElementById('fpAdd'); if(add){ add.disabled=true; add.textContent='Adding\u2026'; }
+  for(var i=0;i<picks.length;i++){ var p=picks[i]; var row={ review_slug:CONFIG.REVIEW_SLUG, project_key:FD.proj, folder_id:FD.folder, kind:'proj', title:p.title, url:'#p='+encodeURIComponent(FD.proj)+'&k='+encodeURIComponent(p.k), poster:p.poster||'', file_type:p.type||'', stack_key:p.k, created_by:myEmail() }; try{ var r=await sb.from('final_items').insert(row).select().single(); if(!r.error&&r.data) FD.items.unshift(r.data); }catch(e){} }
+  closeOverlay(); finalRender();
 }
 
 /* ---------- timezone options for onboarding ---------- */
