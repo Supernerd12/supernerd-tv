@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v26';
+  const VERSION = 'v27';
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   const items    = (await getCollection('reviewItems')).filter(i => i.data.published !== false);
@@ -3085,7 +3085,8 @@ function wireOnb(){
     } else {
       var row={ id:AUTH.user.id, review_slug:CONFIG.REVIEW_SLUG, email:AUTH.user.email, full_name:savedName, position:fRole.value.trim(), phone:fPhone?fPhone.value.trim():null, company_id:cid, avatar_url:avatarUrl, timezone:savedTz, updated_at:new Date().toISOString() };
       try{ var r=await sb.from('profiles').upsert(row,{onConflict:'id'}); if(r.error) err=r.error; }catch(e){ err=e; }
-      if(!err){ AUTH.profile=row; if(avatarUrl && AUTH.user.email) AVA_BY_EMAIL[String(AUTH.user.email).toLowerCase()]=avatarUrl; }
+      if(!err){ AUTH.profile=row; if(avatarUrl && AUTH.user.email) AVA_BY_EMAIL[String(AUTH.user.email).toLowerCase()]=avatarUrl;
+        if(!(ppEditTarget && ppEditTarget.full_name)) notifyOwnerOnboard(row, cname).catch(function(){}); }
     }
     if(err){ var m=document.getElementById('onbMsg'); if(m) m.textContent='Could not save: '+(err.message||'try again'); joinBtn.disabled=false; joinBtn.textContent='Save'; return; }
     document.getElementById('onbCard').innerHTML='<div class="onb-success"><div class="tick">\u2713</div><h3>'+(ppEditTarget&&ppEditTarget.full_name?'Saved!':'You\u2019re in, '+ppEsc(savedName.split(/\s+/)[0])+'!')+'</h3><p>Your card is on the Project Partners page.</p></div>';
@@ -3840,6 +3841,22 @@ function emailShell(heading, inner){
 // Supabase auto-named this function's slug "dynamic-processor" at creation
 // (the display name "Send-Email" does not change the endpoint URL).
 var EMAIL_FN = 'dynamic-processor';
+async function notifyOwnerOnboard(profile, companyName){
+  if(!profile) return;
+  var nm=profile.full_name||'Someone';
+  var rows='';
+  function r(k,v){ if(v) rows+='<tr><td style="padding:7px 0;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:#7f8389;width:120px;vertical-align:top;">'+k+'</td><td style="padding:7px 0;font-size:15px;color:#e8e9eb;">'+esc(String(v))+'</td></tr>'; }
+  r('Name', profile.full_name); r('Role', profile.position); r('Company', companyName);
+  r('Email', profile.email); r('Phone', profile.phone); r('Timezone', profile.timezone);
+  var avatar = profile.avatar_url ? '<img src="'+esc(profile.avatar_url)+'" width="56" height="56" style="width:56px;height:56px;border-radius:50%;object-fit:cover;display:block;margin-bottom:16px;border:1px solid #1c1e22;">' : '';
+  var anyProj=(CONFIG.PROJECTS[0]&&CONFIG.PROJECTS[0].id)||'';
+  var link='https://supernerd.tv/r/'+CONFIG.REVIEW_SLUG+'/'+(anyProj?('#p='+encodeURIComponent(anyProj)+'&f=partners'):'');
+  var inner=avatar
+    +'<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#c9ccd1;"><b style="color:#fff;">'+esc(nm)+'</b> just finished onboarding to the portal. Here\u2019s their card:</p>'
+    +'<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-top:1px solid #1c1e22;border-bottom:1px solid #1c1e22;margin:4px 0 18px;">'+rows+'</table>'
+    +'<a href="'+link+'" style="display:inline-block;background:#BAC01E;color:#0a0b0d;font-weight:700;font-size:14px;text-decoration:none;padding:11px 20px;border-radius:9px;">View Project Partners \u2192</a>';
+  try{ await sendEmail({ to:[OWNER_EMAIL], subject:nm+' finished onboarding \u00b7 Supernerd Portal', html:emailShell('New partner onboarded', inner), replyTo: profile.email||undefined }); }catch(e){}
+}
 async function sendEmail(opts){
   // opts: { to:[], bcc:[], subject, html, replyTo }
   var res = await sb.functions.invoke(EMAIL_FN, { body: opts });
