@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v27';
+  const VERSION = 'v28';
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   const items    = (await getCollection('reviewItems')).filter(i => i.data.published !== false);
@@ -1510,6 +1510,38 @@ select.nl-i option{background:#15161a; color:var(--bone)}
 .gm-render{font:500 12px var(--mono);color:var(--dim);padding:18px;text-align:center;border:1px dashed var(--hair);border-radius:10px}
 .gm-gif{width:100%;border-radius:10px;border:1px solid var(--hair);display:block}
 .gm-actions{display:flex;gap:9px;margin-top:11px}
+
+/* ============================================================
+   v28 — timecode "now", GIF frame nudges, project reorder
+   ============================================================ */
+/* timecode now button */
+.tc-wrap{display:flex;gap:7px;align-items:stretch}
+.tc-wrap input{flex:1 1 auto}
+.tc-now{flex:0 0 auto;display:inline-flex;align-items:center;gap:4px;padding:0 11px;border-radius:8px;border:1px solid var(--hair);background:rgba(186,192,30,.08);color:var(--green);font:600 11px var(--mono);letter-spacing:.03em;cursor:pointer;white-space:nowrap;transition:background .15s,border-color .15s}
+.tc-now:hover{background:rgba(186,192,30,.16);border-color:var(--green)}
+
+/* GIF maker — frame controls */
+.gm-fps-in{width:74px;padding:7px 8px;border-radius:8px;border:1px solid var(--hair);background:rgba(255,255,255,.03);color:var(--bone);font:500 13px var(--mono)}
+.gm-rsub{font:400 11px var(--mono);color:var(--dim)}
+.gm-fnudge{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.gm-fnudge input{width:74px;padding:7px 8px;border-radius:8px;border:1px solid var(--hair);background:rgba(255,255,255,.03);color:var(--bone);font:500 13px var(--mono);text-align:center}
+.gm-fnudge .gm-nudge{min-width:34px;padding:0 6px;height:32px;font:600 12px var(--mono)}
+
+/* project reorder */
+.lead-row{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap}
+.lead-row .lead{margin:0;flex:1 1 320px}
+.porg-enter{flex:0 0 auto;white-space:nowrap}
+.porg-list{display:flex;flex-direction:column;gap:9px;margin:22px 0 0;max-width:620px}
+.porg-row{display:flex;align-items:center;gap:14px;padding:15px 16px;border:1px solid var(--hair-2);border-radius:12px;background:#101114;cursor:grab;user-select:none;transition:border-color .15s,transform .12s,box-shadow .15s}
+.porg-row:hover{border-color:var(--green)}
+.porg-row:active{cursor:grabbing}
+.porg-row.dragging{opacity:.85;border-color:var(--green);box-shadow:0 12px 30px rgba(0,0,0,.5);transform:scale(1.015)}
+.porg-grip{color:var(--dim);font-size:17px;letter-spacing:-2px;flex:0 0 auto}
+.porg-num{flex:0 0 auto;width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:rgba(186,192,30,.12);color:var(--green);font:700 14px var(--mono)}
+.porg-title{flex:1 1 auto;font:600 16px var(--disp);color:var(--bone)}
+.porg-hid{font:600 9px var(--mono);letter-spacing:.05em;text-transform:uppercase;color:#e0696d;background:rgba(192,53,58,.14);padding:2px 6px;border-radius:5px;vertical-align:middle}
+.porg-drag{flex:0 0 auto;font:600 9px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--dim);opacity:.5}
+.porg-bar{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;max-width:620px}
 </style>
 </head>
 <body>
@@ -1664,6 +1696,7 @@ function addMine(id){ try { const a = myComments(); a.push(id); localStorage.set
 function dropMine(id){ try { localStorage.setItem(MINE_KEY, JSON.stringify(myComments().filter(x => x !== id))); } catch (e) {} }
 
 function parseTimecode(tc){ if(!tc) return null; const parts=String(tc).trim().split(':').map(p=>parseInt(p,10)); if(parts.some(isNaN)) return null; let s=0; for(const p of parts){ s=s*60+p; } return s; }
+function secsToTc(s){ s=Math.max(0,Math.floor(s||0)); var h=Math.floor(s/3600), m=Math.floor((s%3600)/60), sec=s%60; function p(n){ return (n<10?'0':'')+n; } return h>0 ? (h+':'+p(m)+':'+p(sec)) : (p(m)+':'+p(sec)); }
 function relTime(iso){ const d=(Date.now()-new Date(iso).getTime())/1000; if(d<60) return 'just now'; if(d<3600) return Math.floor(d/60)+'m ago'; if(d<86400) return Math.floor(d/3600)+'h ago'; return Math.floor(d/86400)+'d ago'; }
 function fmtTime(iso){ const d=new Date(iso); return d.toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}); }
 function fmtDate(iso){ if(!iso) return ''; let d; const m=String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/); if(m){ d=new Date(+m[1], +m[2]-1, +m[3], 12); } else { d=new Date(iso); } if(isNaN(d.getTime())) return ''; return d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}); }
@@ -1798,17 +1831,28 @@ function renderClientProjects(cl, allow){
   const app=document.getElementById('app');
   const owner=accessIsOwner(); const multiCompany=visibleClients().length>1;
   const back=(owner||multiCompany)?'<a class="crumb" href="#">\u2190 Companies</a>':'';
-  const cards=CONFIG.PROJECTS.filter(function(p){ return p.client===cl.key && allow[p.id]; }).map(function(p){
+  const cards=sortProjects(CONFIG.PROJECTS.filter(function(p){ return p.client===cl.key && allow[p.id]; })).map(function(p){
     const items=p.sections.reduce((n,sec)=>n+sec.stacks.reduce((m,st)=>m+st.versions.length,0),0);
     const hid=isHidden(visKeyProject(p.id));
     const a='<a class="card'+(hid?' is-hidden':'')+'" href="#p='+encodeURIComponent(p.id)+'" tabindex="0"><div class="c-eye">Project</div><h3>'+esc(p.title)+'</h3><div class="c-tag">'+esc(p.tagline||'')+'</div><div class="c-foot"><span class="c-count">'+p.sections.length+' sections \u00b7 '+items+' item'+(items===1?'':'s')+'</span><span class="c-go">Open \u2192</span></div>'+((owner&&hid)?'<div class="hidden-flag">HIDDEN</div>':'')+'</a>';
     if(!owner) return a;
     const tog='<button class="vis-tog" data-vk="'+esc(visKeyProject(p.id))+'" title="'+(hid?'Show to clients':'Hide from clients')+'">'+(hid?visEyeOff()+'Hidden':visEye()+'Visible')+'</button>';
-    return '<div class="card-wrap'+(hid?' is-hidden':'')+'">'+a+tog+'</div>';
+    return '<div class="card-wrap'+(hid?' is-hidden':'')+'" data-pid="'+esc(p.id)+'">'+a+tog+'</div>';
   }).join('');
+  const nProj=CONFIG.PROJECTS.filter(function(p){ return p.client===cl.key && allow[p.id]; }).length;
+  const reorderBtn=(owner && nProj>1) ? '<button class="ca-btn ghost porg-enter" id="porgEnter">\u283f Reorder</button>' : '';
   const onboard = ADMIN ? onboardSectionHTML(cl) : '';
-  app.innerHTML='<section class="landing">'+back+'<div class="eyebrow">Company</div><h1 class="co-name">'+esc(cl.name)+'</h1><p class="lead">Open a project to review its work. Leave a note, a voice note, or pin a comment right onto an image.</p>'+onboard+'<div class="grid">'+(cards||'<p class="sec-empty">No projects yet.</p>')+'</div></section>';
+  app.innerHTML='<section class="landing">'+back+'<div class="eyebrow">Company</div><h1 class="co-name">'+esc(cl.name)+'</h1><div class="lead-row"><p class="lead">Open a project to review its work. Leave a note, a voice note, or pin a comment right onto an image.</p>'+reorderBtn+'</div>'+onboard+'<div class="grid">'+(cards||'<p class="sec-empty">No projects yet.</p>')+'</div></section>';
   if(ADMIN){ const b=document.getElementById('ob-send'); if(b) b.addEventListener('click', ()=>sendOnboarding(cl.key)); renderOnboardList(); }
+  if(owner){
+    const pe=document.getElementById('porgEnter'); if(pe) pe.onclick=function(){ reorderStart(cl.key); };
+    document.querySelectorAll('.grid .card-wrap').forEach(function(w){
+      var t=null;
+      w.addEventListener('pointerdown', function(e){ if(e.target.closest && e.target.closest('.vis-tog')) return; t=setTimeout(function(){ reorderStart(cl.key); }, 480); });
+      var clr=function(){ if(t){ clearTimeout(t); t=null; } };
+      w.addEventListener('pointerup', clr); w.addEventListener('pointerleave', clr); w.addEventListener('pointermove', clr);
+    });
+  }
 }
 function onboardSectionHTML(cl){
   var projs=CONFIG.PROJECTS.filter(function(p){ return p.client===cl.key; });
@@ -1983,7 +2027,7 @@ function versionBodyHTML(proj, sec, it){
   const shareBtn = '<button class="meta-share" id="share-'+it.id+'" type="button" title="Share">'+svgIcon('share')+'<span>Share</span></button><div class="share-pop" id="sharepop-'+it.id+'" hidden></div>';
   const gifBtn = (it.type==='video' && it.stream_uid && (typeof ADMIN!=='undefined' && ADMIN)) ? '<button class="meta-share gifbtn" id="gif-'+it.id+'" type="button" title="Make a looping GIF for slides"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 9v6M11 9v6M15 12h2.5M15 9h3M15 9v6"/></svg><span>GIF</span></button>' : '';
   const metaBar = '<div class="meta-bar"><div class="meta-left">'+dlBtn+stamp+'</div><div class="meta-right"><span class="appr" id="appr-'+it.id+'"></span>'+gifBtn+shareBtn+'</div></div>';
-  const tcField = it.type==='video' ? '<div class="field f-tc"><label>Timecode</label><input id="tc-'+it.id+'" placeholder="00:00"></div>' : '';
+  const tcField = it.type==='video' ? '<div class="field f-tc"><label>Timecode</label><div class="tc-wrap"><input id="tc-'+it.id+'" placeholder="00:00"><button type="button" class="tc-now" id="tcnow-'+it.id+'" title="Grab the current play position">\u23f1 now</button></div></div>' : '';
   const pinTool = it.type==='image' ? '<button class="tool-btn" id="pin-'+it.id+'" type="button">📍 Pin to image</button><span class="pin-ind" id="pin-ind-'+it.id+'"></span>' : '';
   const composer = '<div class="composer"><div class="reply-ctx" id="replyctx-'+it.id+'" hidden></div>'
     + (tcField?'<div class="row">'+tcField+'</div>':'')
@@ -2007,6 +2051,15 @@ function gateFor(it){
 function wireVersion(proj, sec, it){
   if(it.type==='video' && it.stream_uid && window.Stream){ try{ players[it.id]=Stream(document.getElementById('if-'+it.id)); }catch(e){} }
   var _gb=document.getElementById('gif-'+it.id); if(_gb) _gb.onclick=function(){ gifMaker(proj,sec,it); };
+  if(it.type==='video'){
+    var _tc=document.getElementById('tc-'+it.id), _body=document.getElementById('body-'+it.id), _now=document.getElementById('tcnow-'+it.id), _tcAuto=true;
+    var _cur=function(){ try{ var p=players[it.id]; if(p && typeof p.currentTime==='number' && p.currentTime>0) return secsToTc(p.currentTime); }catch(e){} return null; };
+    var _fill=function(){ var t=_cur(); if(t!=null && _tc){ _tc.value=t; } };
+    if(_tc) _tc.addEventListener('input', function(){ _tcAuto=false; });
+    if(_tc) _tc.addEventListener('focus', function(){ if(_tcAuto && !_tc.value) _fill(); });
+    if(_body) _body.addEventListener('focus', function(){ if(_tcAuto && _tc && !_tc.value) _fill(); });
+    if(_now) _now.addEventListener('click', function(){ _fill(); _tcAuto=false; if(_tc) _tc.focus(); });
+  }
   if(it.type==='image' && it.src){ const img=document.getElementById('img-'+it.id); if(img) img.addEventListener('click', ()=>{ if(!pinMode[it.id]) lightboxImage(it.src, itemTitle(it)); }); }
 
   // pin controls (images)
@@ -2968,7 +3021,7 @@ async function authInit(){
     setTimeout(function(){ if(!AUTH.user) gateRedirect(); }, 4500); // sign-in didn't complete -> bounce
   } else { gateClear(); }
   if(AUTH.profile && AUTH.profile.owner) ADMIN=true;
-  await visLoad();
+  await visLoad(); await porderLoad();
   AUTH.ready=true; renderAuthSlot(); startPresence(); try{ route(); }catch(e){}
   sb.auth.onAuthStateChange(function(ev, session){
     AUTH.user = session ? session.user : null;
@@ -4326,41 +4379,91 @@ document.addEventListener('click', function(e){ var b=e.target.closest&&e.target
 function gifMaker(proj,sec,it){
   if(!(it.type==='video'&&it.stream_uid)) return;
   var base='https://'+CONFIG.STREAM_CUSTOMER+'/'+it.stream_uid+'/thumbnails/thumbnail';
-  var GM={ start:0, end:2, fps:15, scale:0.5, nativeH:1080, nativeW:1920, srcFps:24 };
-  function dur(){ return Math.max(0, GM.end-GM.start); }
+  var GM={ fps:24, a:0, b:48, out:15, scale:0.5, nativeH:1080, nativeW:1920 };
+  function tOf(frame){ return Math.max(0, frame)/Math.max(1,GM.fps); }
+  function durF(){ return Math.max(0, GM.b-GM.a); }
+  function durS(){ return durF()/Math.max(1,GM.fps); }
   function outH(){ return Math.max(20, Math.round(GM.nativeH*GM.scale)); }
   function outW(){ return Math.round(GM.nativeW*GM.scale); }
-  function stillURL(t){ return base+'.jpg?time='+(Math.max(0,t))+'s&height=150'; }
-  function gifURL(){ return base+'.gif?time='+(+GM.start).toFixed(2)+'s&duration='+dur().toFixed(2)+'s&height='+outH()+'&fps='+GM.fps+'&fit=crop'; }
+  function stillURL(frame){ return base+'.jpg?time='+tOf(frame).toFixed(3)+'s&height=150'; }
+  function gifURL(){ return base+'.gif?time='+tOf(GM.a).toFixed(3)+'s&duration='+durS().toFixed(3)+'s&height='+outH()+'&fps='+GM.out+'&fit=crop'; }
   var scales=[0.25,0.5,0.75,1], fpses=[8,12,15,24,30];
+  function frameCtrl(which){ return '<div class="gm-pcol"><span class="gm-plab">'+(which==='a'?'Start':'End')+' frame</span><div class="gm-pimg" id="gmImg_'+which+'"></div>'
+    +'<div class="gm-fnudge"><button class="gm-nudge" data-nud="'+which+'" data-d="-10">\u201310</button><button class="gm-nudge" data-nud="'+which+'" data-d="-1">\u20131</button>'
+    +'<input id="gmF_'+which+'" type="number" step="1" min="0" value="'+(which==='a'?GM.a:GM.b)+'">'
+    +'<button class="gm-nudge" data-nud="'+which+'" data-d="1">+1</button><button class="gm-nudge" data-nud="'+which+'" data-d="10">+10</button></div></div>'; }
   var html='<div class="gm-wrap"><div class="gm-head">GIF maker \u00b7 <b>'+esc(it.version?(itemTitle(it)+' '+it.version):itemTitle(it))+'</b></div>'
-    +'<div class="gm-hint">Pull a looping clip straight from the video \u2014 great for decks. No re-upload, generated on Cloudflare.</div>'
-    +'<div class="gm-prev"><div class="gm-pcol"><span class="gm-plab">Start</span><div class="gm-pimg" id="gmStartImg"></div><div class="gm-tin"><button class="gm-nudge" data-nud="start" data-d="-0.1">\u2013</button><input id="gmStart" type="number" step="0.05" min="0" value="0"><span>s</span><button class="gm-nudge" data-nud="start" data-d="0.1">+</button></div></div>'
-    +'<div class="gm-pcol"><span class="gm-plab">End</span><div class="gm-pimg" id="gmEndImg"></div><div class="gm-tin"><button class="gm-nudge" data-nud="end" data-d="-0.1">\u2013</button><input id="gmEnd" type="number" step="0.05" min="0" value="2"><span>s</span><button class="gm-nudge" data-nud="end" data-d="0.1">+</button></div></div></div>'
-    +'<details class="gm-frames"><summary>Use frame numbers instead</summary><div class="gm-frow"><label>Source fps <input id="gmSrcFps" type="number" step="1" min="1" value="24"></label><label>Start frame <input id="gmFa" type="number" step="1" min="0" value="0"></label><label>End frame <input id="gmFb" type="number" step="1" min="0" value="48"></label><button class="ca-btn ghost sm" id="gmFapply" type="button">Apply</button></div></details>'
+    +'<div class="gm-hint">Step through by frame. Looping clip pulled straight from the video \u2014 no re-upload, generated on Cloudflare.</div>'
+    +'<div class="gm-row"><span class="gm-rlab">Source fps</span><input id="gmSrcFps" class="gm-fps-in" type="number" step="1" min="1" value="24"><span class="gm-rsub">how many frames = one second in this video</span></div>'
+    +'<div class="gm-prev">'+frameCtrl('a')+frameCtrl('b')+'</div>'
     +'<div class="gm-row"><span class="gm-rlab">Size</span><div class="gm-opts" id="gmScale">'+scales.map(function(s){ return '<button class="gm-opt'+(s===GM.scale?' on':'')+'" data-s="'+s+'">'+s+'\u00d7<i id="gmpx-'+String(s).replace('.','_')+'"></i></button>'; }).join('')+'</div></div>'
-    +'<div class="gm-row"><span class="gm-rlab">Smoothness</span><div class="gm-opts" id="gmFps">'+fpses.map(function(f){ return '<button class="gm-opt'+(f===GM.fps?' on':'')+'" data-f="'+f+'">'+f+' fps</button>'; }).join('')+'</div></div>'
+    +'<div class="gm-row"><span class="gm-rlab">Smoothness</span><div class="gm-opts" id="gmFps">'+fpses.map(function(f){ return '<button class="gm-opt'+(f===GM.out?' on':'')+'" data-f="'+f+'">'+f+' fps</button>'; }).join('')+'</div></div>'
     +'<div class="gm-foot"><div class="gm-meta" id="gmMeta"></div><button class="ca-btn" id="gmGo" type="button">Generate GIF</button></div>'
     +'<div class="gm-out" id="gmOut"></div></div>';
   openOverlay(html, true);
   var $=function(id){ return document.getElementById(id); };
-  function clamp(){ GM.start=Math.max(0,+$('gmStart').value||0); GM.end=Math.max(0,+$('gmEnd').value||0); if(GM.end<GM.start){ GM.end=GM.start; $('gmEnd').value=GM.end.toFixed(2); } }
-  function paintPrev(){ $('gmStartImg').style.backgroundImage='url('+stillURL(GM.start)+')'; $('gmEndImg').style.backgroundImage='url('+stillURL(GM.end)+')'; }
+  function clampF(){ GM.a=Math.max(0,Math.round(+$('gmF_a').value||0)); GM.b=Math.max(0,Math.round(+$('gmF_b').value||0)); if(GM.b<GM.a){ GM.b=GM.a; $('gmF_b').value=GM.b; } }
+  function paintPrev(){ $('gmImg_a').style.backgroundImage='url('+stillURL(GM.a)+')'; $('gmImg_b').style.backgroundImage='url('+stillURL(GM.b)+')'; }
   function paintSize(){ scales.forEach(function(s){ var el=$('gmpx-'+String(s).replace('.','_')); if(el) el.textContent=Math.round(GM.nativeH*s)+'p'; }); }
-  function paintMeta(){ var d=dur(); var warn=d>15?' \u00b7 long clip \u2014 file will be large':(d<=0?' \u00b7 set an end after the start':''); $('gmMeta').innerHTML='Clip: <b>'+d.toFixed(2)+'s</b> \u00b7 '+outW()+'\u00d7'+outH()+' \u00b7 '+GM.fps+' fps'+(warn?'<span class="gm-warn">'+warn+'</span>':''); $('gmGo').disabled=(d<=0); }
+  function paintMeta(){ var f=durF(), d=durS(); var warn=d>15?' \u00b7 long clip \u2014 file will be large':(f<=0?' \u00b7 end must be after start':''); $('gmMeta').innerHTML='Clip: <b>'+f+' frame'+(f===1?'':'s')+'</b> \u00b7 '+d.toFixed(2)+'s \u00b7 '+outW()+'\u00d7'+outH()+' \u00b7 '+GM.out+' fps out'+(warn?'<span class="gm-warn">'+warn+'</span>':''); $('gmGo').disabled=(f<=0); }
   function refresh(){ paintPrev(); paintSize(); paintMeta(); }
-  // native dims
   var probe=new Image(); probe.onload=function(){ if(probe.naturalHeight){ GM.nativeH=probe.naturalHeight; GM.nativeW=probe.naturalWidth; paintSize(); paintMeta(); } }; probe.src=base+'.jpg';
-  $('gmStart').oninput=function(){ clamp(); refresh(); };
-  $('gmEnd').oninput=function(){ clamp(); refresh(); };
-  document.querySelectorAll('.gm-nudge').forEach(function(b){ b.onclick=function(){ var k=b.dataset.nud, d=+b.dataset.d; GM[k]=Math.max(0,(GM[k]+d)); if(k==='end'&&GM.end<GM.start) GM.end=GM.start; $('gmStart').value=GM.start.toFixed(2); $('gmEnd').value=GM.end.toFixed(2); refresh(); }; });
-  $('gmFapply').onclick=function(){ var f=Math.max(1,+$('gmSrcFps').value||24), a=Math.max(0,+$('gmFa').value||0), b=Math.max(0,+$('gmFb').value||0); GM.start=a/f; GM.end=Math.max(a,b)/f; $('gmStart').value=GM.start.toFixed(2); $('gmEnd').value=GM.end.toFixed(2); refresh(); };
+  $('gmSrcFps').oninput=function(){ GM.fps=Math.max(1,Math.round(+$('gmSrcFps').value||24)); refresh(); };
+  $('gmF_a').oninput=function(){ clampF(); refresh(); };
+  $('gmF_b').oninput=function(){ clampF(); refresh(); };
+  document.querySelectorAll('.gm-nudge').forEach(function(b){ b.onclick=function(){ var k=b.dataset.nud, d=+b.dataset.d; if(k==='a'){ GM.a=Math.max(0,GM.a+d); if(GM.b<GM.a) GM.b=GM.a; } else { GM.b=Math.max(GM.a,GM.b+d); } $('gmF_a').value=GM.a; $('gmF_b').value=GM.b; refresh(); }; });
   document.querySelectorAll('#gmScale .gm-opt').forEach(function(b){ b.onclick=function(){ GM.scale=+b.dataset.s; document.querySelectorAll('#gmScale .gm-opt').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); paintMeta(); }; });
-  document.querySelectorAll('#gmFps .gm-opt').forEach(function(b){ b.onclick=function(){ GM.fps=+b.dataset.f; document.querySelectorAll('#gmFps .gm-opt').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); paintMeta(); }; });
-  $('gmGo').onclick=function(){ var url=gifURL(); $('gmOut').innerHTML='<div class="gm-render">Rendering the GIF on Cloudflare\u2026 first build of a new clip can take a few seconds.</div><img class="gm-gif" src="'+esc(url)+'" alt="GIF preview" onload="this.parentNode.querySelector(\'.gm-render\')&&this.parentNode.querySelector(\'.gm-render\').remove()"><div class="gm-actions"><button class="ca-btn" id="gmDl" type="button">Download .gif</button><button class="ca-btn ghost" id="gmCopy" type="button">Copy URL</button></div>'; var dl=$('gmDl'); if(dl) dl.onclick=function(){ gmDownload(url); }; var cp=$('gmCopy'); if(cp) cp.onclick=function(){ try{ navigator.clipboard.writeText(url); cp.textContent='Copied \u2713'; setTimeout(function(){cp.textContent='Copy URL';},1500); }catch(e){} }; };
+  document.querySelectorAll('#gmFps .gm-opt').forEach(function(b){ b.onclick=function(){ GM.out=+b.dataset.f; document.querySelectorAll('#gmFps .gm-opt').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); paintMeta(); }; });
+  $('gmGo').onclick=function(){ var url=gifURL(); $('gmOut').innerHTML='<div class="gm-render">Rendering on Cloudflare\u2026 first build of a new clip can take a few seconds.</div><img class="gm-gif" src="'+esc(url)+'" alt="GIF preview" onload="var r=this.parentNode.querySelector(\'.gm-render\');if(r)r.remove()"><div class="gm-actions"><button class="ca-btn" id="gmDl" type="button">Download .gif</button><button class="ca-btn ghost" id="gmCopy" type="button">Copy URL</button></div>'; var dl=$('gmDl'); if(dl) dl.onclick=function(){ gmDownload(url); }; var cp=$('gmCopy'); if(cp) cp.onclick=function(){ try{ navigator.clipboard.writeText(url); cp.textContent='Copied \u2713'; setTimeout(function(){cp.textContent='Copy URL';},1500); }catch(e){} }; };
   refresh();
 }
 async function gmDownload(url){ try{ var r=await fetch(url); var b=await r.blob(); var u=URL.createObjectURL(b); var a=document.createElement('a'); a.href=u; a.download='supernerd-clip.gif'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(u); },4000); }catch(e){ window.open(url,'_blank'); } }
+
+/* ============================================================
+   v28 — PROJECT ORDER (owner drag-to-reorder)
+   ============================================================ */
+var PORDER={};
+var REORG={ on:false, client:null };
+async function porderLoad(){ try{ var r=await sb.from('project_order').select('project_id,ord').eq('review_slug',CONFIG.REVIEW_SLUG); PORDER={}; (r.data||[]).forEach(function(x){ PORDER[x.project_id]=x.ord; }); }catch(e){ PORDER={}; } }
+function sortProjects(arr){ return arr.map(function(p,i){ return { p:p, o:(PORDER[p.id]!=null?PORDER[p.id]:(100000+i)) }; }).sort(function(a,b){ return a.o-b.o; }).map(function(x){ return x.p; }); }
+function reorderStart(clientKey){
+  if(!accessIsOwner()) return;
+  REORG.on=true; REORG.client=clientKey;
+  reorderRender();
+}
+function reorderRender(){
+  var app=document.getElementById('app');
+  var cl=(CONFIG.CLIENTS||[]).find(function(x){ return x.key===REORG.client; })||{name:'Projects'};
+  var list=sortProjects(CONFIG.PROJECTS.filter(function(p){ return p.client===REORG.client; }));
+  var rows=list.map(function(p,i){ var hid=isHidden(visKeyProject(p.id)); return '<div class="porg-row" draggable="true" data-pid="'+esc(p.id)+'"><span class="porg-grip">\u283f</span><span class="porg-num">'+(i+1)+'</span><span class="porg-title">'+esc(p.title||p.id)+(hid?' <span class="porg-hid">hidden</span>':'')+'</span><span class="porg-drag">drag</span></div>'; }).join('');
+  app.innerHTML='<section class="landing"><div class="eyebrow">Organize \u00b7 '+esc(cl.name)+'</div><h1 class="co-name">Reorder projects</h1><p class="lead">Drag a row to set the order clients see. The numbers update as you go.</p><div class="porg-list" id="porgList">'+rows+'</div><div class="porg-bar"><button class="ca-btn ghost" id="porgCancel" type="button">Cancel</button><button class="ca-btn" id="porgDone" type="button">Done</button></div></section>';
+  reorderWire();
+}
+function reorderWire(){
+  var list=document.getElementById('porgList'); if(!list) return; var dragEl=null;
+  list.querySelectorAll('.porg-row').forEach(function(row){
+    row.addEventListener('dragstart', function(){ dragEl=row; setTimeout(function(){ row.classList.add('dragging'); },0); });
+    row.addEventListener('dragend', function(){ row.classList.remove('dragging'); dragEl=null; porgRenumber(); });
+  });
+  list.addEventListener('dragover', function(e){ e.preventDefault(); if(!dragEl) return; var after=porgAfter(list, e.clientY); if(after==null) list.appendChild(dragEl); else list.insertBefore(dragEl, after); porgRenumber(); });
+  var done=document.getElementById('porgDone'); if(done) done.onclick=reorderSave;
+  var cancel=document.getElementById('porgCancel'); if(cancel) cancel.onclick=function(){ REORG.on=false; route(); };
+}
+function porgAfter(list, y){
+  var els=[].slice.call(list.querySelectorAll('.porg-row:not(.dragging)'));
+  return els.reduce(function(closest, child){ var box=child.getBoundingClientRect(); var off=y - box.top - box.height/2; if(off<0 && off>closest.offset){ return {offset:off, element:child}; } return closest; }, {offset:-Infinity, element:null}).element;
+}
+function porgRenumber(){ var list=document.getElementById('porgList'); if(!list) return; [].slice.call(list.querySelectorAll('.porg-row')).forEach(function(r,i){ var n=r.querySelector('.porg-num'); if(n) n.textContent=(i+1); }); }
+async function reorderSave(){
+  var list=document.getElementById('porgList'); if(!list){ REORG.on=false; route(); return; }
+  var ids=[].slice.call(list.querySelectorAll('.porg-row')).map(function(r){ return r.dataset.pid; });
+  var done=document.getElementById('porgDone'); if(done){ done.disabled=true; done.textContent='Saving\u2026'; }
+  var rows=ids.map(function(id,i){ return { review_slug:CONFIG.REVIEW_SLUG, project_id:id, ord:i, updated_at:new Date().toISOString() }; });
+  try{ var r=await sb.from('project_order').upsert(rows,{onConflict:'review_slug,project_id'}); if(r.error){ alert('Could not save order: '+r.error.message); if(done){ done.disabled=false; done.textContent='Done'; } return; } }
+  catch(e){ alert('Could not save order.'); if(done){ done.disabled=false; done.textContent='Done'; } return; }
+  ids.forEach(function(id,i){ PORDER[id]=i; });
+  REORG.on=false; route();
+}
 
 </script>
 </body>
