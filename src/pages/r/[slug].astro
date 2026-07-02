@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v30';
+  const VERSION = 'v31';
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   const items    = (await getCollection('reviewItems')).filter(i => i.data.published !== false);
@@ -1551,6 +1551,31 @@ select.nl-i option{background:#15161a; color:var(--bone)}
 .tk-ass{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;font:500 14px var(--disp);color:var(--bone);cursor:pointer}
 .tk-ass:hover{background:rgba(255,255,255,.04)}
 .tk-ass input{accent-color:var(--green);width:16px;height:16px;flex:0 0 auto}
+
+/* ============================================================
+   v31 — presentation (deck) feedback threads
+   ============================================================ */
+.deck-notes{margin-top:16px;border-top:1px solid var(--hair);padding-top:16px}
+.dcm-loading{font:400 12px var(--mono);color:var(--dim);padding:6px 0}
+.dcm-head{font:700 12px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.dcm-n{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:rgba(186,192,30,.14);color:var(--green);font:700 10px var(--mono)}
+.dcm-list{display:flex;flex-direction:column;gap:12px;margin-bottom:14px}
+.dcm-empty{font:400 13px var(--disp);color:var(--dim);padding:4px 0 8px}
+.dcm-row{background:rgba(255,255,255,.02);border:1px solid var(--hair);border-radius:11px;padding:12px 13px}
+.dcm-rowhead{display:flex;align-items:center;gap:9px;margin-bottom:7px}
+.dcm-av{width:26px;height:26px;border-radius:50%;flex:0 0 auto;background:#1a1c20 center/cover no-repeat;display:flex;align-items:center;justify-content:center}
+.dcm-av.ph{font:700 11px var(--mono);color:var(--green);background:rgba(186,192,30,.14)}
+.dcm-name{font:600 13.5px var(--disp);color:var(--bone)}
+.dcm-time{font:400 11px var(--mono);color:var(--dim)}
+.dcm-del{margin-left:auto;background:none;border:0;color:var(--dim);font-size:16px;line-height:1;cursor:pointer;padding:0 2px}
+.dcm-del:hover{color:#ff6b6b}
+.dcm-body{font:400 14.5px/1.6 var(--disp);color:#d7d8da;white-space:normal}
+.dcm-composer{display:flex;flex-direction:column;gap:9px}
+.dcm-input{width:100%;min-height:74px;resize:vertical;padding:11px 12px;border-radius:10px;border:1px solid var(--hair);background:rgba(255,255,255,.03);color:var(--bone);font:400 14px/1.5 var(--disp)}
+.dcm-input:focus{outline:none;border-color:var(--green)}
+.dcm-foot{display:flex;align-items:center;gap:10px}
+.dcm-post{flex:0 0 auto}
+.dcm-signin{font:400 13px var(--mono);color:var(--dim);padding:8px 0}
 </style>
 </head>
 <body>
@@ -2544,10 +2569,11 @@ async function deckLoad(projKey){
     html+='<div class="deck-card" id="'+did+'" data-proj="'+esc(projKey)+'">'
       +'<div class="deck-head"><div class="deck-name">'+esc(n)+badge+'</div>'+chips+'</div>'
       +'<div class="deck-body" data-vid="'+esc(vers[0].id)+'">'+deckEmbedHTML(vers[0])+'</div>'
-      +adminRow+'</div>';
+      +adminRow+'<div class="deck-notes" id="dnotes-'+gi+'"></div></div>';
   });
   html+='</div>';
   mount.innerHTML=html;
+  order.forEach(function(n,gi){ var h=document.getElementById('dnotes-'+gi); if(h) deckNotesLoad(projKey,n,h); });
   var ab=document.getElementById('deckAdd'); if(ab) ab.onclick=function(){ deckOpen(projKey,null); };
   mount.querySelectorAll('.deck-vchip').forEach(function(ch){ ch.onclick=function(){
     var card=document.getElementById(ch.dataset.did); if(!card) return;
@@ -4509,6 +4535,65 @@ async function reorderSave(){
   catch(e){ alert('Could not save order.'); if(done){ done.disabled=false; done.textContent='Done'; } return; }
   ids.forEach(function(id,i){ PORDER[id]=i; });
   REORG.on=false; route();
+}
+
+/* ============================================================
+   v31 — Presentation (deck) feedback threads
+   ============================================================ */
+function deckAssetId(projKey, name){ return 'deck:'+projKey+':'+name; }
+async function deckNotesLoad(projKey, name, host){
+  if(!host) return;
+  host.innerHTML='<div class="dcm-loading">Loading feedback\u2026</div>';
+  var rows=[];
+  try{ var r=await sb.from('comments').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).eq('asset_id',deckAssetId(projKey,name)).order('created_at',{ascending:true}); rows=r.data||[]; }catch(e){}
+  deckNotesRender(projKey, name, host, rows);
+}
+function deckNoteRow(c){
+  var av = c.author_avatar ? '<span class="dcm-av" style="background-image:url('+esc(c.author_avatar)+')"></span>' : '<span class="dcm-av ph">'+esc((c.author_name||'?').slice(0,1).toUpperCase())+'</span>';
+  var when = c.created_at ? caAgo(c.created_at) : '';
+  var canDel = (typeof ADMIN!=='undefined'&&ADMIN) || ((c.author_email||'').toLowerCase()===myEmail());
+  var del = canDel ? '<button class="dcm-del" data-id="'+esc(c.id)+'" title="Delete">\u00d7</button>' : '';
+  return '<div class="dcm-row"><div class="dcm-rowhead">'+av+'<span class="dcm-name">'+esc(c.author_name||'Someone')+'</span><span class="dcm-time">'+esc(when)+'</span>'+del+'</div><div class="dcm-body">'+esc(c.body||'').replace(/\n/g,'<br>')+'</div></div>';
+}
+function deckNotesRender(projKey, name, host, rows){
+  var list = rows.length ? rows.map(deckNoteRow).join('') : '<div class="dcm-empty">No feedback yet.</div>';
+  var me=myEmail();
+  var composer = me
+    ? '<div class="dcm-composer"><textarea class="dcm-input" id="dcm-in" placeholder="Leave feedback on this presentation\u2026"></textarea><div class="dcm-foot"><button class="post dcm-post" id="dcm-post" disabled>Post feedback</button><span class="msg" id="dcm-msg"></span></div></div>'
+    : '<div class="dcm-signin">Sign in to leave feedback.</div>';
+  host.innerHTML='<div class="dcm-wrap"><div class="dcm-head">Feedback'+(rows.length?' <span class="dcm-n">'+rows.length+'</span>':'')+'</div><div class="dcm-list">'+list+'</div>'+composer+'</div>';
+  var inp=document.getElementById('dcm-in'), post=document.getElementById('dcm-post');
+  if(inp&&post){ inp.oninput=function(){ post.disabled=!inp.value.trim(); }; post.onclick=function(){ deckNotePost(projKey,name,host); }; }
+  host.querySelectorAll('.dcm-del').forEach(function(b){ b.onclick=function(){ deckNoteDelete(projKey,name,host,b.dataset.id); }; });
+}
+async function deckNotePost(projKey,name,host){
+  var inp=document.getElementById('dcm-in'), post=document.getElementById('dcm-post'), msg=document.getElementById('dcm-msg');
+  var body=(inp&&inp.value||'').trim(); if(!body) return;
+  var a=getAuthor(); if(!a.name){ if(msg){ msg.className='msg err'; msg.textContent='Sign in to post.'; } return; }
+  if(post){ post.disabled=true; post.textContent='Posting\u2026'; }
+  var row={ review_slug:CONFIG.REVIEW_SLUG, asset_id:deckAssetId(projKey,name), author_name:a.name, body:body };
+  if(a.email) row.author_email=a.email;
+  var av=(AUTH.profile&&AUTH.profile.avatar_url)||(a.email?avatarFor(a.email):'')||''; if(av) row.author_avatar=av;
+  try{ var r=await sb.from('comments').insert(row); if(r.error) throw r.error; }
+  catch(e){ if(msg){ msg.className='msg err'; msg.textContent='Could not post.'; } if(post){ post.disabled=false; post.textContent='Post feedback'; } return; }
+  var own={}; (CONFIG.OWNER_LOGINS||[]).forEach(function(e){ own[String(e).toLowerCase()]=1; }); own[String(OWNER_EMAIL).toLowerCase()]=1;
+  if(a.email && !own[a.email]) notifyOwnerDeckFeedback(projKey,name,a,body);
+  deckNotesLoad(projKey,name,host);
+}
+async function deckNoteDelete(projKey,name,host,id){
+  if(!confirm('Delete this comment?')) return;
+  try{ var r=await sb.from('comments').delete().eq('id',id); if(r.error) throw r.error; }catch(e){ alert('Could not delete.'); return; }
+  deckNotesLoad(projKey,name,host);
+}
+async function notifyOwnerDeckFeedback(projKey,name,a,body){
+  try{
+    var proj=CONFIG.PROJECTS.find(function(p){return p.id===projKey;})||{};
+    var link='https://supernerd.tv/r/'+CONFIG.REVIEW_SLUG+'/#p='+encodeURIComponent(projKey)+'&f=decks';
+    var inner='<p style="margin:0 0 6px;font-size:15px;line-height:1.6;color:#c9ccd1;"><b style="color:#fff;">'+esc(a.name)+'</b> left feedback on <b style="color:#fff;">'+esc(name)+'</b>'+(proj.title?(' ('+esc(proj.title)+')'):'')+':</p>'
+      +'<blockquote style="margin:10px 0 16px;padding:12px 14px;border-left:3px solid #BAC01E;background:#0e0f12;border-radius:8px;font-size:15px;line-height:1.6;color:#e8e9eb;">'+esc(body).replace(/\n/g,'<br>')+'</blockquote>'
+      +'<a href="'+link+'" style="display:inline-block;background:#BAC01E;color:#0a0b0d;font-weight:700;font-size:14px;text-decoration:none;padding:11px 20px;border-radius:9px;">Open Presentations \u2192</a>';
+    await sendEmail({ to:[OWNER_EMAIL], subject:'Feedback on '+name+' \u00b7 '+(proj.title||'Supernerd'), html:emailShell('New presentation feedback', inner), replyTo:a.email||OWNER_EMAIL });
+  }catch(e){}
 }
 
 </script>
