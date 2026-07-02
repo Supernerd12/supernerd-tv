@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v29';
+  const VERSION = 'v30';
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   const items    = (await getCollection('reviewItems')).filter(i => i.data.published !== false);
@@ -1938,7 +1938,7 @@ function renderProject(proj, sec, stack, folder){
     loadGridCounts(proj, sec);
     APPR_GRID={proj:proj,sec:sec}; approvalsEnsure(proj.id);
   }
-  if(ADMIN && !folder){ const ab=document.getElementById('ann-btn-'+sec.id); if(ab) ab.addEventListener('click', ()=>announce(proj.id,sec.id)); }
+  if(ADMIN){ const ab=document.getElementById('ann-btn-'+sec.id); if(ab) ab.addEventListener('click', ()=>announce(proj.id,sec.id)); }
 }
 
 function gridCardHTML(proj, sec, stack){
