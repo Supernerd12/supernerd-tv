@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v28';
+  const VERSION = 'v29';
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   const items    = (await getCollection('reviewItems')).filter(i => i.data.published !== false);
@@ -1542,6 +1542,15 @@ select.nl-i option{background:#15161a; color:var(--bone)}
 .porg-hid{font:600 9px var(--mono);letter-spacing:.05em;text-transform:uppercase;color:#e0696d;background:rgba(192,53,58,.14);padding:2px 6px;border-radius:5px;vertical-align:middle}
 .porg-drag{flex:0 0 auto;font:600 9px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--dim);opacity:.5}
 .porg-bar{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;max-width:620px}
+
+/* ============================================================
+   v29 — task multi-assignee checkboxes + New Task neutral
+   ============================================================ */
+.dk-hint{font:400 11px var(--mono);color:var(--dim);text-transform:none;letter-spacing:0;margin-left:6px}
+.tk-assign{display:flex;flex-direction:column;gap:2px;border:1px solid var(--hair);border-radius:10px;padding:6px;background:rgba(255,255,255,.02);max-height:210px;overflow:auto}
+.tk-ass{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;font:500 14px var(--disp);color:var(--bone);cursor:pointer}
+.tk-ass:hover{background:rgba(255,255,255,.04)}
+.tk-ass input{accent-color:var(--green);width:16px;height:16px;flex:0 0 auto}
 </style>
 </head>
 <body>
@@ -1930,7 +1939,6 @@ function renderProject(proj, sec, stack, folder){
     APPR_GRID={proj:proj,sec:sec}; approvalsEnsure(proj.id);
   }
   if(ADMIN && !folder){ const ab=document.getElementById('ann-btn-'+sec.id); if(ab) ab.addEventListener('click', ()=>announce(proj.id,sec.id)); }
-  if(ADMIN){ var etb=document.getElementById('emailTestBtn'); if(etb) etb.onclick=sendTestEmail; }
 }
 
 function gridCardHTML(proj, sec, stack){
@@ -2291,19 +2299,31 @@ async function deleteNote(itemId, commentId){
 }
 
 function adminStrip(proj, sec){
-  return '<div class="admin-strip"><span class="admin-tag">Admin</span><input id="ann-msg-'+sec.id+'" class="admin-input" placeholder="Optional message — e.g. \'New work is up for review\'"><button class="admin-btn" id="ann-btn-'+sec.id+'">Notify team · '+esc(sec.name)+' ready</button><span class="admin-msg" id="ann-status-'+sec.id+'"></span><button class="admin-btn ghost" type="button" id="emailTestBtn">Send test email to me</button><span class="admin-msg" id="emailTestMsg"></span></div>';
+  return '<div class="admin-strip"><span class="admin-tag">Admin</span><input id="ann-msg-'+sec.id+'" class="admin-input" placeholder="Optional message — e.g. \'New work is up for review\'"><button class="admin-btn" id="ann-btn-'+sec.id+'">Notify Team</button><span class="admin-msg" id="ann-status-'+sec.id+'"></span></div>';
 }
 async function announce(projId, secId){
   const proj=CONFIG.PROJECTS.find(p=>p.id===projId); if(!proj) return;
   const sec=proj.sections.find(s=>s.id===secId); if(!sec) return;
   const btn=document.getElementById('ann-btn-'+secId), st=document.getElementById('ann-status-'+secId), inp=document.getElementById('ann-msg-'+secId);
   const message=((inp&&inp.value)||'').trim();
-  btn.disabled=true; const orig=btn.textContent; btn.textContent='Sending…'; st.className='admin-msg'; st.textContent='';
+  btn.disabled=true; const orig=btn.textContent; btn.textContent='Sending\u2026'; st.className='admin-msg'; st.textContent='';
   try{
-    const { error } = await sb.from('announcements').insert({ review_slug:CONFIG.REVIEW_SLUG, project:proj.id, section:sec.id, message:message||null });
-    if(error) throw error;
-    if(inp) inp.value=''; st.className='admin-msg ok'; st.textContent='Team notified.'; setTimeout(()=>{ if(st) st.textContent=''; },3000);
-  }catch(e){ console.error('announce failed', e); st.className='admin-msg err'; st.textContent='Could not send — is the announcements table set up?'; }
+    try{ await sb.from('announcements').insert({ review_slug:CONFIG.REVIEW_SLUG, project:proj.id, section:sec.id, message:message||null }); }catch(e){}
+    if(!INVITES.length) await loadInvites();
+    var own={}; (CONFIG.OWNER_LOGINS||[]).forEach(function(e){ own[String(e).toLowerCase()]=1; }); own[String(OWNER_EMAIL).toLowerCase()]=1;
+    var recips=(INVITES||[]).filter(function(p){ return p.email && (!p.project_keys || !p.project_keys.length || p.project_keys.indexOf(proj.id)>=0); }).map(function(p){ return p.email; });
+    recips=[...new Set(recips)].filter(function(e){ return e && !own[e.toLowerCase()]; });
+    if(recips.length){
+      var link='https://supernerd.tv/r/'+CONFIG.REVIEW_SLUG+'/#p='+encodeURIComponent(proj.id)+'&s='+encodeURIComponent(sec.id);
+      var inner='<p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#c9ccd1;">New work is ready for you to review in <b style="color:#fff;">'+esc(proj.title)+' \u2014 '+esc(sec.name)+'</b>.</p>'
+        +(message?'<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#c9ccd1;">'+esc(message)+'</p>':'')
+        +'<a href="'+link+'" style="display:inline-block;background:#BAC01E;color:#0a0b0d;font-weight:700;font-size:14px;text-decoration:none;padding:11px 20px;border-radius:9px;">Open the review \u2192</a>';
+      await sendEmail({ to:[OWNER_EMAIL], bcc:recips, subject:'New work is ready \u00b7 '+proj.title+' \u2014 '+sec.name, html:emailShell('New work is ready to review', inner), replyTo:OWNER_EMAIL });
+      if(inp) inp.value=''; st.className='admin-msg ok'; st.textContent='Team emailed ('+recips.length+').'; setTimeout(()=>{ if(st) st.textContent=''; },3500);
+    } else {
+      if(inp) inp.value=''; st.className='admin-msg ok'; st.textContent='Posted \u2014 no partners to email yet.'; setTimeout(()=>{ if(st) st.textContent=''; },3500);
+    }
+  }catch(e){ console.error('notify failed', e); st.className='admin-msg err'; st.textContent='Could not send: '+(e.message||'try again'); }
   finally{ btn.disabled=false; btn.textContent=orig; }
 }
 
@@ -2629,6 +2649,7 @@ function projStatusOpen(projKey){
 
 /* ---------- Task Manager ---------- */
 var TASK_STATUSES=[
+  {k:'new',label:'New task',color:'#9aa0a6'},
   {k:'in_progress',label:'In progress',color:'#3b82f6'},
   {k:'working_changes',label:'Working on changes',color:'#f59e0b'},
   {k:'needs_client_feedback',label:'Needs client feedback',color:'#a855f7'},
@@ -2638,15 +2659,17 @@ var TASK_STATUSES=[
   {k:'complete',label:'Complete',color:'#22c55e'}
 ];
 function taskStatus(k){ return TASK_STATUSES.find(function(s){return s.k===k;})||TASK_STATUSES[0]; }
+function taskWho(t){ return (t&&t.owner_names&&t.owner_names.length)?t.owner_names.join(', '):((t&&t.owner_name)||''); }
+function taskEmails(t){ var a=(t&&t.owner_emails&&t.owner_emails.length)?t.owner_emails.slice():[]; if(!a.length && t && t.owner_email) a=[t.owner_email]; return a.map(function(e){return String(e||'').toLowerCase();}).filter(Boolean); }
 var TASKS_CACHE={};
 function myEmail(){ return ((AUTH.user&&AUTH.user.email)||(AUTH.profile&&AUTH.profile.email)||'').toLowerCase(); }
 async function taskBadgeLoad(projKey){
   var me=myEmail(); var b=document.getElementById('taskBadge');
   if(!me){ if(b) b.hidden=true; return; }
   try{
-    var r=await sb.from('tasks').select('id,status,owner_email').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',projKey).neq('status','complete');
+    var r=await sb.from('tasks').select('id,status,owner_email,owner_emails').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',projKey).neq('status','complete');
     if(r.error) throw r.error;
-    var n=(r.data||[]).filter(function(t){ return (t.owner_email||'').toLowerCase()===me; }).length;
+    var n=(r.data||[]).filter(function(t){ return taskEmails(t).indexOf(me)>=0; }).length;
     b=document.getElementById('taskBadge'); if(b){ if(n>0){ b.textContent=n; b.hidden=false; } else b.hidden=true; }
   }catch(e){}
 }
@@ -2669,14 +2692,14 @@ function taskColHTML(projKey,side,label,rows){
     +(done.length?'<div class="task-done-h">Completed</div><div class="task-done">'+done.map(taskDoneHTML).join('')+'</div>':'')
     +'</div>';
 }
-function taskTip(t){ return 'Assigned by '+(t.assigner_name||'\u2014')+(t.owner_name?(' \u00b7 for '+t.owner_name):'')+(t.due_date?(' \u00b7 due '+taskDue(t.due_date)):''); }
+function taskTip(t){ return 'Assigned by '+(t.assigner_name||'\u2014')+(taskWho(t)?(' \u00b7 for '+taskWho(t)):'')+(t.due_date?(' \u00b7 due '+taskDue(t.due_date)):''); }
 function taskCardHTML(t){
   var s=taskStatus(t.status);
   var opts=TASK_STATUSES.map(function(o){return '<option value="'+o.k+'"'+(o.k===t.status?' selected':'')+'>'+esc(o.label)+'</option>';}).join('');
   var due=t.due_date?('<span class="task-due">'+esc(taskDue(t.due_date))+'</span>'):'';
   return '<div class="task-card" data-id="'+esc(t.id)+'" title="'+esc(taskTip(t))+'">'
     +'<span class="task-light blink" style="--c:'+esc(s.color)+'"></span>'
-    +'<div class="task-main"><div class="task-title">'+esc(t.title)+'</div><div class="task-sub">'+(t.owner_name?'<span class="task-who">'+esc(t.owner_name)+'</span>':'')+due+'</div></div>'
+    +'<div class="task-main"><div class="task-title">'+esc(t.title)+'</div><div class="task-sub">'+(taskWho(t)?'<span class="task-who">'+esc(taskWho(t))+'</span>':'')+due+'</div></div>'
     +'<select class="task-status" data-id="'+esc(t.id)+'" style="--c:'+esc(s.color)+'">'+opts+'</select>'
     +'<button class="task-edit" data-id="'+esc(t.id)+'" title="Edit">\u270e</button>'
     +(taskCanDelete(t)?'<button class="task-del" data-id="'+esc(t.id)+'" title="Delete">\u2715</button>':'')
@@ -2706,17 +2729,26 @@ async function taskDelete(projKey,id){
   try{ var r=await sb.from('tasks').delete().eq('id',id); if(r.error) throw r.error; taskLoad(projKey); taskBadgeLoad(projKey); }
   catch(e){ console.error('delete failed',e); alert('Could not delete.'); }
 }
-function taskPeople(){ var list=[]; (INVITES||[]).forEach(function(i){ if(i.email) list.push({name:i.name||i.email,email:i.email}); }); return list; }
+function taskPeople(){ var own={}; (CONFIG.OWNER_LOGINS||[]).forEach(function(e){ own[String(e).toLowerCase()]=1; }); own[String(OWNER_EMAIL).toLowerCase()]=1; if(ADMIN){ var me=myEmail(); if(me) own[me]=1; } var list=[], seen={}; (INVITES||[]).forEach(function(i){ var em=(i.email||'').toLowerCase(); if(!em||own[em]||seen[em]) return; seen[em]=1; list.push({name:i.name||i.email,email:i.email}); }); return list; }
 function taskOpen(projKey, side, row){
   var editing=!!(row && row.id);
   var curSide = editing ? (row.side||'supernerd') : (side || (ADMIN ? 'client' : 'supernerd'));
   var ov=document.createElement('div'); ov.className='onb show'; ov.id='taskOv';
   var sel=function(v){return curSide===v?' selected':'';};
-  var peopleOpts='<option value="">\u2014 assign owner \u2014</option><option value="__me__">Me</option><option value="__client__">The partner (no specific person)</option>'+taskPeople().map(function(p){return '<option value="'+esc(p.email)+'"'+((editing&&(row.owner_email||'').toLowerCase()===p.email.toLowerCase())?' selected':'')+'>'+esc(p.name)+'</option>';}).join('');
+  var ppl=taskPeople();
+  var pre = editing ? ((row.owner_emails&&row.owner_emails.length)?row.owner_emails:[row.owner_email]).filter(Boolean).map(function(e){return String(e).toLowerCase();}) : [];
+  var preSet={}; pre.forEach(function(e){ preSet[e]=1; });
+  var meChecked = editing && (preSet[myEmail()] || (row.owner_email||'').toLowerCase()===myEmail());
+  var clientChecked = editing && !pre.length && !!row.owner_name;
+  var assignHTML='<div class="tk-assign" id="tkAssign">'
+    +'<label class="tk-ass"><input type="checkbox" class="tk-pick" value="__me__"'+(meChecked?' checked':'')+'> Me</label>'
+    +ppl.map(function(p){ return '<label class="tk-ass"><input type="checkbox" class="tk-pick" value="'+esc(p.email)+'"'+(preSet[p.email.toLowerCase()]?' checked':'')+'> '+esc(p.name)+'</label>'; }).join('')
+    +'<label class="tk-ass"><input type="checkbox" class="tk-pick" value="__client__"'+(clientChecked?' checked':'')+'> The partner (no specific person)</label>'
+    +'</div>';
   ov.innerHTML='<div class="lm-modal"><div class="lm-title" style="font-size:19px">'+(editing?'Edit task':'New task')+'</div>'
     +'<label class="dk-l">For which list</label><select class="dk-i" id="tkSide"><option value="supernerd"'+sel('supernerd')+'>Supernerd (our to-do)</option><option value="client"'+sel('client')+'>Partner (their to-do — e.g. approvals)</option></select>'
     +'<label class="dk-l">Task</label><input class="dk-i" id="tkTitle" value="'+(editing?esc(row.title||''):'')+'" placeholder="e.g. Review the new animatic">'
-    +'<label class="dk-l">Assigned to</label><select class="dk-i" id="tkOwner">'+peopleOpts+'</select>'
+    +'<label class="dk-l">Assigned to <span class="dk-hint">tick everyone responsible</span></label>'+assignHTML
     +'<label class="dk-l">Due date</label><div class="dk-daterow"><input class="dk-i" id="tkDue" type="date" value="'+(editing?(row.due_date?esc(row.due_date):''):new Date().toISOString().slice(0,10))+'"><button type="button" class="dk-calbtn" id="tkCal" title="Pick a date">'+calNavIcon('cal')+'</button></div>'
     +'<div class="lm-foot"><button id="tkCancel">Cancel</button><button id="tkSave" class="post">'+(editing?'Save':'Add task')+'</button><span class="msg" id="tkMsg"></span></div></div>';
   document.body.appendChild(ov);
@@ -2726,20 +2758,22 @@ function taskOpen(projKey, side, row){
   document.getElementById('tkSave').onclick=async function(){
     var title=(document.getElementById('tkTitle').value||'').trim();
     var newSide=document.getElementById('tkSide').value;
-    var ownerSel=document.getElementById('tkOwner').value, due=document.getElementById('tkDue').value||null;
+    var due=document.getElementById('tkDue').value||null;
     var msg=document.getElementById('tkMsg'); if(!title){ msg.className='msg err'; msg.textContent='Name the task.'; return; }
-    var ownerName='', ownerEmail='';
-    if(ownerSel==='__me__'){ ownerName=(AUTH.profile&&AUTH.profile.full_name)||myEmail(); ownerEmail=myEmail(); }
-    else if(ownerSel==='__client__'){ ownerName='The partner'; ownerEmail=''; }
-    else if(ownerSel){ var p=taskPeople().find(function(x){return x.email===ownerSel;}); ownerName=p?p.name:ownerSel; ownerEmail=ownerSel; }
-    else if(editing){ ownerName=row.owner_name||''; ownerEmail=row.owner_email||''; }
+    var _picks=[].slice.call(document.querySelectorAll('#tkAssign .tk-pick:checked')).map(function(c){return c.value;});
+    var names=[], emails=[];
+    _picks.forEach(function(v){ if(v==='__me__'){ names.push((AUTH.profile&&AUTH.profile.full_name)||'Me'); emails.push(myEmail()); } else if(v==='__client__'){ names.push('The partner'); } else { var p=ppl.find(function(x){return x.email===v;}); names.push(p?p.name:v); emails.push(v); } });
+    emails=emails.filter(Boolean);
+    if(!names.length && editing){ names=(row.owner_names&&row.owner_names.length)?row.owner_names:(row.owner_name?[row.owner_name]:[]); emails=(row.owner_emails&&row.owner_emails.length)?row.owner_emails:(row.owner_email?[row.owner_email]:[]); }
+    var ownerName=names.join(', '), ownerEmail=emails[0]||'';
     var btn=document.getElementById('tkSave'); btn.disabled=true; btn.textContent='Saving\u2026';
     try{
       if(editing){
-        var r=await sb.from('tasks').update({ side:newSide, title:title, owner_name:ownerName, owner_email:ownerEmail, due_date:due }).eq('id', row.id); if(r.error) throw r.error;
+        var r=await sb.from('tasks').update({ side:newSide, title:title, owner_name:ownerName, owner_email:ownerEmail, owner_names:names, owner_emails:emails, due_date:due }).eq('id', row.id); if(r.error) throw r.error;
       } else {
-        var an=(AUTH.profile&&AUTH.profile.full_name)||(ADMIN?'Supernerd':myEmail())||'\u2014';
-        var r2=await sb.from('tasks').insert({ review_slug:CONFIG.REVIEW_SLUG, project_key:projKey, side:newSide, title:title, owner_name:ownerName, owner_email:ownerEmail, assigner_name:an, assigner_email:myEmail(), due_date:due, status:'in_progress' }); if(r2.error) throw r2.error;
+        var an=(AUTH.profile&&AUTH.profile.full_name)||(ADMIN?'Supernerd':myEmail())||'Supernerd';
+        var r2=await sb.from('tasks').insert({ review_slug:CONFIG.REVIEW_SLUG, project_key:projKey, side:newSide, title:title, owner_name:ownerName, owner_email:ownerEmail, owner_names:names, owner_emails:emails, assigner_name:an, assigner_email:myEmail(), due_date:due, status:'new' }); if(r2.error) throw r2.error;
+        var _to=emails.filter(function(e){ return e && e.toLowerCase()!==myEmail(); }); if(_to.length) notifyTaskAssigned({title:title, names:names, due:due, projKey:projKey, assigner:an}, _to);
       }
       ov.remove(); taskLoad(projKey); taskBadgeLoad(projKey);
     }catch(e){ console.error('save task failed',e); msg.className='msg err'; msg.textContent='Could not save — run tasks.sql.'; btn.disabled=false; btn.textContent=editing?'Save':'Add task'; }
@@ -2941,8 +2975,8 @@ async function calLoad(projId){
   }catch(e){ CAL.EV=[]; }
   // tasks with a due date show up on the calendar too
   try{
-    var rtk=await sb.from('tasks').select('id,title,due_date,owner_name,status').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',projId).not('due_date','is',null);
-    if(rtk&&rtk.data){ rtk.data.forEach(function(t){ if(!t.due_date) return; var sc=taskStatus(t.status).color; CAL.EV.push({ id:'task:'+t.id, d:t.due_date, type:'__task__', title:t.title, proj:projId, kind:'major', time:'', notes:(t.owner_name?('Assigned to: '+t.owner_name):'')+(t.status==='complete'?' \u00b7 done':''), frozen:sc, isTask:true }); }); }
+    var rtk=await sb.from('tasks').select('id,title,due_date,owner_name,owner_names,status').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',projId).not('due_date','is',null);
+    if(rtk&&rtk.data){ rtk.data.forEach(function(t){ if(!t.due_date) return; var sc=taskStatus(t.status).color; CAL.EV.push({ id:'task:'+t.id, d:t.due_date, type:'__task__', title:t.title, proj:projId, kind:'major', time:'', notes:(taskWho(t)?('Assigned to: '+taskWho(t)):'')+(t.status==='complete'?' \u00b7 done':''), frozen:sc, isTask:true }); }); }
     CAL.TYPES['__task__']={l:'Task',c:'#BAC01E'};
   }catch(e){}
   calRender();
@@ -3264,8 +3298,8 @@ async function loadPartners(){
   PP.taskBy={};
   if(currentProjectKey){
     try{
-      var tr=await sb.from('tasks').select('owner_email,status,title').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',currentProjectKey).in('status',['in_progress','working_changes']);
-      if(!tr.error){ (tr.data||[]).forEach(function(t){ var em=(t.owner_email||'').toLowerCase(); if(!em) return; var st=taskStatus(t.status); var cur=PP.taskBy[em]; if(!cur){ PP.taskBy[em]={label:st.label,color:st.color,titles:[t.title]}; } else { cur.titles.push(t.title); if(t.status==='in_progress'){ cur.label=st.label; cur.color=st.color; } } }); }
+      var tr=await sb.from('tasks').select('owner_email,owner_emails,status,title').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',currentProjectKey).in('status',['new','in_progress','working_changes']);
+      if(!tr.error){ (tr.data||[]).forEach(function(t){ var st=taskStatus(t.status); taskEmails(t).forEach(function(em){ if(!em) return; var cur=PP.taskBy[em]; if(!cur){ PP.taskBy[em]={label:st.label,color:st.color,titles:[t.title]}; } else { cur.titles.push(t.title); if(t.status==='in_progress'){ cur.label=st.label; cur.color=st.color; } } }); }); }
     }catch(e){}
   }
   renderPartners(profiles);
@@ -3909,6 +3943,18 @@ async function notifyOwnerOnboard(profile, companyName){
     +'<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-top:1px solid #1c1e22;border-bottom:1px solid #1c1e22;margin:4px 0 18px;">'+rows+'</table>'
     +'<a href="'+link+'" style="display:inline-block;background:#BAC01E;color:#0a0b0d;font-weight:700;font-size:14px;text-decoration:none;padding:11px 20px;border-radius:9px;">View Project Partners \u2192</a>';
   try{ await sendEmail({ to:[OWNER_EMAIL], subject:nm+' finished onboarding \u00b7 Supernerd Portal', html:emailShell('New partner onboarded', inner), replyTo: profile.email||undefined }); }catch(e){}
+}
+async function notifyTaskAssigned(t, toEmails){
+  try{
+    if(!toEmails || !toEmails.length) return;
+    var proj=CONFIG.PROJECTS.find(function(p){return p.id===t.projKey;})||{};
+    var link='https://supernerd.tv/r/'+CONFIG.REVIEW_SLUG+'/#p='+encodeURIComponent(t.projKey)+'&f=tasks';
+    var dueHTML=t.due?('<p style="margin:0 0 14px;font-size:14px;color:#9aa0a6;">Due '+esc(taskDue(t.due))+'</p>'):'';
+    var inner='<p style="margin:0 0 8px;font-size:15px;line-height:1.6;color:#c9ccd1;"><b style="color:#fff;">'+esc(t.assigner||'Supernerd')+'</b> assigned you a task'+(proj.title?(' on <b style="color:#fff;">'+esc(proj.title)+'</b>'):'')+':</p>'
+      +'<p style="margin:0 0 6px;font-size:18px;font-weight:700;color:#fff;">'+esc(t.title)+'</p>'+dueHTML
+      +'<a href="'+link+'" style="display:inline-block;margin-top:8px;background:#BAC01E;color:#0a0b0d;font-weight:700;font-size:14px;text-decoration:none;padding:11px 20px;border-radius:9px;">View the task \u2192</a>';
+    await sendEmail({ to:[OWNER_EMAIL], bcc:toEmails, subject:'New task \u00b7 '+t.title, html:emailShell('You\u2019ve got a new task', inner), replyTo:OWNER_EMAIL });
+  }catch(e){}
 }
 async function sendEmail(opts){
   // opts: { to:[], bcc:[], subject, html, replyTo }
