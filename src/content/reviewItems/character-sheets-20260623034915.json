@@ -7,7 +7,7 @@
   "stream_uid": "",
   "src_url": "",
   "download_url": "",
-  "archived": false,
   "order": 100,
-  "published": true
+  "published": false,
+  "archived": false
 }
