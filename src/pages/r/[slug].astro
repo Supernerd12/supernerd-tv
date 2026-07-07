@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v32';
+  const VERSION = 'v33';
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   const items    = (await getCollection('reviewItems')).filter(i => i.data.published !== false);
@@ -1298,6 +1298,21 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
    ============================================================ */
 .nl-studio{max-width:760px}
 .nl-block{padding:18px 0 20px; border-bottom:1px solid var(--hair)}
+.nl-block-off{opacity:.42}
+.nl-block-off .nl-ta,.nl-block-off .nl-i,.nl-block-off .nl-row,.nl-block-off .nl-add,.nl-block-off .nl-grid3{pointer-events:none}
+.nl-boff{margin-left:auto; flex:0 0 auto; display:inline-flex; align-items:center; gap:6px; padding:4px 11px; border-radius:999px; border:1px solid var(--hair); background:rgba(255,255,255,.03); color:var(--dim); font:700 10px var(--mono); letter-spacing:.06em; text-transform:uppercase; cursor:pointer}
+.nl-boff::before{content:''; width:7px; height:7px; border-radius:50%; background:currentColor}
+.nl-boff.on{color:var(--green); border-color:rgba(186,192,30,.4); background:rgba(186,192,30,.08)}
+.nl-segmented{display:inline-flex; gap:3px; padding:3px; border:1px solid var(--hair); border-radius:10px; background:rgba(255,255,255,.02); margin-bottom:14px}
+.nl-seg{padding:7px 15px; border:0; border-radius:7px; background:transparent; color:var(--dim); font:600 12px var(--mono); cursor:pointer}
+.nl-seg.on{background:var(--green); color:#0a0b0d}
+.nl-himg-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:8px; margin:4px 0 12px}
+.nl-himg{aspect-ratio:16/10; border-radius:9px; border:2px solid var(--hair); background:#000 center/cover no-repeat; cursor:pointer; padding:0; transition:border-color .15s, transform .1s}
+.nl-himg:hover{transform:scale(1.03)}
+.nl-himg.on{border-color:var(--green); box-shadow:0 0 0 2px rgba(186,192,30,.3)}
+.nl-hup{display:flex; align-items:center; gap:10px; margin-bottom:10px}
+.nl-check{display:flex; align-items:center; gap:9px; margin-top:12px; font:500 13px var(--disp); color:var(--bone); cursor:pointer}
+.nl-check input{accent-color:var(--green); width:16px; height:16px}
 .nl-block:last-of-type{border-bottom:0}
 .nl-bh{display:flex; align-items:baseline; gap:10px; margin-bottom:13px; flex-wrap:wrap}
 .nl-bh h4{margin:0; font:600 16px/1.1 var(--disp); color:var(--bone)}
@@ -4023,11 +4038,12 @@ function nlBlank(){
     eyebrow:'Project Update Newsletter',
     title:'', titleGreen:{},               // titleGreen[index]=true => acid word
     sub:'',
-    hero:{ uid:'', t:0, url:'', composed:'' },
+    hero:{ uid:'', t:0, url:'', composed:'', mode:'', noOverlay:false },
     latest:{ label:'On Track', url:'' },
     phase:'', review:{ date:'', label:'' },
     stand:'',
     happened:[], eyes:[], milestones:[], decisions:[], locked:[],
+    off:{},
     reviewUrl:''
   };
 }
@@ -4040,6 +4056,12 @@ function nlProjVideos(proj){
   var seen={}, uniq=[]; out.forEach(function(v){ if(!seen[v.uid]){ seen[v.uid]=1; uniq.push(v); } });
   return uniq;
 }
+function nlProjImages(proj){
+  var out=[], seen={};
+  (proj.sections||[]).forEach(function(sec){ (sec.stacks||[]).forEach(function(st){ (st.versions||[]).forEach(function(v){ if(v.type==='image' && v.src){ var u=absUrl(v.src); if(u && !seen[u]){ seen[u]=1; out.push({ url:u, label:(st.title||v.title||'Image')+(v.version?(' '+v.version):''), section:sec.name }); } } }); }); });
+  return out;
+}
+async function nlUploadImageFile(file){ try{ var ext=(file.name||'img').split('.').pop().toLowerCase().replace(/[^a-z0-9]/g,'')||'jpg'; var path=CONFIG.REVIEW_SLUG+'/'+NL.proj+'/newsletter/upload-'+Date.now()+'.'+ext; var up=await sb.storage.from('client-assets').upload(path, file, {upsert:false, cacheControl:'3600', contentType:file.type||'image/jpeg'}); if(up.error){ return ''; } var pub=sb.storage.from('client-assets').getPublicUrl(path); return (pub&&pub.data)?pub.data.publicUrl:''; }catch(e){ return ''; } }
 function nlLatestStackUrl(proj){
   var s=(proj.sections||[])[0]; if(!s) return '';
   var st=(s.stacks||[])[0]; if(!st) return '';
@@ -4124,25 +4146,27 @@ function nlEmailHTML(d){
     var inner = href ? '<a href="'+nlEsc(href)+'" style="color:'+(accent?ACID:BONE)+';text-decoration:none;">'+nlEsc(val)+' &rsaquo;</a>' : '<span style="color:'+(accent?ACID:BONE)+';">'+nlEsc(val||'\u2014')+'</span>';
     return '<td width="33%" valign="top" style="padding:0 6px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:'+INK2+';border:1px solid '+(accent?'rgba(180,200,40,.45)':LINE)+';border-radius:12px;"><tr><td style="padding:14px 14px 16px;"><div style="font-family:'+mono+';font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:'+G4+';margin-bottom:9px;">'+nlEsc(label)+'</div><div style="font-family:'+disp+';font-size:16px;font-weight:700;line-height:1.2;">'+inner+'</div></td></tr></table></td>';
   }
+  if(!(d.off&&d.off.status)){
   var reviewVal = d.review.date ? nlDatePretty(d.review.date) : (d.review.label||'TBD');
   H+=sectionWrap('<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 -6px;"><tr>'
     + statCell('Latest Item', d.latest.label||'Latest cut', true, d.latest.url)
     + statCell('Current Phase', d.phase||'In progress', false, '')
     + statCell('Next Review', reviewVal, false, '')
     + '</tr></table>');
+  }
 
   // WHERE THINGS STAND
-  if(d.stand){
+  if(d.stand && !(d.off&&d.off.stand)){
     H+=sectionWrap(eyebrow('Where things stand')
       +'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:'+INK2+';border:1px solid '+LINE+';border-left:3px solid '+ACID+';border-radius:12px;"><tr><td style="padding:16px 18px;font-family:'+disp+';font-size:15px;line-height:1.6;color:'+BONE+';">'+nlEsc(d.stand).replace(/\n/g,'<br>')+'</td></tr></table>');
   }
   // WHAT HAPPENED
-  if(d.happened.length){
+  if(d.happened.length && !(d.off&&d.off.happened)){
     var rows=d.happened.map(function(t,i){ return '<tr><td width="30" valign="top" style="font-family:'+mono+';font-size:13px;color:'+ACID+';padding:7px 10px 7px 0;">'+String(i+1).padStart(2,'0')+'</td><td style="font-family:'+disp+';font-size:14px;line-height:1.5;color:'+BONE+';padding:7px 0;border-bottom:1px solid '+INK3+';">'+nlEsc(t)+'</td></tr>'; }).join('');
     H+=sectionWrap(eyebrow('What happened')+'<table role="presentation" width="100%" cellpadding="0" cellspacing="0">'+rows+'</table>');
   }
   // NEEDS YOUR EYES
-  if(d.eyes.length){
+  if(d.eyes.length && !(d.off&&d.off.eyes)){
     var ecards=d.eyes.map(function(e){
       var btn = e.url ? '<div style="margin-top:10px;"><a href="'+nlEsc(e.url)+'" style="display:inline-block;font-family:'+mono+';font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:'+VOID+';background:'+ACID+';padding:8px 14px;border-radius:7px;text-decoration:none;">Open review</a></div>' : '';
       return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:'+INK2+';border:1px solid '+LINE+';border-radius:12px;margin-bottom:10px;"><tr><td style="padding:15px 17px;"><div style="font-family:'+disp+';font-size:15px;font-weight:600;color:'+BONE+';">'+nlEsc(e.text)+'</div>'+btn+'</td></tr></table>';
@@ -4151,7 +4175,7 @@ function nlEmailHTML(d){
     H+=sectionWrap(eyebrow('Needs your eyes')+ecards+openAll);
   }
   // MILESTONES
-  if(d.milestones.length){
+  if(d.milestones.length && !(d.off&&d.off.milestones)){
     var ms=d.milestones.map(function(m){
       var tag = m.tag ? '<span style="font-family:'+mono+';font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:'+G3+';border:1px solid '+LINE+';border-radius:999px;padding:3px 9px;margin-left:8px;white-space:nowrap;">'+nlEsc(m.tag)+'</span>' : '';
       return '<tr><td width="16" valign="top" style="padding:8px 0;"><div style="width:8px;height:8px;border-radius:50%;background:'+ACID+';margin-top:6px;"></div></td><td style="font-family:'+disp+';font-size:14px;line-height:1.5;color:'+BONE+';padding:8px 0 8px 4px;">'+nlEsc(m.text)+tag+'</td></tr>';
@@ -4159,12 +4183,12 @@ function nlEmailHTML(d){
     H+=sectionWrap(eyebrow('Milestones')+'<table role="presentation" width="100%" cellpadding="0" cellspacing="0">'+ms+'</table>');
   }
   // DECISIONS NEEDED
-  if(d.decisions.length){
+  if(d.decisions.length && !(d.off&&d.off.decisions)){
     var qs=d.decisions.map(function(t){ return '<tr><td width="22" valign="top" style="font-family:'+disp+';font-size:16px;font-weight:800;color:'+ACID+';padding:8px 8px 8px 0;">?</td><td style="font-family:'+disp+';font-size:14px;line-height:1.5;color:'+BONE+';padding:8px 0;border-bottom:1px solid '+INK3+';">'+nlEsc(t)+'</td></tr>'; }).join('');
     H+=sectionWrap(eyebrow('Decisions needed')+'<table role="presentation" width="100%" cellpadding="0" cellspacing="0">'+qs+'</table>');
   }
   // WHAT IS LOCKED
-  if(d.locked.length){
+  if(d.locked.length && !(d.off&&d.off.locked)){
     var lk=d.locked.map(function(t){ return '<tr><td width="22" valign="top" style="font-size:14px;color:'+ACID+';padding:7px 8px 7px 0;">\u2713</td><td style="font-family:'+disp+';font-size:14px;line-height:1.5;color:'+G3+';padding:7px 0;">'+nlEsc(t)+'</td></tr>'; }).join('');
     H+=sectionWrap(eyebrow('What is locked')+'<table role="presentation" width="100%" cellpadding="0" cellspacing="0">'+lk+'</table>');
   }
@@ -4193,7 +4217,7 @@ async function nlLoad(projId){
   NL._heroSig=null;
   nlRender();
 }
-function nlMerge(base, over){ Object.keys(over||{}).forEach(function(k){ base[k]=over[k]; }); base.titleGreen=base.titleGreen||{}; base.hero=base.hero||{uid:'',t:0,url:'',composed:''}; base.latest=base.latest||{label:'',url:''}; base.review=base.review||{date:'',label:''}; ['happened','eyes','milestones','decisions','locked'].forEach(function(k){ if(!Array.isArray(base[k])) base[k]=[]; }); return base; }
+function nlMerge(base, over){ Object.keys(over||{}).forEach(function(k){ base[k]=over[k]; }); base.titleGreen=base.titleGreen||{}; base.hero=base.hero||{uid:'',t:0,url:'',composed:'',mode:'',noOverlay:false}; base.off=base.off||{}; base.latest=base.latest||{label:'',url:''}; base.review=base.review||{date:'',label:''}; ['happened','eyes','milestones','decisions','locked'].forEach(function(k){ if(!Array.isArray(base[k])) base[k]=[]; }); return base; }
 
 /* ---------- collectors ---------- */
 function nlV(id){ var e=document.getElementById(id); return e?e.value:''; }
@@ -4230,8 +4254,10 @@ function nlRender(){
     if(kind==='lock') return (d.locked.length?d.locked:['']).map(function(t){ return '<div class="nl-row"><input class="nl-lock" value="'+nlEsc(t)+'" placeholder="Something approved / locked"><button type="button" class="nl-x" data-rm>\u00d7</button></div>'; }).join('');
     return '';
   }
-  function block(title, hint, inner, addKind){
-    return '<div class="nl-block"><div class="nl-bh"><h4>'+title+'</h4>'+(hint?'<span class="nl-bhint">'+hint+'</span>':'')+'</div>'+inner+(addKind?'<button type="button" class="nl-add" data-add="'+addKind+'">+ Add</button>':'')+'</div>';
+  function block(title, hint, inner, addKind, key){
+    var off = key && NL.data.off && NL.data.off[key];
+    var toggle = key ? '<button type="button" class="nl-boff'+(off?'':' on')+'" data-off="'+key+'" title="Include this section in the newsletter">'+(off?'Off':'On')+'</button>' : '';
+    return '<div class="nl-block'+(off?' nl-block-off':'')+'"><div class="nl-bh"><h4>'+title+'</h4>'+(hint?'<span class="nl-bhint">'+hint+'</span>':'')+toggle+'</div>'+inner+(addKind?'<button type="button" class="nl-add" data-add="'+addKind+'">+ Add</button>':'')+'</div>';
   }
   var recHTML = NL.members.length
     ? NL.members.map(function(mm){ return '<label class="nl-rec-row"><input type="checkbox" class="nl-rec" value="'+nlEsc(mm.email)+'" checked><span>'+nlEsc(mm.name)+' <i>'+nlEsc(mm.email)+'</i></span></label>'; }).join('')
@@ -4240,14 +4266,25 @@ function nlRender(){
   m.innerHTML=''
   + '<div class="nl-studio">'
   // HERO
-  + block('Header image', 'Pick a video, scrub to the frame you want. The title gets baked onto it.', ''
-      +'<div class="nl-hero-pick">'
-      +'<div class="nl-hp-l"><label class="nl-l">Video</label><select id="nlVid" class="nl-i">'+vidOpts+'</select>'
-      +'<label class="nl-l">Timecode <span id="nlTlabel" class="nl-tlabel">'+nlFmtT(d.hero.t)+'</span></label>'
-      +'<input id="nlT" class="nl-range" type="range" min="0" max="600" step="1" value="'+(d.hero.t||0)+'">'
-      +'<div class="nl-trow"><input id="nlTnum" class="nl-i sm" type="number" min="0" step="1" value="'+(d.hero.t||0)+'"><span class="nl-unit">seconds</span></div></div>'
-      +'<div class="nl-hp-r"><div class="nl-hero-prev" id="nlHeroPrev">'+(thumb?'<img id="nlHeroImg" src="'+nlEsc(thumb)+'" alt="">':'<div class="nl-hero-none">No frame yet</div>')+'</div></div>'
-      +'</div>')
+  + (function(){
+      var mode = d.hero.mode || (d.hero.url && !d.hero.uid ? 'image' : 'video');
+      var imgs = nlProjImages(NL.projObj||{});
+      var imgGrid = imgs.length
+        ? imgs.map(function(im){ return '<button type="button" class="nl-himg'+(d.hero.url===im.url?' on':'')+'" data-url="'+nlEsc(im.url)+'" title="'+nlEsc(im.label)+'" style="background-image:url('+nlEsc(im.url)+')"></button>'; }).join('')
+        : '<div class="nl-empty-sm">No image uploads in this project yet \u2014 upload your own below.</div>';
+      var left = mode==='video'
+        ? '<label class="nl-l">Video</label><select id="nlVid" class="nl-i">'+vidOpts+'</select>'
+          +'<label class="nl-l">Timecode <span id="nlTlabel" class="nl-tlabel">'+nlFmtT(d.hero.t)+'</span></label>'
+          +'<input id="nlT" class="nl-range" type="range" min="0" max="600" step="1" value="'+(d.hero.t||0)+'">'
+          +'<div class="nl-trow"><input id="nlTnum" class="nl-i sm" type="number" min="0" step="1" value="'+(d.hero.t||0)+'"><span class="nl-unit">seconds</span></div>'
+        : '<label class="nl-l">Pick from this project\u2019s uploads</label><div class="nl-himg-grid">'+imgGrid+'</div>'
+          +'<div class="nl-hup"><button type="button" class="nl-add inline" id="nlHeroUpBtn">Upload your own image</button><input type="file" id="nlHeroUp" accept="image/*" style="display:none"><span class="nl-status" id="nlHeroUpMsg"></span></div>';
+      left += '<label class="nl-check"><input type="checkbox" id="nlHeroOverlay"'+(d.hero.noOverlay?'':' checked')+'> Overlay the title text onto the image</label>';
+      var inner = '<div class="nl-segmented" id="nlHeroMode"><button type="button" class="nl-seg'+(mode==='video'?' on':'')+'" data-mode="video">Video frame</button><button type="button" class="nl-seg'+(mode==='image'?' on':'')+'" data-mode="image">Image</button></div>'
+        +'<div class="nl-hero-pick"><div class="nl-hp-l">'+left+'</div>'
+        +'<div class="nl-hp-r"><div class="nl-hero-prev" id="nlHeroPrev">'+(thumb?'<img id="nlHeroImg" src="'+nlEsc(thumb)+'" alt="">':'<div class="nl-hero-none">No image yet</div>')+'</div></div></div>';
+      return block('Header image', 'Use a video frame, a project image, or upload your own.', inner);
+    })()
   // TITLE
   + block('Title &amp; intro','', ''
       +'<label class="nl-l">Eyebrow</label><input id="nlEyebrow" class="nl-i" value="'+nlEsc(d.eyebrow)+'" placeholder="Project Update Newsletter">'
@@ -4260,19 +4297,19 @@ function nlRender(){
       +'<div><label class="nl-l">Latest Item</label><input id="nlLatLabel" class="nl-i" value="'+nlEsc(d.latest.label)+'" placeholder="On Track / Rough Cut v2"><input id="nlLatUrl" class="nl-i mt" value="'+nlEsc(d.latest.url)+'" placeholder="Link to latest cut"></div>'
       +'<div><label class="nl-l">Current Phase</label><input id="nlPhase" class="nl-i" value="'+nlEsc(d.phase)+'" placeholder="Storyboarding"></div>'
       +'<div><label class="nl-l">Next Review</label><input id="nlRevDate" class="nl-i" type="date" value="'+nlEsc(d.review.date)+'"><input id="nlRevLabel" class="nl-i mt" value="'+nlEsc(d.review.label)+'" placeholder="Label (optional)"></div>'
-      +'</div>')
+      +'</div>','status')
   // WHERE THINGS STAND
-  + block('Where things stand','Talk to them directly.', '<textarea id="nlStand" class="nl-ta" rows="4" placeholder="A short, human note on where the project is.">'+nlEsc(d.stand)+'</textarea>')
+  + block('Where things stand','Talk to them directly.', '<textarea id="nlStand" class="nl-ta" rows="4" placeholder="A short, human note on where the project is.">'+nlEsc(d.stand)+'</textarea>', null, 'stand')
   // WHAT HAPPENED
-  + block('What happened','Auto-filled from recent activity \u2014 edit freely.', '<div id="nlHapList">'+listRows('hap')+'</div>','hap')
+  + block('What happened','Auto-filled from recent activity \u2014 edit freely.', '<div id="nlHapList">'+listRows('hap')+'</div>','hap','happened')
   // NEEDS YOUR EYES
-  + block('Needs your eyes','', '<div id="nlEyeList">'+listRows('eye')+'</div>','eye')
+  + block('Needs your eyes','', '<div id="nlEyeList">'+listRows('eye')+'</div>','eye','eyes')
   // MILESTONES
-  + block('Milestones','', '<div id="nlMsList">'+listRows('ms')+'</div>','ms')
+  + block('Milestones','', '<div id="nlMsList">'+listRows('ms')+'</div>','ms','milestones')
   // DECISIONS
-  + block('Decisions needed','', '<div id="nlDecList">'+listRows('dec')+'</div>','dec')
+  + block('Decisions needed','', '<div id="nlDecList">'+listRows('dec')+'</div>','dec','decisions')
   // LOCKED
-  + block('What is locked','Approved / locked items.', '<div id="nlLockList">'+listRows('lock')+'</div>','lock')
+  + block('What is locked','Approved / locked items.', '<div id="nlLockList">'+listRows('lock')+'</div>','lock','locked')
   // RECIPIENTS
   + block('Recipients','You get a copy automatically; everyone here is BCC\u2019d.', '<div class="nl-recs">'+recHTML+'</div><div class="nl-row"><input id="nlAddRec" class="nl-i" placeholder="Add an email\u2026"><button type="button" class="nl-add inline" id="nlAddRecBtn">Add</button></div>')
   // ACTIONS
@@ -4285,6 +4322,12 @@ function nlFmtT(t){ t=Math.max(0,Math.floor(t||0)); var mm=Math.floor(t/60), ss=
 /* ---------- wiring ---------- */
 function nlWire(){
   var d=NL.data;
+  document.querySelectorAll('#nlHeroMode .nl-seg').forEach(function(b){ b.onclick=function(){ nlCollect(); d.hero.mode=b.dataset.mode; nlRender(); }; });
+  document.querySelectorAll('.nl-himg').forEach(function(b){ b.onclick=function(){ d.hero.url=b.dataset.url; d.hero.uid=''; d.hero.composed=''; d.hero.mode='image'; document.querySelectorAll('.nl-himg').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); nlUpdHero(); }; });
+  var hup=document.getElementById('nlHeroUpBtn'), hf=document.getElementById('nlHeroUp'), hm=document.getElementById('nlHeroUpMsg');
+  if(hup&&hf){ hup.onclick=function(){ hf.click(); }; hf.onchange=async function(){ var f=hf.files&&hf.files[0]; hf.value=''; if(!f) return; hup.disabled=true; hup.textContent='Uploading\u2026'; var url=await nlUploadImageFile(f); hup.disabled=false; hup.textContent='Upload your own image'; if(!url){ if(hm){ hm.textContent='Upload failed.'; } return; } d.hero.url=url; d.hero.uid=''; d.hero.composed=''; d.hero.mode='image'; nlRender(); }; }
+  var hov=document.getElementById('nlHeroOverlay'); if(hov) hov.onchange=function(){ d.hero.noOverlay=!hov.checked; d.hero.composed=''; };
+  document.querySelectorAll('.nl-boff[data-off]').forEach(function(b){ b.onclick=function(){ nlCollect(); var k=b.dataset.off; d.off=d.off||{}; d.off[k]=!d.off[k]; nlRender(); }; });
   var vid=document.getElementById('nlVid'); if(vid) vid.onchange=function(){ d.hero.uid=vid.value; d.hero.url=''; d.hero.composed=''; nlUpdHero(); };
   var rng=document.getElementById('nlT'), num=document.getElementById('nlTnum'), tl=document.getElementById('nlTlabel');
   function setT(v){ v=Math.max(0,parseInt(v,10)||0); d.hero.t=v; d.hero.composed=''; if(rng&&+rng.value!==v) rng.value=v; if(num&&+num.value!==v) num.value=v; if(tl) tl.textContent=nlFmtT(v); nlUpdHeroDeb(); }
@@ -4341,6 +4384,7 @@ async function nlMaybeCompose(){
   var d=NL.data;
   if(!d.hero.uid && !d.hero.url){ d.hero.composed=''; return; }
   if(d.hero.uid) d.hero.url=nlStreamThumb(d.hero.uid,d.hero.t);
+  if(d.hero.noOverlay){ d.hero.composed=''; return; }
   var sig=(d.hero.url)+'|'+d.title+'|'+Object.keys(d.titleGreen).filter(function(k){return d.titleGreen[k];}).join(',');
   if(NL._heroSig===sig && d.hero.composed) return;
   var url=await nlComposeHero();
