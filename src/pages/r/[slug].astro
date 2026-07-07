@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v31';
+  const VERSION = 'v32';
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   const items    = (await getCollection('reviewItems')).filter(i => i.data.published !== false);
@@ -1788,8 +1788,8 @@ function route(){
     const proj=CONFIG.PROJECTS.find(x=>x.id===p); if(!proj){ routeHome(); return; }
     let sec=proj.sections.find(x=>x.id===s) || proj.sections[0];
     if(!sec){ routeHome(); return; }
-    if(!accessIsOwner() && isHidden(visKeySection(proj.id, sec.id))){
-      sec=proj.sections.filter(function(x){ return !isHidden(visKeySection(proj.id,x.id)); })[0];
+    if(!accessIsOwner() && !secVisibleForClient(proj, sec)){
+      sec=visSectionsOf(proj)[0];
       if(!sec){ routeHome(); return; }
     }
     updateTopbar(proj.client);
@@ -1866,9 +1866,10 @@ function renderClientProjects(cl, allow){
   const owner=accessIsOwner(); const multiCompany=visibleClients().length>1;
   const back=(owner||multiCompany)?'<a class="crumb" href="#">\u2190 Companies</a>':'';
   const cards=sortProjects(CONFIG.PROJECTS.filter(function(p){ return p.client===cl.key && allow[p.id]; })).map(function(p){
-    const items=p.sections.reduce((n,sec)=>n+sec.stacks.reduce((m,st)=>m+st.versions.length,0),0);
+    const secCount = owner ? p.sections.length : visSectionsOf(p).length;
+    const items = owner ? p.sections.reduce((n,sec)=>n+sec.stacks.reduce((m,st)=>m+st.versions.length,0),0) : projVisibleItemCount(p);
     const hid=isHidden(visKeyProject(p.id));
-    const a='<a class="card'+(hid?' is-hidden':'')+'" href="#p='+encodeURIComponent(p.id)+'" tabindex="0"><div class="c-eye">Project</div><h3>'+esc(p.title)+'</h3><div class="c-tag">'+esc(p.tagline||'')+'</div><div class="c-foot"><span class="c-count">'+p.sections.length+' sections \u00b7 '+items+' item'+(items===1?'':'s')+'</span><span class="c-go">Open \u2192</span></div>'+((owner&&hid)?'<div class="hidden-flag">HIDDEN</div>':'')+'</a>';
+    const a='<a class="card'+(hid?' is-hidden':'')+'" href="#p='+encodeURIComponent(p.id)+'" tabindex="0"><div class="c-eye">Project</div><h3>'+esc(p.title)+'</h3><div class="c-tag">'+esc(p.tagline||'')+'</div><div class="c-foot"><span class="c-count">'+secCount+' section'+(secCount===1?'':'s')+' \u00b7 '+items+' item'+(items===1?'':'s')+'</span><span class="c-go">Open \u2192</span></div>'+((owner&&hid)?'<div class="hidden-flag">HIDDEN</div>':'')+'</a>';
     if(!owner) return a;
     const tog='<button class="vis-tog" data-vk="'+esc(visKeyProject(p.id))+'" title="'+(hid?'Show to clients':'Hide from clients')+'">'+(hid?visEyeOff()+'Hidden':visEye()+'Visible')+'</button>';
     return '<div class="card-wrap'+(hid?' is-hidden':'')+'" data-pid="'+esc(p.id)+'">'+a+tog+'</div>';
@@ -1902,8 +1903,8 @@ function onboardSectionHTML(cl){
 function renderProject(proj, sec, stack, folder){
   currentFolder = folder||null; currentProjectKey = proj.id;
   const app=document.getElementById('app');
-  const nav=proj.sections.filter(function(s){ return (typeof ADMIN!=='undefined'&&ADMIN)||!isHidden(visKeySection(proj.id,s.id)); }).map((s,i)=>{
-    const n=s.stacks.reduce((m,st)=>m+st.versions.length,0);
+  const nav=visSectionsOf(proj).map((s,i)=>{
+    const n=visStacksOf(proj,s).reduce((m,st)=>m+st.versions.length,0);
     const hid=isHidden(visKeySection(proj.id,s.id));
     const tail=((typeof ADMIN!=='undefined'&&ADMIN)&&hid)?'<span class="nav-hid-tag">hidden</span>':'<span class="n-ct">'+(n||'')+'</span>';
     return '<a href="#p='+encodeURIComponent(proj.id)+'&s='+encodeURIComponent(s.id)+'" class="'+(s.id===sec.id?'active':'')+(hid?' nav-hidden':'')+'"><span class="n-num">'+String(i+1).padStart(2,'0')+'</span><span class="n-name">'+esc(s.name)+'</span>'+tail+'</a>';
@@ -1936,7 +1937,7 @@ function renderProject(proj, sec, stack, folder){
     const secHid=isHidden(visKeySection(proj.id,sec.id));
     const secTog=(typeof ADMIN!=='undefined'&&ADMIN)?'<button class="vis-tog sec-tog'+(secHid?' on':'')+'" data-vk="'+esc(visKeySection(proj.id,sec.id))+'">'+(secHid?visEyeOff()+'Hidden from clients':visEye()+'Visible to clients')+'</button>':'';
     head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>'+esc(sec.name)+'</h2>'+secTog+'</div>';
-    const vstacks=sec.stacks.filter(function(st){ return (typeof ADMIN!=='undefined'&&ADMIN)||!isHidden(visKeyStack(proj.id,sec.id,st.id)); });
+    const vstacks=visStacksOf(proj,sec);
     body = vstacks.length ? '<div class="rgrid" data-cols="'+Math.min(vstacks.length,3)+'">'+vstacks.map(st=>gridCardWrap(proj,sec,st)).join('')+'</div>' : '<div class="sec-empty">Nothing in '+esc(sec.name)+' yet.</div>';
   }
   var _cl=(CONFIG.CLIENTS||[]).find(function(x){return x.key===proj.client;}); var _clName=_cl?_cl.name:CONFIG.COMPANY.name;
@@ -4427,6 +4428,10 @@ function visKeyProject(p){ return 'p:'+p; }
 function visKeySection(p,s){ return 's:'+p+':'+s; }
 function visKeyStack(p,s,k){ return 'k:'+p+':'+s+':'+k; }
 function isHidden(key){ return !!VIS.set[key]; }
+function visStacksOf(proj, sec){ if(typeof ADMIN!=='undefined'&&ADMIN) return sec.stacks||[]; return (sec.stacks||[]).filter(function(st){ return !isHidden(visKeyStack(proj.id,sec.id,st.id)); }); }
+function secVisibleForClient(proj, sec){ if(isHidden(visKeySection(proj.id,sec.id))) return false; return visStacksOf(proj,sec).length>0; }
+function visSectionsOf(proj){ if(typeof ADMIN!=='undefined'&&ADMIN) return proj.sections||[]; return (proj.sections||[]).filter(function(sec){ return secVisibleForClient(proj,sec); }); }
+function projVisibleItemCount(proj){ var secs=visSectionsOf(proj); return secs.reduce(function(n,sec){ return n + visStacksOf(proj,sec).reduce(function(m,st){ return m+st.versions.length; },0); },0); }
 function visEye(){ return '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>'; }
 function visEyeOff(){ return '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-10-7-10-7a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 10 7 10 7a18.5 18.5 0 0 1-2.16 3.19M1 1l22 22"/><path d="M9.5 9.5a3 3 0 0 0 4.24 4.24"/></svg>'; }
 async function visLoad(){ try{ var r=await sb.from('hidden_items').select('item_key').eq('review_slug',CONFIG.REVIEW_SLUG); VIS.set={}; (r.data||[]).forEach(function(x){ VIS.set[x.item_key]=true; }); }catch(e){ VIS.set={}; } }
