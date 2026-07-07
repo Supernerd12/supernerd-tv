@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v33';
+  const VERSION = 'v34';
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   const items    = (await getCollection('reviewItems')).filter(i => i.data.published !== false);
@@ -1298,6 +1298,7 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
    ============================================================ */
 .nl-studio{max-width:760px}
 .nl-block{padding:18px 0 20px; border-bottom:1px solid var(--hair)}
+.nl-status.muted{color:var(--dim); font-style:italic}
 .nl-block-off{opacity:.42}
 .nl-block-off .nl-ta,.nl-block-off .nl-i,.nl-block-off .nl-row,.nl-block-off .nl-add,.nl-block-off .nl-grid3{pointer-events:none}
 .nl-boff{margin-left:auto; flex:0 0 auto; display:inline-flex; align-items:center; gap:6px; padding:4px 11px; border-radius:999px; border:1px solid var(--hair); background:rgba(255,255,255,.03); color:var(--dim); font:700 10px var(--mono); letter-spacing:.06em; text-transform:uppercase; cursor:pointer}
@@ -3099,8 +3100,15 @@ async function authInit(){
   if(AUTH.profile && AUTH.profile.owner) ADMIN=true;
   await visLoad(); await porderLoad();
   AUTH.ready=true; renderAuthSlot(); startPresence(); try{ route(); }catch(e){}
+  var _authUid = (AUTH.user && AUTH.user.id) || null;
   sb.auth.onAuthStateChange(function(ev, session){
+    var uid = session ? session.user.id : null;
     AUTH.user = session ? session.user : null;
+    // Token refreshes / passive events fire when you refocus a tab. They do NOT change
+    // who's signed in, so we must NOT re-render (that would wipe in-progress work like a newsletter).
+    if(ev==='TOKEN_REFRESHED' || ev==='USER_UPDATED' || ev==='INITIAL_SESSION'){ _authUid=uid; return; }
+    if(uid===_authUid && ev!=='SIGNED_OUT'){ return; }
+    _authUid=uid;
     setTimeout(async function(){
       if(AUTH.user){ await loadProfile(); gateClear(); } else { AUTH.profile=null; }
       if(AUTH.profile && AUTH.profile.owner) ADMIN=true;
@@ -4210,8 +4218,9 @@ async function nlLoad(projId){
   var m=document.getElementById('nlmount'); if(m) m.innerHTML='<div class="cal-loading">Loading newsletter studio\u2026</div>';
   NL.videos=nlProjVideos(proj);
   NL.members=await nlMembers(proj);
-  var draft=null;
-  try{ var r=await sb.from('newsletters').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',projId).maybeSingle(); if(r&&r.data&&r.data.data&&r.data.data.title!=null) draft=r.data.data; }catch(e){}
+  var draft=null, draftAt=0;
+  try{ var r=await sb.from('newsletters').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',projId).maybeSingle(); if(r&&r.data&&r.data.data&&r.data.data.title!=null){ draft=r.data.data; draftAt=Date.parse(r.data.updated_at)||0; } }catch(e){}
+  try{ var raw=localStorage.getItem('nl:'+CONFIG.REVIEW_SLUG+':'+projId); if(raw){ var lo=JSON.parse(raw); if(lo&&lo.data&&lo.data.title!=null&&(lo.at||0)>draftAt+1500){ draft=lo.data; } } }catch(e){}
   NL.data = draft ? nlMerge(nlBlank(), draft) : await nlGather(proj);
   if(!NL.data.hero.uid && !NL.data.hero.url && NL.videos[0]){ NL.data.hero.uid=NL.videos[0].uid; NL.data.hero.t=0; }
   NL._heroSig=null;
@@ -4322,25 +4331,26 @@ function nlFmtT(t){ t=Math.max(0,Math.floor(t||0)); var mm=Math.floor(t/60), ss=
 /* ---------- wiring ---------- */
 function nlWire(){
   var d=NL.data;
-  document.querySelectorAll('#nlHeroMode .nl-seg').forEach(function(b){ b.onclick=function(){ nlCollect(); d.hero.mode=b.dataset.mode; nlRender(); }; });
-  document.querySelectorAll('.nl-himg').forEach(function(b){ b.onclick=function(){ d.hero.url=b.dataset.url; d.hero.uid=''; d.hero.composed=''; d.hero.mode='image'; document.querySelectorAll('.nl-himg').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); nlUpdHero(); }; });
+  document.querySelectorAll('#nlHeroMode .nl-seg').forEach(function(b){ b.onclick=function(){ nlCollect(); d.hero.mode=b.dataset.mode; nlRender(); nlAutosave(); }; });
+  document.querySelectorAll('.nl-himg').forEach(function(b){ b.onclick=function(){ d.hero.url=b.dataset.url; d.hero.uid=''; d.hero.composed=''; d.hero.mode='image'; document.querySelectorAll('.nl-himg').forEach(function(x){x.classList.remove('on');}); b.classList.add('on'); nlUpdHero(); nlAutosave(); }; });
   var hup=document.getElementById('nlHeroUpBtn'), hf=document.getElementById('nlHeroUp'), hm=document.getElementById('nlHeroUpMsg');
-  if(hup&&hf){ hup.onclick=function(){ hf.click(); }; hf.onchange=async function(){ var f=hf.files&&hf.files[0]; hf.value=''; if(!f) return; hup.disabled=true; hup.textContent='Uploading\u2026'; var url=await nlUploadImageFile(f); hup.disabled=false; hup.textContent='Upload your own image'; if(!url){ if(hm){ hm.textContent='Upload failed.'; } return; } d.hero.url=url; d.hero.uid=''; d.hero.composed=''; d.hero.mode='image'; nlRender(); }; }
-  var hov=document.getElementById('nlHeroOverlay'); if(hov) hov.onchange=function(){ d.hero.noOverlay=!hov.checked; d.hero.composed=''; };
-  document.querySelectorAll('.nl-boff[data-off]').forEach(function(b){ b.onclick=function(){ nlCollect(); var k=b.dataset.off; d.off=d.off||{}; d.off[k]=!d.off[k]; nlRender(); }; });
+  if(hup&&hf){ hup.onclick=function(){ hf.click(); }; hf.onchange=async function(){ var f=hf.files&&hf.files[0]; hf.value=''; if(!f) return; hup.disabled=true; hup.textContent='Uploading\u2026'; var url=await nlUploadImageFile(f); hup.disabled=false; hup.textContent='Upload your own image'; if(!url){ if(hm){ hm.textContent='Upload failed.'; } return; } d.hero.url=url; d.hero.uid=''; d.hero.composed=''; d.hero.mode='image'; nlRender(); nlAutosave(); }; }
+  var hov=document.getElementById('nlHeroOverlay'); if(hov) hov.onchange=function(){ d.hero.noOverlay=!hov.checked; d.hero.composed=''; nlAutosave(); };
+  document.querySelectorAll('.nl-boff[data-off]').forEach(function(b){ b.onclick=function(){ nlCollect(); var k=b.dataset.off; d.off=d.off||{}; d.off[k]=!d.off[k]; nlRender(); nlAutosave(); }; });
   var vid=document.getElementById('nlVid'); if(vid) vid.onchange=function(){ d.hero.uid=vid.value; d.hero.url=''; d.hero.composed=''; nlUpdHero(); };
   var rng=document.getElementById('nlT'), num=document.getElementById('nlTnum'), tl=document.getElementById('nlTlabel');
-  function setT(v){ v=Math.max(0,parseInt(v,10)||0); d.hero.t=v; d.hero.composed=''; if(rng&&+rng.value!==v) rng.value=v; if(num&&+num.value!==v) num.value=v; if(tl) tl.textContent=nlFmtT(v); nlUpdHeroDeb(); }
+  function setT(v){ v=Math.max(0,parseInt(v,10)||0); d.hero.t=v; d.hero.composed=''; if(rng&&+rng.value!==v) rng.value=v; if(num&&+num.value!==v) num.value=v; if(tl) tl.textContent=nlFmtT(v); nlUpdHeroDeb(); nlAutosave(); }
   if(rng) rng.oninput=function(){ setT(rng.value); };
   if(num) num.oninput=function(){ setT(num.value); };
   var ti=document.getElementById('nlTitle'); if(ti) ti.oninput=function(){ d.title=ti.value; var box=document.getElementById('nlTitleWords'); if(box){ box.innerHTML=nlTitleChips(); nlWireChips(); } };
   nlWireChips();
-  document.querySelectorAll('.nl-add[data-add]').forEach(function(b){ b.onclick=function(){ nlCollect(); var k=b.dataset.add; var map={hap:'happened',dec:'decisions',lock:'locked'}; if(map[k]){ d[map[k]].push(''); } else if(k==='eye'){ d.eyes.push({text:'',url:''}); } else if(k==='ms'){ d.milestones.push({text:'',tag:''}); } nlRender(); }; });
-  document.querySelectorAll('.nl-x[data-rm]').forEach(function(b){ b.onclick=function(){ var row=b.closest('.nl-row'); if(row) row.parentNode.removeChild(row); nlCollect(); }; });
+  document.querySelectorAll('.nl-add[data-add]').forEach(function(b){ b.onclick=function(){ nlCollect(); var k=b.dataset.add; var map={hap:'happened',dec:'decisions',lock:'locked'}; if(map[k]){ d[map[k]].push(''); } else if(k==='eye'){ d.eyes.push({text:'',url:''}); } else if(k==='ms'){ d.milestones.push({text:'',tag:''}); } nlRender(); nlAutosave(); }; });
+  document.querySelectorAll('.nl-x[data-rm]').forEach(function(b){ b.onclick=function(){ var row=b.closest('.nl-row'); if(row) row.parentNode.removeChild(row); nlCollect(); nlAutosave(); }; });
   var ar=document.getElementById('nlAddRecBtn'); if(ar) ar.onclick=function(){ var inp=document.getElementById('nlAddRec'); var em=(inp.value||'').trim(); if(!em||em.indexOf('@')<0) return; var recs=document.querySelector('.nl-recs'); var lbl=document.createElement('label'); lbl.className='nl-rec-row'; lbl.innerHTML='<input type="checkbox" class="nl-rec" value="'+nlEsc(em)+'" checked><span>'+nlEsc(em)+'</span>'; var empty=recs.querySelector('.nl-empty-sm'); if(empty) empty.remove(); recs.appendChild(lbl); inp.value=''; };
-  var sb1=document.getElementById('nlSaveBtn'); if(sb1) sb1.onclick=function(){ nlSaveDraft(false); };
+  var sb1=document.getElementById('nlSaveBtn'); if(sb1) sb1.onclick=function(){ nlSaveDraft(true); };
   var pb=document.getElementById('nlPreviewBtn'); if(pb) pb.onclick=nlPreview;
   var snd=document.getElementById('nlSendBtn'); if(snd) snd.onclick=nlSend;
+  var _m=document.getElementById('nlmount'); if(_m){ _m.addEventListener('input', nlAutosave); _m.addEventListener('change', nlAutosave); }
 }
 function nlWireChips(){ document.querySelectorAll('.nl-wchip').forEach(function(c){ c.onclick=function(){ var i=+c.dataset.wi; NL.data.titleGreen[i]=!NL.data.titleGreen[i]; c.classList.toggle('on'); }; }); }
 var _nlHeroTimer=null;
@@ -4393,6 +4403,12 @@ async function nlMaybeCompose(){
 
 /* ---------- preview / send / save ---------- */
 function nlStatus(msg, cls){ var s=document.getElementById('nlStatus'); if(s){ s.textContent=msg; s.className='nl-status '+(cls||''); if(cls==='ok') setTimeout(function(){ if(s) s.textContent=''; }, 3000); } }
+function nlLSKey(){ return 'nl:'+CONFIG.REVIEW_SLUG+':'+NL.proj; }
+function nlLocalWrite(){ try{ localStorage.setItem(nlLSKey(), JSON.stringify({ data:NL.data, at:Date.now() })); }catch(e){} }
+function nlFlush(){ try{ if(NL&&NL.proj&&document.getElementById('nlmount')){ nlCollect(); nlLocalWrite(); } }catch(e){} }
+var _nlAutoTimer=null;
+function nlAutosave(){ clearTimeout(_nlAutoTimer); _nlAutoTimer=setTimeout(function(){ if(!NL||!NL.proj||!document.getElementById('nlmount')) return; nlCollect(); nlLocalWrite(); nlSaveDraft(false, true); }, 900); }
+try{ document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='hidden') nlFlush(); }); window.addEventListener('beforeunload', nlFlush); }catch(e){}
 function nlOpenPreview(html){ var safe=html.replace(/"/g,'&quot;'); openOverlay('<div class="nl-preview-wrap"><div class="nl-preview-bar">Email preview</div><iframe class="nl-preview-frame" srcdoc="'+safe+'"></iframe></div>', true); }
 async function nlPreview(){
   nlCollect(); var btn=document.getElementById('nlPreviewBtn'); if(btn){ btn.disabled=true; btn.textContent='Building\u2026'; }
@@ -4401,10 +4417,11 @@ async function nlPreview(){
   if(btn){ btn.disabled=false; btn.textContent='Preview'; }
   nlOpenPreview(html);
 }
-async function nlSaveDraft(loud){
+async function nlSaveDraft(loud, quiet){
   nlCollect();
   var row={ review_slug:CONFIG.REVIEW_SLUG, project_key:NL.proj, data:NL.data, updated_by:myEmail(), updated_at:new Date().toISOString() };
-  try{ var r=await sb.from('newsletters').upsert(row,{onConflict:'review_slug,project_key'}); if(r.error){ if(loud) nlStatus('Save failed: '+r.error.message,'err'); return false; } if(loud) nlStatus('Draft saved \u2713','ok'); return true; }catch(e){ if(loud) nlStatus('Save failed.','err'); return false; }
+  if(quiet) nlStatus('Saving\u2026','muted');
+  try{ var r=await sb.from('newsletters').upsert(row,{onConflict:'review_slug,project_key'}); if(r.error){ if(loud) nlStatus('Save failed: '+r.error.message,'err'); else if(quiet) nlStatus('Saved on this device','muted'); return false; } if(loud) nlStatus('Draft saved \u2713','ok'); else if(quiet) nlStatus('Saved \u2713','muted'); return true; }catch(e){ if(loud) nlStatus('Save failed.','err'); else if(quiet) nlStatus('Saved on this device','muted'); return false; }
 }
 async function nlSend(){
   nlCollect();
