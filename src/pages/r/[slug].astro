@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v34';
+  const VERSION = 'v35';
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   const items    = (await getCollection('reviewItems')).filter(i => i.data.published !== false);
@@ -1298,6 +1298,30 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
    ============================================================ */
 .nl-studio{max-width:760px}
 .nl-block{padding:18px 0 20px; border-bottom:1px solid var(--hair)}
+/* v35 — schedule picker + scheduled sends list */
+.sch-wrap{width:min(440px,94vw); background:#101114; border:1px solid var(--hair-2); border-radius:14px; padding:22px}
+.sch-head{font:700 18px var(--disp); color:var(--bone); margin-bottom:6px}
+.sch-note{font:400 13px/1.5 var(--mono); color:var(--dim); margin-bottom:16px}
+.sch-l{display:block; font:600 10px var(--mono); letter-spacing:.05em; text-transform:uppercase; color:var(--dim); margin-bottom:7px}
+.sch-in{width:100%; padding:11px 12px; border-radius:10px; border:1px solid var(--hair); background:rgba(255,255,255,.03); color:var(--bone); font:500 15px var(--mono); color-scheme:dark}
+.sch-in:focus{outline:none; border-color:var(--green)}
+.sch-quick{display:flex; flex-wrap:wrap; gap:7px; margin:12px 0 4px}
+.sch-q{padding:7px 12px; border-radius:8px; border:1px solid var(--hair); background:rgba(255,255,255,.03); color:var(--bone); font:600 12px var(--mono); cursor:pointer}
+.sch-q:hover{border-color:var(--green); color:var(--green)}
+.sch-foot{display:flex; justify-content:flex-end; gap:9px; margin-top:20px}
+.sch-msg{margin-top:10px; font:500 12.5px var(--mono); min-height:16px}
+.sch-msg.err{color:#ff6b6b}
+.nl-sched{margin-bottom:22px; border:1px solid rgba(186,192,30,.35); border-radius:12px; background:rgba(186,192,30,.05); padding:14px 16px}
+.nl-sched-h{font:700 11px var(--mono); letter-spacing:.06em; text-transform:uppercase; color:var(--green); margin-bottom:10px}
+.nl-sched-row{display:flex; align-items:center; gap:12px; padding:9px 0; border-top:1px solid var(--hair)}
+.nl-sched-row:first-of-type{border-top:0}
+.nl-sched-dot{width:8px; height:8px; border-radius:50%; background:var(--green); flex:0 0 auto; box-shadow:0 0 8px var(--green)}
+.nl-sched-main{flex:1 1 auto; min-width:0}
+.nl-sched-when{font:700 14px var(--disp); color:var(--bone)}
+.nl-sched-lbl{font:400 12px var(--mono); color:var(--dim); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.nl-sched-x{flex:0 0 auto; padding:6px 12px; border-radius:8px; border:1px solid var(--hair); background:transparent; color:var(--dim); font:600 11px var(--mono); cursor:pointer}
+.nl-sched-x:hover{color:#ff6b6b; border-color:rgba(255,107,107,.5)}
+
 .nl-status.muted{color:var(--dim); font-style:italic}
 .nl-block-off{opacity:.42}
 .nl-block-off .nl-ta,.nl-block-off .nl-i,.nl-block-off .nl-row,.nl-block-off .nl-add,.nl-block-off .nl-grid3{pointer-events:none}
@@ -1980,7 +2004,7 @@ function renderProject(proj, sec, stack, folder){
     loadGridCounts(proj, sec);
     APPR_GRID={proj:proj,sec:sec}; approvalsEnsure(proj.id);
   }
-  if(ADMIN){ const ab=document.getElementById('ann-btn-'+sec.id); if(ab) ab.addEventListener('click', ()=>announce(proj.id,sec.id)); }
+  if(ADMIN){ const ab=document.getElementById('ann-btn-'+sec.id); if(ab) ab.addEventListener('click', ()=>announce(proj.id,sec.id)); const asch=document.getElementById('ann-sch-'+sec.id); if(asch) asch.addEventListener('click', ()=>announceSchedule(proj.id,sec.id)); }
 }
 
 function gridCardHTML(proj, sec, stack){
@@ -2341,7 +2365,36 @@ async function deleteNote(itemId, commentId){
 }
 
 function adminStrip(proj, sec){
-  return '<div class="admin-strip"><span class="admin-tag">Admin</span><input id="ann-msg-'+sec.id+'" class="admin-input" placeholder="Optional message — e.g. \'New work is up for review\'"><button class="admin-btn" id="ann-btn-'+sec.id+'">Notify Team</button><span class="admin-msg" id="ann-status-'+sec.id+'"></span></div>';
+  return '<div class="admin-strip"><span class="admin-tag">Admin</span><input id="ann-msg-'+sec.id+'" class="admin-input" placeholder="Optional message — e.g. \'New work is up for review\'"><button class="admin-btn" id="ann-btn-'+sec.id+'">Notify Team</button><button class="admin-btn ghost" id="ann-sch-'+sec.id+'" title="Schedule this for later">\u23f1 Schedule</button><span class="admin-msg" id="ann-status-'+sec.id+'"></span></div>';
+}
+/* ---------- scheduled email helpers (shared by Notify Team + Newsletter) ---------- */
+function schedFmt(iso){ try{ return new Date(iso).toLocaleString([], {weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}); }catch(e){ return iso; } }
+function schedLocalValue(d){ var p=function(n){return String(n).padStart(2,'0');}; return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes()); }
+function schedDefault(){ var d=new Date(); d.setDate(d.getDate()+1); d.setHours(9,0,0,0); return schedLocalValue(d); }
+async function schedInsert(row){ try{ var r=await sb.from('scheduled_emails').insert(row).select().single(); if(r.error) return {error:r.error}; return {data:r.data}; }catch(e){ return {error:{message:(e&&e.message)||'insert failed'}}; } }
+async function schedListFor(projKey){ try{ var r=await sb.from('scheduled_emails').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',projKey).eq('status','scheduled').order('send_at',{ascending:true}); return (r.data||[]); }catch(e){ return []; } }
+async function schedCancel(id){ try{ var r=await sb.from('scheduled_emails').update({status:'canceled'}).eq('id', id); return !r.error; }catch(e){ return false; } }
+function openSchedulePicker(opts){
+  openOverlay('<div class="sch-wrap"><div class="sch-head">'+esc(opts.title||'Schedule send')+'</div>'
+    +(opts.note?'<div class="sch-note">'+esc(opts.note)+'</div>':'')
+    +'<label class="sch-l">Send at \u2014 your local time</label><input type="datetime-local" id="schAt" class="sch-in" value="'+schedDefault()+'">'
+    +'<div class="sch-quick"><button type="button" class="sch-q" data-q="am">Tomorrow 9:00 AM</button><button type="button" class="sch-q" data-q="mon">Mon 9:00 AM</button><button type="button" class="sch-q" data-q="1h">In 1 hour</button></div>'
+    +'<div class="sch-foot"><button class="ca-btn ghost" onclick="closeOverlay()">Cancel</button><button class="ca-btn" id="schGo">Schedule</button></div>'
+    +'<div class="sch-msg" id="schMsg"></div></div>', true);
+  var at=document.getElementById('schAt'), msg=document.getElementById('schMsg');
+  document.querySelectorAll('.sch-q').forEach(function(b){ b.onclick=function(){ var d=new Date(); if(b.dataset.q==='1h'){ d.setHours(d.getHours()+1); } else if(b.dataset.q==='mon'){ d.setDate(d.getDate()+((8-d.getDay())%7||7)); d.setHours(9,0,0,0); } else { d.setDate(d.getDate()+1); d.setHours(9,0,0,0); } at.value=schedLocalValue(d); }; });
+  var go=document.getElementById('schGo'); if(go) go.onclick=async function(){ var v=at.value; if(!v){ msg.className='sch-msg err'; msg.textContent='Pick a date and time.'; return; } var when=new Date(v); if(isNaN(when.getTime())){ msg.className='sch-msg err'; msg.textContent='Invalid time.'; return; } if(when.getTime()<Date.now()+30000){ msg.className='sch-msg err'; msg.textContent='Pick a time in the future.'; return; } go.disabled=true; go.textContent='Scheduling\u2026'; msg.className='sch-msg'; msg.textContent=''; try{ await opts.onSchedule(when.toISOString(), function(){ closeOverlay(); }, function(e){ go.disabled=false; go.textContent='Schedule'; msg.className='sch-msg err'; msg.textContent=e||'Could not schedule.'; }); }catch(e){ go.disabled=false; go.textContent='Schedule'; msg.className='sch-msg err'; msg.textContent='Could not schedule.'; } };
+}
+async function announceBuild(proj, sec, message){
+  if(!INVITES.length) await loadInvites();
+  var own={}; (CONFIG.OWNER_LOGINS||[]).forEach(function(e){ own[String(e).toLowerCase()]=1; }); own[String(OWNER_EMAIL).toLowerCase()]=1;
+  var recips=(INVITES||[]).filter(function(p){ return p.email && (!p.project_keys || !p.project_keys.length || p.project_keys.indexOf(proj.id)>=0); }).map(function(p){ return p.email; });
+  recips=[...new Set(recips)].filter(function(e){ return e && !own[e.toLowerCase()]; });
+  var link='https://supernerd.tv/r/'+CONFIG.REVIEW_SLUG+'/#p='+encodeURIComponent(proj.id)+'&s='+encodeURIComponent(sec.id);
+  var inner='<p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#c9ccd1;">New work is ready for you to review in <b style="color:#fff;">'+esc(proj.title)+' \u2014 '+esc(sec.name)+'</b>.</p>'
+    +(message?'<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#c9ccd1;">'+esc(message)+'</p>':'')
+    +'<a href="'+link+'" style="display:inline-block;background:#BAC01E;color:#0a0b0d;font-weight:700;font-size:14px;text-decoration:none;padding:11px 20px;border-radius:9px;">Open the review \u2192</a>';
+  return { recips:recips, subject:'New work is ready \u00b7 '+proj.title+' \u2014 '+sec.name, html:emailShell('New work is ready to review', inner) };
 }
 async function announce(projId, secId){
   const proj=CONFIG.PROJECTS.find(p=>p.id===projId); if(!proj) return;
@@ -2351,22 +2404,30 @@ async function announce(projId, secId){
   btn.disabled=true; const orig=btn.textContent; btn.textContent='Sending\u2026'; st.className='admin-msg'; st.textContent='';
   try{
     try{ await sb.from('announcements').insert({ review_slug:CONFIG.REVIEW_SLUG, project:proj.id, section:sec.id, message:message||null }); }catch(e){}
-    if(!INVITES.length) await loadInvites();
-    var own={}; (CONFIG.OWNER_LOGINS||[]).forEach(function(e){ own[String(e).toLowerCase()]=1; }); own[String(OWNER_EMAIL).toLowerCase()]=1;
-    var recips=(INVITES||[]).filter(function(p){ return p.email && (!p.project_keys || !p.project_keys.length || p.project_keys.indexOf(proj.id)>=0); }).map(function(p){ return p.email; });
-    recips=[...new Set(recips)].filter(function(e){ return e && !own[e.toLowerCase()]; });
-    if(recips.length){
-      var link='https://supernerd.tv/r/'+CONFIG.REVIEW_SLUG+'/#p='+encodeURIComponent(proj.id)+'&s='+encodeURIComponent(sec.id);
-      var inner='<p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#c9ccd1;">New work is ready for you to review in <b style="color:#fff;">'+esc(proj.title)+' \u2014 '+esc(sec.name)+'</b>.</p>'
-        +(message?'<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#c9ccd1;">'+esc(message)+'</p>':'')
-        +'<a href="'+link+'" style="display:inline-block;background:#BAC01E;color:#0a0b0d;font-weight:700;font-size:14px;text-decoration:none;padding:11px 20px;border-radius:9px;">Open the review \u2192</a>';
-      await sendEmail({ to:[OWNER_EMAIL], bcc:recips, subject:'New work is ready \u00b7 '+proj.title+' \u2014 '+sec.name, html:emailShell('New work is ready to review', inner), replyTo:OWNER_EMAIL });
-      if(inp) inp.value=''; st.className='admin-msg ok'; st.textContent='Team emailed ('+recips.length+').'; setTimeout(()=>{ if(st) st.textContent=''; },3500);
+    var p=await announceBuild(proj, sec, message);
+    if(p.recips.length){
+      await sendEmail({ to:[OWNER_EMAIL], bcc:p.recips, subject:p.subject, html:p.html, replyTo:OWNER_EMAIL });
+      if(inp) inp.value=''; st.className='admin-msg ok'; st.textContent='Team emailed ('+p.recips.length+').'; setTimeout(()=>{ if(st) st.textContent=''; },3500);
     } else {
       if(inp) inp.value=''; st.className='admin-msg ok'; st.textContent='Posted \u2014 no partners to email yet.'; setTimeout(()=>{ if(st) st.textContent=''; },3500);
     }
   }catch(e){ console.error('notify failed', e); st.className='admin-msg err'; st.textContent='Could not send: '+(e.message||'try again'); }
   finally{ btn.disabled=false; btn.textContent=orig; }
+}
+async function announceSchedule(projId, secId){
+  const proj=CONFIG.PROJECTS.find(p=>p.id===projId); if(!proj) return;
+  const sec=proj.sections.find(s=>s.id===secId); if(!sec) return;
+  const st=document.getElementById('ann-status-'+secId), inp=document.getElementById('ann-msg-'+secId);
+  const message=((inp&&inp.value)||'').trim();
+  var p=await announceBuild(proj, sec, message);
+  if(!p.recips.length){ if(st){ st.className='admin-msg err'; st.textContent='No partners on this project to schedule for yet.'; } return; }
+  openSchedulePicker({ title:'Schedule Notify Team', note:'Emails '+p.recips.length+' partner'+(p.recips.length>1?'s':'')+' at the time you pick.', onSchedule: async function(iso, ok, err){
+    var row={ review_slug:CONFIG.REVIEW_SLUG, project_key:proj.id, kind:'notify', label:'Notify \u00b7 '+proj.title+' \u2014 '+sec.name, to_emails:[OWNER_EMAIL], bcc_emails:p.recips, reply_to:OWNER_EMAIL, subject:p.subject, html:p.html, send_at:iso, created_by:myEmail() };
+    var r=await schedInsert(row); if(r.error){ err(r.error.message||'Could not schedule'); return; }
+    try{ await sb.from('announcements').insert({ review_slug:CONFIG.REVIEW_SLUG, project:proj.id, section:sec.id, message:message||null }); }catch(e){}
+    if(inp) inp.value=''; if(st){ st.className='admin-msg ok'; st.textContent='Scheduled for '+schedFmt(iso); setTimeout(()=>{ if(st) st.textContent=''; },5000); }
+    ok();
+  }});
 }
 
 async function loadInvites(){
@@ -4274,6 +4335,7 @@ function nlRender(){
 
   m.innerHTML=''
   + '<div class="nl-studio">'
+  + '<div id="nlSched"></div>'
   // HERO
   + (function(){
       var mode = d.hero.mode || (d.hero.url && !d.hero.uid ? 'image' : 'video');
@@ -4322,7 +4384,7 @@ function nlRender(){
   // RECIPIENTS
   + block('Recipients','You get a copy automatically; everyone here is BCC\u2019d.', '<div class="nl-recs">'+recHTML+'</div><div class="nl-row"><input id="nlAddRec" class="nl-i" placeholder="Add an email\u2026"><button type="button" class="nl-add inline" id="nlAddRecBtn">Add</button></div>')
   // ACTIONS
-  + '<div class="nl-actions"><button class="ca-btn ghost" id="nlSaveBtn" type="button">Save draft</button><button class="ca-btn ghost" id="nlPreviewBtn" type="button">Preview</button><button class="ca-btn" id="nlSendBtn" type="button">Send to project</button><span class="nl-status" id="nlStatus"></span></div>'
+  + '<div class="nl-actions"><button class="ca-btn ghost" id="nlSaveBtn" type="button">Save draft</button><button class="ca-btn ghost" id="nlPreviewBtn" type="button">Preview</button><button class="ca-btn ghost" id="nlSchedBtn" type="button">\u23f1 Schedule send</button><button class="ca-btn" id="nlSendBtn" type="button">Send to project</button><span class="nl-status" id="nlStatus"></span></div>'
   + '</div>';
   nlWire();
 }
@@ -4349,8 +4411,10 @@ function nlWire(){
   var ar=document.getElementById('nlAddRecBtn'); if(ar) ar.onclick=function(){ var inp=document.getElementById('nlAddRec'); var em=(inp.value||'').trim(); if(!em||em.indexOf('@')<0) return; var recs=document.querySelector('.nl-recs'); var lbl=document.createElement('label'); lbl.className='nl-rec-row'; lbl.innerHTML='<input type="checkbox" class="nl-rec" value="'+nlEsc(em)+'" checked><span>'+nlEsc(em)+'</span>'; var empty=recs.querySelector('.nl-empty-sm'); if(empty) empty.remove(); recs.appendChild(lbl); inp.value=''; };
   var sb1=document.getElementById('nlSaveBtn'); if(sb1) sb1.onclick=function(){ nlSaveDraft(true); };
   var pb=document.getElementById('nlPreviewBtn'); if(pb) pb.onclick=nlPreview;
+  var schb=document.getElementById('nlSchedBtn'); if(schb) schb.onclick=nlSchedule;
   var snd=document.getElementById('nlSendBtn'); if(snd) snd.onclick=nlSend;
   var _m=document.getElementById('nlmount'); if(_m){ _m.addEventListener('input', nlAutosave); _m.addEventListener('change', nlAutosave); }
+  nlSchedLoad();
 }
 function nlWireChips(){ document.querySelectorAll('.nl-wchip').forEach(function(c){ c.onclick=function(){ var i=+c.dataset.wi; NL.data.titleGreen[i]=!NL.data.titleGreen[i]; c.classList.toggle('on'); }; }); }
 var _nlHeroTimer=null;
@@ -4423,22 +4487,43 @@ async function nlSaveDraft(loud, quiet){
   if(quiet) nlStatus('Saving\u2026','muted');
   try{ var r=await sb.from('newsletters').upsert(row,{onConflict:'review_slug,project_key'}); if(r.error){ if(loud) nlStatus('Save failed: '+r.error.message,'err'); else if(quiet) nlStatus('Saved on this device','muted'); return false; } if(loud) nlStatus('Draft saved \u2713','ok'); else if(quiet) nlStatus('Saved \u2713','muted'); return true; }catch(e){ if(loud) nlStatus('Save failed.','err'); else if(quiet) nlStatus('Saved on this device','muted'); return false; }
 }
+function nlRecips(){ var r=[]; document.querySelectorAll('.nl-rec:checked').forEach(function(c){ if(c.value) r.push(c.value); }); return r; }
+async function nlBuildForSend(){ await nlMaybeCompose(); var html=nlEmailHTML(NL.data); var subj=(NL.data.title||(NL.projObj&&NL.projObj.title)||'Project')+' \u2014 update from Supernerd'; return { html:html, subject:subj }; }
 async function nlSend(){
   nlCollect();
-  var recips=[]; document.querySelectorAll('.nl-rec:checked').forEach(function(c){ if(c.value) recips.push(c.value); });
+  var recips=nlRecips();
   if(!recips.length){ nlStatus('Pick at least one recipient.','err'); return; }
-  if(!confirm('Send this newsletter to '+recips.length+' recipient'+(recips.length>1?'s':'')+'? You\u2019ll get a copy too.')) return;
+  if(!confirm('Send this newsletter to '+recips.length+' recipient'+(recips.length>1?'s':'')+' now? You\u2019ll get a copy too.')) return;
   var btn=document.getElementById('nlSendBtn'); if(btn){ btn.disabled=true; btn.textContent='Sending\u2026'; }
   try{
-    await nlMaybeCompose();
-    var html=nlEmailHTML(NL.data);
-    var subj=(NL.data.title||(NL.projObj&&NL.projObj.title)||'Project')+' \u2014 update from Supernerd';
-    var me=myEmail();
-    await sendEmail({ to:[me||recips[0]], bcc:recips, subject:subj, html:html });
+    var p=await nlBuildForSend(); var me=myEmail();
+    await sendEmail({ to:[me||recips[0]], bcc:recips, subject:p.subject, html:p.html });
     try{ await sb.from('newsletters').upsert({ review_slug:CONFIG.REVIEW_SLUG, project_key:NL.proj, data:NL.data, updated_by:me, updated_at:new Date().toISOString(), last_sent_at:new Date().toISOString() },{onConflict:'review_slug,project_key'}); }catch(e){}
     nlStatus('Sent to '+recips.length+' \u2713','ok');
   }catch(e){ nlStatus('Send failed: '+(e.message||'unknown'),'err'); }
   if(btn){ btn.disabled=false; btn.textContent='Send to project'; }
+}
+async function nlSchedule(){
+  nlCollect();
+  var recips=nlRecips();
+  if(!recips.length){ nlStatus('Pick at least one recipient to schedule.','err'); return; }
+  nlStatus('Preparing\u2026','muted');
+  var p=await nlBuildForSend(); var me=myEmail();
+  try{ await nlSaveDraft(false,true); }catch(e){}
+  openSchedulePicker({ title:'Schedule this newsletter', note:'Sends to '+recips.length+' recipient'+(recips.length>1?'s':'')+' (you get a copy) at the time you pick. It sends the version as it looks right now.', onSchedule: async function(iso, ok, err){
+    var row={ review_slug:CONFIG.REVIEW_SLUG, project_key:NL.proj, kind:'newsletter', label:'Newsletter \u00b7 '+(NL.data.title||(NL.projObj&&NL.projObj.title)||'Update'), to_emails:[me||recips[0]], bcc_emails:recips, reply_to:null, subject:p.subject, html:p.html, send_at:iso, created_by:me };
+    var r=await schedInsert(row); if(r.error){ err(r.error.message||'Could not schedule'); return; }
+    nlStatus('Scheduled for '+schedFmt(iso)+' \u2713','ok'); nlSchedLoad(); ok();
+  }});
+}
+async function nlSchedLoad(){ var host=document.getElementById('nlSched'); if(!host) return; var rows=await schedListFor(NL.proj); nlSchedRender(host, rows); }
+function nlSchedRender(host, rows){
+  if(!rows||!rows.length){ host.innerHTML=''; return; }
+  host.innerHTML='<div class="nl-sched"><div class="nl-sched-h">\u23f1 Scheduled sends</div>'+rows.map(function(r){
+    var n=(r.bcc_emails||[]).length;
+    return '<div class="nl-sched-row"><span class="nl-sched-dot"></span><div class="nl-sched-main"><div class="nl-sched-when">'+esc(schedFmt(r.send_at))+'</div><div class="nl-sched-lbl">'+esc(r.label||r.subject||'Email')+' \u00b7 '+n+' recipient'+(n===1?'':'s')+'</div></div><button class="nl-sched-x" data-cancel="'+esc(r.id)+'">Cancel</button></div>';
+  }).join('')+'</div>';
+  host.querySelectorAll('.nl-sched-x').forEach(function(b){ b.onclick=async function(){ if(!confirm('Cancel this scheduled send?')) return; b.disabled=true; b.textContent='\u2026'; await schedCancel(b.dataset.cancel); nlSchedLoad(); }; });
 }
 
 /* ============================================================
