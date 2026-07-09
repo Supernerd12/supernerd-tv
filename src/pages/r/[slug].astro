@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v37';
+  const VERSION = 'v38';
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   const items    = (await getCollection('reviewItems')).filter(i => i.data.published !== false);
@@ -137,7 +137,7 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
   body{margin:0; background:transparent; color:var(--bone)}
   body{font-family:var(--disp); -webkit-font-smoothing:antialiased; line-height:1.5}
   a{color:inherit; text-decoration:none}
-  .wrap{max-width:1140px; margin:0 auto; padding:0 24px}
+  .wrap{max-width:min(2040px, 94vw); margin:0 auto; padding:0 clamp(20px,3vw,44px)}
   .eyebrow{font-family:var(--mono); font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:var(--green)}
 
   /* ---- header ---- */
@@ -1826,7 +1826,7 @@ function fmtStamp(iso){ if(!iso) return ''; let d; const m=String(iso).match(/^(
 function esc(s){ const d=document.createElement('div'); d.textContent=(s==null?'':s); return d.innerHTML; }
 function itemFallback(it){ return it.type==='audio' ? 'Audio' : (it.type==='file' ? 'File' : (it.type==='video' ? 'Video' : 'Untitled')); }
 function itemTitle(it){ return it.title || it.label || itemFallback(it); }
-function downloadHref(it){ if(it.download_url) return it.download_url; if(it.type==='video' && it.stream_uid){ var fn=(itemTitle(it)||'video').replace(/[^A-Za-z0-9-_]+/g,'_').slice(0,110)||'video'; return 'https://'+CONFIG.STREAM_CUSTOMER+'/'+it.stream_uid+'/downloads/default.mp4?filename='+fn; } return it.src || ''; }
+function downloadHref(it){ if(it.type==='deck') return ''; if(it.download_url) return it.download_url; if(it.type==='video' && it.stream_uid){ var fn=(itemTitle(it)||'video').replace(/[^A-Za-z0-9-_]+/g,'_').slice(0,110)||'video'; return 'https://'+CONFIG.STREAM_CUSTOMER+'/'+it.stream_uid+'/downloads/default.mp4?filename='+fn; } return it.src || ''; }
 function absUrl(u){ if(!u) return u; if(/^https?:\/\//i.test(u)) return u; return location.origin + (u.charAt(0)==='/'?'':'/') + u; }
 function previewFor(it, tcSecs){ if(it.type==='image' && it.src) return absUrl(it.src); if(it.type==='video' && it.stream_uid){ let u='https://'+CONFIG.STREAM_CUSTOMER+'/'+it.stream_uid+'/thumbnails/thumbnail.jpg?height=320'; if(tcSecs!=null) u+='&time='+Math.floor(tcSecs)+'s'; return u; } return null; }
 
@@ -2164,6 +2164,9 @@ function selectVersion(stackId, versionId){
 
 /* ---------- media ---------- */
 function mediaHTML(it){
+  if(it.type==='deck'){
+    return '<div class="deck-frame" id="deckframe-'+it.id+'">'+(it._embed||'')+'</div>'+(it._below||'');
+  }
   if(it.type==='video' && it.stream_uid){
     return '<div class="stage" id="stage-'+it.id+'"><iframe id="if-'+it.id+'" src="https://'+CONFIG.STREAM_CUSTOMER+'/'+it.stream_uid+'/iframe" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;" allowfullscreen></iframe></div>';
   }
@@ -2184,9 +2187,9 @@ function versionBodyHTML(proj, sec, it){
   const dl = downloadHref(it);
   const dlBtn = dl ? '<a class="dl-btn" href="'+esc(dl)+'" download target="_blank" rel="noopener">⤓ Download</a>' : '';
   const stamp = it.date ? '<span class="up-stamp">Uploaded '+esc(fmtStamp(it.date))+'</span>' : '';
-  const shareBtn = '<button class="meta-share" id="share-'+it.id+'" type="button" title="Share">'+svgIcon('share')+'<span>Share</span></button><div class="share-pop" id="sharepop-'+it.id+'" hidden></div>';
+  const shareBtn = it.type==='deck' ? '' : '<button class="meta-share" id="share-'+it.id+'" type="button" title="Share">'+svgIcon('share')+'<span>Share</span></button><div class="share-pop" id="sharepop-'+it.id+'" hidden></div>';
   const gifBtn = (it.type==='video' && it.stream_uid && (typeof ADMIN!=='undefined' && ADMIN)) ? '<button class="meta-share gifbtn" id="gif-'+it.id+'" type="button" title="Make a looping GIF for slides"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 9v6M11 9v6M15 12h2.5M15 9h3M15 9v6"/></svg><span>GIF</span></button>' : '';
-  const metaBar = '<div class="meta-bar"><div class="meta-left">'+dlBtn+stamp+'</div><div class="meta-right"><span class="appr" id="appr-'+it.id+'"></span>'+gifBtn+shareBtn+'</div></div>';
+  const metaBar = it.type==='deck' ? '' : '<div class="meta-bar"><div class="meta-left">'+dlBtn+stamp+'</div><div class="meta-right"><span class="appr" id="appr-'+it.id+'"></span>'+gifBtn+shareBtn+'</div></div>';
   const tcField = it.type==='video' ? '<div class="field f-tc"><label>Timecode</label><div class="tc-wrap"><input id="tc-'+it.id+'" placeholder="00:00"><button type="button" class="tc-now" id="tcnow-'+it.id+'" title="Grab the current play position">\u23f1 now</button></div></div>' : '';
   const pinTool = it.type==='image' ? '<button class="tool-btn" id="pin-'+it.id+'" type="button">📍 Pin to image</button><span class="pin-ind" id="pin-ind-'+it.id+'"></span>' : '';
   const composer = '<div class="composer"><div class="reply-ctx" id="replyctx-'+it.id+'" hidden></div>'
@@ -2307,7 +2310,7 @@ async function uploadVoice(it){
   return pub.data.publicUrl;
 }
 
-function assetId(proj, sec, it){ return proj.id+':'+sec.id+':'+it.id; }
+function assetId(proj, sec, it){ if(it && it.deckAsset) return it.deckAsset; return proj.id+':'+sec.id+':'+it.id; }
 
 function toggleNotes(it){
   const box=document.getElementById('notes-'+it.id), btn=document.getElementById('ntog-'+it.id); if(!box) return;
@@ -2707,6 +2710,8 @@ function deckEmbedHTML(row){
   return '<div class="deck-frame"><iframe loading="lazy" src="'+esc(src)+'" allow="fullscreen" allowfullscreen referrerpolicy="no-referrer"></iframe></div>'
     +'<div class="deck-foot"><a class="deck-open" href="'+esc(row.url)+'" target="_blank" rel="noopener">Open in Canva \u2197</a></div>';
 }
+function deckIframe(row){ var src=canvaEmbed(row.url); if(!src) return '<div class="deck-empty">No Canva link yet.</div>'; return '<iframe loading="lazy" src="'+esc(src)+'" allow="fullscreen" allowfullscreen referrerpolicy="no-referrer"></iframe>'; }
+var DECK_VIEW={items:{}};
 async function deckLoad(projKey){
   var mount=document.getElementById('deckmount'); if(!mount) return;
   var rows=[];
@@ -2720,32 +2725,41 @@ async function deckLoad(projKey){
   visible.forEach(function(x){ var n=x.name||'Presentation'; if(!map[n]){ map[n]=[]; order.push(n); } map[n].push(x); });
   var addBtn = ADMIN ? '<button class="deck-add" id="deckAdd">+ Add presentation</button>' : '';
   if(!order.length){ mount.innerHTML=addBtn+'<div class="sec-empty">'+(ADMIN?'No presentations yet. Add one with a Canva link.':'No presentations shared yet.')+'</div>'; if(ADMIN){ var b0=document.getElementById('deckAdd'); if(b0) b0.onclick=function(){ deckOpen(projKey,null); }; } return; }
-  var html=addBtn+'<div class="deck-list">';
+  var proj=CONFIG.PROJECTS.find(function(p){return p.id===projKey;})||{id:projKey,sections:[]};
+  var sec={id:'__decks__', name:'Presentations', stacks:[]};
+  DECK_VIEW={proj:proj, sec:sec, projKey:projKey, items:{}};
+  var html=addBtn+'<div class="deck-list decks-review">';
   order.forEach(function(n,gi){
     var vers=map[n].slice().sort(function(a,b){ return String(b.version||'').localeCompare(String(a.version||''),undefined,{numeric:true}); });
+    var sel=vers[0];
     var anyPub=vers.some(function(v){return v.published;});
-    var did='deck-'+gi;
+    var did='dk'+gi;
     var badge = ADMIN ? (anyPub?'<span class="deck-badge live">LIVE</span>':'<span class="deck-badge hid">HIDDEN</span>') : '';
-    var chips = vers.length>1 ? '<div class="deck-vers">'+vers.map(function(v,vi){ return '<button class="deck-vchip'+(vi===0?' on':'')+(ADMIN&&!v.published?' off':'')+'" data-did="'+did+'" data-vid="'+esc(v.id)+'">'+esc(v.version||('v'+(vers.length-vi)))+'</button>'; }).join('')+'</div>' : '';
+    var chips = vers.length>1 ? '<div class="ver-chips">'+vers.map(function(v,vi){ return '<button class="ver-chip deck-vchip'+(vi===0?' active':'')+(ADMIN&&!v.published?' off':'')+'" data-gi="'+gi+'" data-vid="'+esc(v.id)+'">'+esc(v.version||('v'+(vers.length-vi)))+'</button>'; }).join('')+'</div>' : '';
     var adminRow = ADMIN ? '<div class="deck-admin">'
         +vers.map(function(v){ return '<span class="deck-vrow"><b>'+esc(v.version||'v1')+'</b> <button class="deck-pub'+(v.published?' on':'')+'" data-vid="'+esc(v.id)+'" data-proj="'+esc(projKey)+'">'+(v.published?'Live':'Hidden')+'</button> <button class="deck-edit" data-vid="'+esc(v.id)+'" data-proj="'+esc(projKey)+'">Edit</button> <button class="deck-del" data-vid="'+esc(v.id)+'" data-proj="'+esc(projKey)+'">Delete</button></span>'; }).join('')
         +'<button class="deck-addver" data-name="'+esc(n)+'" data-proj="'+esc(projKey)+'">+ Add version</button></div>' : '';
-    html+='<div class="deck-card" id="'+did+'" data-proj="'+esc(projKey)+'">'
-      +'<div class="deck-head"><div class="deck-name">'+esc(n)+badge+'</div>'+chips+'</div>'
-      +'<div class="deck-split">'
-        +'<div class="deck-main"><div class="deck-body" data-vid="'+esc(vers[0].id)+'">'+deckEmbedHTML(vers[0])+'</div>'+adminRow+'</div>'
-        +'<div class="deck-side"><div class="deck-notes" id="dnotes-'+gi+'"></div></div>'
-      +'</div></div>';
+    var below='<div class="deck-foot"><a class="deck-open" href="'+esc(sel.url||'#')+'" target="_blank" rel="noopener">Open in Canva \u2197</a></div>'+adminRow;
+    var dit={ id:did, type:'deck', title:n, deckAsset:deckAssetId(projKey,n), _embed:deckIframe(sel), _below:below, url:sel.url };
+    DECK_VIEW.items[gi]=dit;
+    html+='<section class="deliv" id="deckdeliv-'+gi+'"><div class="ver-layout" id="vlay-'+did+'">'
+      +'<div class="ver-head-l"><span class="deliv-title">'+esc(n)+'</span>'+badge+chips+'</div>'
+      +'<div class="ver-gutter" id="vgut-'+did+'" title="Drag to resize"><span class="vg-grip"></span></div>'
+      +'<div class="ver-body" id="vbody-'+did+'">'+versionBodyHTML(proj, sec, dit)+'</div>'
+      +'</div></section>';
   });
   html+='</div>';
   mount.innerHTML=html;
-  order.forEach(function(n,gi){ var h=document.getElementById('dnotes-'+gi); if(h) deckNotesLoad(projKey,n,h); });
   var ab=document.getElementById('deckAdd'); if(ab) ab.onclick=function(){ deckOpen(projKey,null); };
+  order.forEach(function(n,gi){ var dit=DECK_VIEW.items[gi]; if(dit) wireVersion(proj, sec, dit); });
+  if(typeof wireResizer==='function'){ try{ wireResizer(); }catch(e){} }
   mount.querySelectorAll('.deck-vchip').forEach(function(ch){ ch.onclick=function(){
-    var card=document.getElementById(ch.dataset.did); if(!card) return;
-    card.querySelectorAll('.deck-vchip').forEach(function(c){ c.classList.remove('on'); }); ch.classList.add('on');
-    var row=(DECKS_CACHE[projKey]||[]).find(function(x){return x.id===ch.dataset.vid;});
-    var body=card.querySelector('.deck-body'); if(body && row){ body.dataset.vid=row.id; body.innerHTML=deckEmbedHTML(row); }
+    var gi=ch.dataset.gi; var dit=DECK_VIEW.items[gi]; if(!dit) return;
+    var row=(DECKS_CACHE[projKey]||[]).find(function(x){return x.id===ch.dataset.vid;}); if(!row) return;
+    var sect=document.getElementById('deckdeliv-'+gi); if(sect){ sect.querySelectorAll('.deck-vchip').forEach(function(c){ c.classList.remove('active'); }); } ch.classList.add('active');
+    var frame=document.getElementById('deckframe-'+dit.id); if(frame){ frame.innerHTML=deckIframe(row); }
+    var open=sect?sect.querySelector('.deck-open'):null; if(open) open.href=row.url||'#';
+    dit._embed=deckIframe(row); dit.url=row.url;
   }; });
   if(ADMIN){
     mount.querySelectorAll('.deck-pub').forEach(function(b){ b.onclick=function(){ deckTogglePublish(b.dataset.proj, b.dataset.vid); }; });
