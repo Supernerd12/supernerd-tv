@@ -8,26 +8,26 @@
     "Creative Production",
     "Invite"
   ],
-  "hero": "/work/uploads/cover.png",
+  "hero": "/work/uploads/cover.webp",
   "description": "Supernerd was hired to Art Direct the latest and last album of the Iconic Twinkie Clark of the infamous Clark Sister group. Known as the mother of modern gospel Twinkie is retiring from Gospel and partnering with Jackson State University Choir to create a live gospel album. We oversaw the screen visuals, the creative production, the celebrity collaborations.",
   "pieces": [
     {
       "title": "The Iconic Twinkie Clark Live Recording",
-      "hero": "/work/uploads/img_5742.jpg",
+      "hero": "/work/uploads/img_5742.webp",
       "video": "",
       "no_video": false,
       "description": "",
       "gallery": [
-        "/work/uploads/1.png",
-        "/work/uploads/2.png",
-        "/work/uploads/3.png",
-        "/work/uploads/4.png",
-        "/work/uploads/5.png",
-        "/work/uploads/6.png",
-        "/work/uploads/7.png",
-        "/work/uploads/8.png",
-        "/work/uploads/9.png",
-        "/work/uploads/10.png"
+        "/work/uploads/1.webp",
+        "/work/uploads/2.webp",
+        "/work/uploads/3.webp",
+        "/work/uploads/4.webp",
+        "/work/uploads/5.webp",
+        "/work/uploads/6.webp",
+        "/work/uploads/7.webp",
+        "/work/uploads/8.webp",
+        "/work/uploads/9.webp",
+        "/work/uploads/10.webp"
       ]
     }
   ]

@@ -8,22 +8,22 @@
     "TV Show",
     "Storyboarding"
   ],
-  "hero": "/work/uploads/screen-shot-2026-06-10-at-6.19.08-am.png",
+  "hero": "/work/uploads/screen-shot-2026-06-10-at-6.19.08-am.webp",
   "description": "Supernerd was hired to oversee the daily graphics needs for the new political talk show for Charlamagne tha God, premiering on Comedy Central.",
   "pieces": [
     {
       "title": "Season 1",
-      "hero": "/work/uploads/tght_105_010142021_ias_000-65.jpg",
+      "hero": "/work/uploads/tght_105_010142021_ias_000-65.webp",
       "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/1d594cb6ad117c829ca53c0392e75e75/manifest/video.m3u8",
       "description": "",
       "gallery": [
-        "/work/uploads/test.png",
-        "/work/uploads/test2.png",
-        "/work/uploads/test3.png",
-        "/work/uploads/test4.png",
-        "/work/uploads/test5.png",
-        "/work/uploads/test6.png",
-        "/work/uploads/test7.png"
+        "/work/uploads/test.webp",
+        "/work/uploads/test2.webp",
+        "/work/uploads/test3.webp",
+        "/work/uploads/test4.webp",
+        "/work/uploads/test5.webp",
+        "/work/uploads/test6.webp",
+        "/work/uploads/test7.webp"
       ]
     }
   ]

@@ -5,31 +5,31 @@
     "Motion Design",
     "Storyboarding"
   ],
-  "hero": "/work/uploads/screen-shot-2026-06-10-at-8.16.33-pm.png",
+  "hero": "/work/uploads/screen-shot-2026-06-10-at-8.16.33-pm.webp",
   "description": "Supernerd crafted videos for the professional hair care brand Matrix, jump in to see some of our favorites...",
   "pieces": [
     {
       "title": "Graffiti Nation",
-      "hero": "/work/uploads/screen-shot-2026-06-10-at-8.17.56-pm.png",
+      "hero": "/work/uploads/screen-shot-2026-06-10-at-8.17.56-pm.webp",
       "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/59baea3fc0150e97f505a390dd1cc77b/manifest/video.m3u8",
       "no_video": false,
       "description": "",
       "gallery": [
-        "/work/uploads/screen-shot-2026-06-13-at-2.41.36-am.png",
-        "/work/uploads/screen-shot-2026-06-13-at-2.42.04-am.png",
-        "/work/uploads/screen-shot-2026-06-13-at-2.42.44-am.png",
-        "/work/uploads/screen-shot-2026-06-13-at-2.43.06-am.png",
-        "/work/uploads/screen-shot-2026-06-13-at-2.43.27-am.png"
+        "/work/uploads/screen-shot-2026-06-13-at-2.41.36-am.webp",
+        "/work/uploads/screen-shot-2026-06-13-at-2.42.04-am.webp",
+        "/work/uploads/screen-shot-2026-06-13-at-2.42.44-am.webp",
+        "/work/uploads/screen-shot-2026-06-13-at-2.43.06-am.webp",
+        "/work/uploads/screen-shot-2026-06-13-at-2.43.27-am.webp"
       ]
     },
     {
       "title": "Matrix Biolage Commercial",
-      "hero": "/work/uploads/screen-shot-2026-06-10-at-8.19.24-pm.png",
+      "hero": "/work/uploads/screen-shot-2026-06-10-at-8.19.24-pm.webp",
       "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/b676fe4d66fc5e0eeafd18cea4b196c4/manifest/video.m3u8",
       "no_video": false,
       "description": "",
       "gallery": [
-        "/work/uploads/4-mood-props.png"
+        "/work/uploads/4-mood-props.webp"
       ]
     }
   ]

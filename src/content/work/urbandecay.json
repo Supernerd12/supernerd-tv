@@ -8,61 +8,61 @@
     "Live Experience",
     "Storyboarding"
   ],
-  "hero": "/work/uploads/screen-shot-2026-06-10-at-6.24.07-am.png",
+  "hero": "/work/uploads/screen-shot-2026-06-10-at-6.24.07-am.webp",
   "description": "",
   "pieces": [
     {
       "title": "Ruby Rose Vice",
-      "hero": "/work/uploads/screen-shot-2026-06-11-at-5.28.15-am.png",
+      "hero": "/work/uploads/screen-shot-2026-06-11-at-5.28.15-am.webp",
       "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/a73a3ec2068016900e3110a30411c64f/manifest/video.m3u8",
       "description": "",
       "gallery": [
-        "/work/uploads/screen-shot-2026-06-13-at-3.17.29-am.png",
-        "/work/uploads/screen-shot-2026-06-13-at-3.17.20-am.png"
+        "/work/uploads/screen-shot-2026-06-13-at-3.17.29-am.webp",
+        "/work/uploads/screen-shot-2026-06-13-at-3.17.20-am.webp"
       ]
     },
     {
       "title": "UD Anthem Video",
-      "hero": "/work/uploads/screen-shot-2026-06-13-at-3.22.46-am.png",
+      "hero": "/work/uploads/screen-shot-2026-06-13-at-3.22.46-am.webp",
       "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/d1a663e57b595f46a77b8f697a50b2f8/manifest/video.m3u8",
       "description": "",
       "gallery": []
     },
     {
       "title": "Instore Video",
-      "hero": "/work/uploads/screen-shot-2026-06-13-at-3.25.10-am.png",
+      "hero": "/work/uploads/screen-shot-2026-06-13-at-3.25.10-am.webp",
       "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/6294fb4458d38fbce2fe38ebbb604915/manifest/video.m3u8",
       "description": "",
       "gallery": []
     },
     {
       "title": "UD Moodboard",
-      "hero": "/work/uploads/screen-shot-2026-06-13-at-5.49.21-am.png",
+      "hero": "/work/uploads/screen-shot-2026-06-13-at-5.49.21-am.webp",
       "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/2399e78ee5a20af6fd86cb6b9609333f/manifest/video.m3u8",
       "description": "",
       "gallery": []
     },
     {
       "title": "UD Logo Branding",
-      "hero": "/work/uploads/screen-shot-2026-06-13-at-3.35.53-am.png",
+      "hero": "/work/uploads/screen-shot-2026-06-13-at-3.35.53-am.webp",
       "video": "",
       "no_video": true,
       "description": "",
       "gallery": [
-        "/work/uploads/screen-shot-2026-06-13-at-3.36.54-am.png",
-        "/work/uploads/screen-shot-2026-06-13-at-3.37.12-am.png",
-        "/work/uploads/screen-shot-2026-06-13-at-3.37.24-am.png",
-        "/work/uploads/screen-shot-2026-06-13-at-3.37.43-am.png",
-        "/work/uploads/screen-shot-2026-06-13-at-3.38.23-am.png",
-        "/work/uploads/screen-shot-2026-06-13-at-3.38.00-am.png",
-        "/work/uploads/screen-shot-2026-06-13-at-3.38.11-am.png",
-        "/work/uploads/screen-shot-2026-06-13-at-5.50.08-am.png",
-        "/work/uploads/screen-shot-2026-06-13-at-5.49.59-am.png"
+        "/work/uploads/screen-shot-2026-06-13-at-3.36.54-am.webp",
+        "/work/uploads/screen-shot-2026-06-13-at-3.37.12-am.webp",
+        "/work/uploads/screen-shot-2026-06-13-at-3.37.24-am.webp",
+        "/work/uploads/screen-shot-2026-06-13-at-3.37.43-am.webp",
+        "/work/uploads/screen-shot-2026-06-13-at-3.38.23-am.webp",
+        "/work/uploads/screen-shot-2026-06-13-at-3.38.00-am.webp",
+        "/work/uploads/screen-shot-2026-06-13-at-3.38.11-am.webp",
+        "/work/uploads/screen-shot-2026-06-13-at-5.50.08-am.webp",
+        "/work/uploads/screen-shot-2026-06-13-at-5.49.59-am.webp"
       ]
     },
     {
       "title": "Makeup Prep",
-      "hero": "/work/uploads/screen-shot-2026-06-13-at-10.07.52-pm.png",
+      "hero": "/work/uploads/screen-shot-2026-06-13-at-10.07.52-pm.webp",
       "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/38f7e6acb8f87d2653951b033d6f4820/manifest/video.m3u8",
       "no_video": false,
       "description": "",
@@ -70,7 +70,7 @@
     },
     {
       "title": "Ultraviolet Edge",
-      "hero": "/work/uploads/screen-shot-2026-06-13-at-10.20.54-pm.png",
+      "hero": "/work/uploads/screen-shot-2026-06-13-at-10.20.54-pm.webp",
       "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/b236769214ff302a09a9c7e31919cf90/manifest/video.m3u8",
       "no_video": false,
       "description": "",

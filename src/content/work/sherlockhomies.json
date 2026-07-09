@@ -5,20 +5,20 @@
     "Art Direction",
     "Branding"
   ],
-  "hero": "/work/uploads/screen-shot-2026-06-10-at-6.13.55-am.png",
+  "hero": "/work/uploads/screen-shot-2026-06-10-at-6.13.55-am.webp",
   "description": "",
   "pieces": [
     {
       "title": "Logo Design",
-      "hero": "/work/uploads/logo-1.png",
+      "hero": "/work/uploads/logo-1.webp",
       "video": "",
       "no_video": true,
       "description": "",
       "gallery": [
-        "/work/uploads/logo-2.png",
-        "/work/uploads/screen-shot-2026-06-14-at-5.10.03-am.png",
-        "/work/uploads/screen-shot-2026-06-14-at-5.10.14-am.png",
-        "/work/uploads/screen-shot-2026-06-14-at-5.10.24-am.png"
+        "/work/uploads/logo-2.webp",
+        "/work/uploads/screen-shot-2026-06-14-at-5.10.03-am.webp",
+        "/work/uploads/screen-shot-2026-06-14-at-5.10.14-am.webp",
+        "/work/uploads/screen-shot-2026-06-14-at-5.10.24-am.webp"
       ]
     }
   ]
