@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v38';
+  const VERSION = 'v39';  // v39: RLS hardening — access now enforced server-side (see sql/v39-rls-hardening.sql). Owner = email allowlist; admin key is UI-only, grants nothing at the data layer.
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   const items    = (await getCollection('reviewItems')).filter(i => i.data.published !== false);
