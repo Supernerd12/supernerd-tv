@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v35';
+  const VERSION = 'v36';
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   const items    = (await getCollection('reviewItems')).filter(i => i.data.published !== false);
@@ -1298,6 +1298,33 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
    ============================================================ */
 .nl-studio{max-width:760px}
 .nl-block{padding:18px 0 20px; border-bottom:1px solid var(--hair)}
+/* v36 — per-deliverable "seen by" (owner only) */
+.rc-seen{display:flex; align-items:center; gap:5px; margin-top:7px; padding-top:7px; border-top:1px solid var(--hair)}
+.seenby{display:flex; align-items:center; gap:7px; margin-top:10px}
+.sb-lbl{font:700 9px var(--mono); letter-spacing:.05em; text-transform:uppercase; color:var(--dim)}
+.sb-none{font:600 9px var(--mono); letter-spacing:.04em; text-transform:uppercase; color:#c0353a; opacity:.85}
+.sb-avs{display:inline-flex; align-items:center}
+.sb-av{width:19px; height:19px; margin-left:-5px; border-radius:50%; border:1.5px solid #101114; background:rgba(186,192,30,.9); color:#0a0b0d; font:700 9px var(--mono); display:inline-flex; align-items:center; justify-content:center}
+.sb-av:first-child{margin-left:0}
+.sb-more{margin-left:4px; font:700 9px var(--mono); color:var(--dim)}
+.seenby .sb-av{width:22px; height:22px; font-size:10px}
+
+/* v36 — partner activity (last seen + views) */
+.pc-seen{margin-top:5px; font:600 10.5px var(--mono); letter-spacing:.02em; color:var(--green)}
+.pc-seen.never{color:var(--dim); font-weight:500}
+.pd-activity{margin-top:16px; border-top:1px solid var(--hair); padding-top:16px}
+.pd-act-h{font:700 11px var(--mono); letter-spacing:.06em; text-transform:uppercase; color:var(--dim); margin-bottom:10px}
+.pd-act-loading,.pd-act-empty{font:400 12.5px/1.5 var(--mono); color:var(--dim)}
+.pd-act-sum{font:400 13px var(--disp); color:var(--bone); margin-bottom:12px; padding:9px 12px; border-radius:9px; background:rgba(186,192,30,.06); border:1px solid rgba(186,192,30,.25)}
+.pd-act-sum b{color:var(--green)}
+.pd-act-list{max-height:230px; overflow:auto; display:flex; flex-direction:column; gap:2px}
+.pd-act-row{display:flex; align-items:center; gap:9px; padding:7px 4px; border-bottom:1px solid rgba(255,255,255,.04)}
+.pd-act-k{flex:0 0 auto; font:700 9px var(--mono); letter-spacing:.04em; text-transform:uppercase; padding:3px 7px; border-radius:6px; background:rgba(255,255,255,.05); color:var(--dim)}
+.pd-act-k.k-item{background:rgba(186,192,30,.14); color:var(--green)}
+.pd-act-k.k-open{background:rgba(59,130,246,.16); color:#6ea8fe}
+.pd-act-l{flex:1 1 auto; min-width:0; font:500 12.5px var(--disp); color:var(--bone); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.pd-act-t{flex:0 0 auto; font:400 10.5px var(--mono); color:var(--dim)}
+
 /* v35 — schedule picker + scheduled sends list */
 .sch-wrap{width:min(440px,94vw); background:#101114; border:1px solid var(--hair-2); border-radius:14px; padding:22px}
 .sch-head{font:700 18px var(--disp); color:var(--bone); margin-bottom:6px}
@@ -1817,6 +1844,42 @@ function visibleClients(){
 }
 function clientOf(projId){ var p=CONFIG.PROJECTS.find(function(x){return x.id===projId;}); return p?p.client:null; }
 
+/* ---------- partner activity tracking (partners only; owner reads it) ---------- */
+var _trackLast={key:'',at:0};
+function folderLabel(f){ var m={calendar:'Calendar',decks:'Presentations',tasks:'Task Manager',partners:'Project Partners',assets:'Client Assets',brief:'Creative Brief',final:'Final Deliverables',newsletter:'Newsletter'}; return m[f]||f; }
+function track(kind, opts){
+  if(typeof ADMIN!=='undefined' && ADMIN) return;   // never log the owner's own clicks
+  var em=myEmail(); if(!em) return;                  // only signed-in partners
+  opts=opts||{};
+  var key=kind+'|'+(opts.project||'')+'|'+(opts.section||'')+'|'+(opts.item||'')+'|'+(opts.folder||'');
+  var now=Date.now(); if(key===_trackLast.key && now-_trackLast.at<4000) return; _trackLast={key:key,at:now};
+  try{ sb.from('partner_activity').insert({ review_slug:CONFIG.REVIEW_SLUG, email:em, name:(AUTH.profile&&AUTH.profile.full_name)||'', kind:kind, project_key:opts.project||null, section_id:opts.section||null, item_key:opts.item||null, label:opts.label||'' }); }catch(e){}
+}
+/* ---------- who-viewed-what: owner-side "seen by" on deliverables ---------- */
+var SEENBY={ proj:null, byItem:{} };
+function seenbyEnsure(projId){ if(!(typeof ADMIN!=='undefined'&&ADMIN)) return; if(SEENBY.proj===projId){ seenbyPaint(); return; } seenbyLoad(projId); }
+async function seenbyLoad(projId){
+  SEENBY={proj:projId, byItem:{}};
+  if(!(typeof ADMIN!=='undefined'&&ADMIN)) return;
+  try{
+    var r=await sb.from('partner_activity').select('email,name,item_key,created_at').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',projId).eq('kind','item').order('created_at',{ascending:false}).limit(5000);
+    (r.data||[]).forEach(function(a){ var k=a.item_key; if(!k) return; var e=(a.email||'').toLowerCase(); if(!e) return; if(!SEENBY.byItem[k]) SEENBY.byItem[k]={}; if(!SEENBY.byItem[k][e]) SEENBY.byItem[k][e]={ name:a.name||a.email, at:a.created_at }; });
+  }catch(e){}
+  seenbyPaint();
+}
+function seenbyPaint(){
+  if(!(typeof ADMIN!=='undefined'&&ADMIN)) return;
+  document.querySelectorAll('[data-seenby]').forEach(function(el){
+    var k=el.dataset.seenby; var seers=(SEENBY.byItem||{})[k];
+    var arr=seers?Object.keys(seers).map(function(e){return seers[e];}):[];
+    if(!arr.length){ el.innerHTML='<span class="sb-none">Not viewed by anyone</span>'; return; }
+    arr.sort(function(a,b){ return (b.at||'').localeCompare(a.at||''); });
+    var av=arr.slice(0,5).map(function(s){ return '<span class="sb-av" title="'+esc(s.name)+' \u00b7 '+esc(caAgo(s.at))+'">'+esc((s.name||'?').slice(0,1).toUpperCase())+'</span>'; }).join('');
+    var more=arr.length>5?('<span class="sb-more">+'+(arr.length-5)+'</span>'):'';
+    var names=arr.map(function(s){return s.name;}).join(', ');
+    el.innerHTML='<span class="sb-lbl">Seen by '+arr.length+'</span><span class="sb-avs" title="'+esc(names)+'">'+av+more+'</span>';
+  });
+}
 function route(){
   players={}; closeOverlay();
   const hh=new URLSearchParams(location.hash.replace(/^#/,''));
@@ -1833,12 +1896,14 @@ function route(){
       if(!sec){ routeHome(); return; }
     }
     updateTopbar(proj.client);
-    if(f){ renderProject(proj, sec, null, f); try{ window.scrollTo(0,0); }catch(e){} return; }
+    if(f){ renderProject(proj, sec, null, f); track('folder',{project:proj.id, section:sec.id, folder:f, label:proj.title+' \u00b7 '+folderLabel(f)}); try{ window.scrollTo(0,0); }catch(e){} return; }
     let stack=null;
     if(k) stack=sec.stacks.find(x=>x.id===k)||null;
     if(!stack && i) stack=sec.stacks.find(x=>x.versions.some(v=>v.id===i))||null;
     if(stack && !accessIsOwner() && isHidden(visKeyStack(proj.id, sec.id, stack.id))) stack=null;
     renderProject(proj, sec, stack);
+    if(stack){ track('item',{project:proj.id, section:sec.id, item:stack.id, label:proj.title+' \u00b7 '+sec.name+' \u00b7 '+stack.title}); }
+    else { track('section',{project:proj.id, section:sec.id, label:proj.title+' \u00b7 '+sec.name}); }
     if(stack && i){ const v=stack.versions.find(x=>x.id===i); if(v && stack.versions[0] && v.id!==stack.versions[0].id) selectVersion(stack.id, i); }
     try{ window.scrollTo(0,0); }catch(e){}
     return;
@@ -1997,12 +2062,12 @@ function renderProject(proj, sec, stack, folder){
     else if(folder==='newsletter') nlLoad(proj.id);
   } else if(stack){
     wireVersion(proj, sec, stack.versions[0]);
-    apprRenderItem(proj, sec, stack.versions[0]); approvalsEnsure(proj.id);
+    apprRenderItem(proj, sec, stack.versions[0]); approvalsEnsure(proj.id); seenbyEnsure(proj.id);
     wireResizer();
     document.querySelectorAll('.ver-chip').forEach(chip=>{ chip.addEventListener('click', ()=> selectVersion(chip.dataset.stack, chip.dataset.v)); });
   } else {
     loadGridCounts(proj, sec);
-    APPR_GRID={proj:proj,sec:sec}; approvalsEnsure(proj.id);
+    APPR_GRID={proj:proj,sec:sec}; approvalsEnsure(proj.id); seenbyEnsure(proj.id);
   }
   if(ADMIN){ const ab=document.getElementById('ann-btn-'+sec.id); if(ab) ab.addEventListener('click', ()=>announce(proj.id,sec.id)); const asch=document.getElementById('ann-sch-'+sec.id); if(asch) asch.addEventListener('click', ()=>announceSchedule(proj.id,sec.id)); }
 }
@@ -2019,7 +2084,7 @@ function gridCardHTML(proj, sec, stack){
   const hideFlag=((typeof ADMIN!=='undefined'&&ADMIN) && isHidden(visKeyStack(proj.id,sec.id,stack.id)))?'<span class="hidden-flag">HIDDEN</span>':'';
   return '<a class="rcard" href="#p='+encodeURIComponent(proj.id)+'&s='+encodeURIComponent(sec.id)+'&k='+encodeURIComponent(stack.id)+'">'
     +'<div class="rc-thumb'+(thumb?'':' is-ph')+'"'+thumbStyle+'>'+ph+(kind?'<span class="rc-kind">'+esc(kind)+'</span>':'')+vbadge+'<span class="rc-appr" id="rc-appr-'+esc(stack.id)+'" hidden>'+apprCheck()+'</span>'+hideFlag+'<span class="rc-count" id="rc-count-'+esc(stack.id)+'"></span></div>'
-    +'<div class="rc-meta"><span class="rc-title">'+esc(stack.title)+'</span><span class="rc-sub">'+esc(date||(stack.versions.length+' version'+(stack.versions.length===1?'':'s')))+'</span></div></a>';
+    +'<div class="rc-meta"><span class="rc-title">'+esc(stack.title)+'</span><span class="rc-sub">'+esc(date||(stack.versions.length+' version'+(stack.versions.length===1?'':'s')))+'</span>'+(((typeof ADMIN!=='undefined'&&ADMIN))?'<span class="rc-seen" data-seenby="'+esc(stack.id)+'"></span>':'')+'</div></a>';
 }
 async function loadGridCounts(proj, sec){
   try{
@@ -2059,7 +2124,7 @@ function stackHTML(proj, sec, stack){
     return '<button class="ver-chip'+(i===0?' active':'')+'" data-stack="'+esc(stack.id)+'" data-v="'+esc(v.id)+'">'+esc(label)+'</button>';
   }).join('') + '</div>' : '';
   return '<section class="deliv" id="stack-'+stack.id+'"><div class="ver-layout" id="vlay-'+stack.id+'">'
-    +'<div class="ver-head-l"><span class="deliv-title">'+esc(stack.title)+'</span>'+chips+'</div>'
+    +'<div class="ver-head-l"><span class="deliv-title">'+esc(stack.title)+'</span>'+chips+((typeof ADMIN!=='undefined'&&ADMIN)?'<div class="seenby" data-seenby="'+esc(stack.id)+'"></div>':'')+'</div>'
     +'<div class="ver-gutter" id="vgut-'+stack.id+'" title="Drag to resize"><span class="vg-grip"></span></div>'
     +'<div class="ver-body" id="vbody-'+stack.id+'">'+versionBodyHTML(proj,sec,sel)+'</div>'
     +'</div></section>';
@@ -3161,6 +3226,7 @@ async function authInit(){
   if(AUTH.profile && AUTH.profile.owner) ADMIN=true;
   await visLoad(); await porderLoad();
   AUTH.ready=true; renderAuthSlot(); startPresence(); try{ route(); }catch(e){}
+  try{ track('open',{label:'Opened the portal'}); }catch(e){}
   var _authUid = (AUTH.user && AUTH.user.id) || null;
   sb.auth.onAuthStateChange(function(ev, session){
     var uid = session ? session.user.id : null;
@@ -3407,6 +3473,12 @@ async function loadPartners(){
   var profiles=[];
   try{ var r=await sb.from('profiles').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).order('created_at',{ascending:true}); profiles=r.data||[]; }catch(e){ profiles=[]; }
   PP.taskBy={};
+  PP.seen={};
+  if(typeof ADMIN!=='undefined' && ADMIN){
+    try{ var ra=await sb.from('partner_activity').select('email,created_at').eq('review_slug',CONFIG.REVIEW_SLUG).order('created_at',{ascending:false}).limit(3000);
+      (ra.data||[]).forEach(function(a){ var e=(a.email||'').toLowerCase(); if(!e) return; if(!PP.seen[e]){ PP.seen[e]={at:a.created_at, count:1}; } else { PP.seen[e].count++; } });
+    }catch(e){}
+  }
   if(currentProjectKey){
     try{
       var tr=await sb.from('tasks').select('owner_email,owner_emails,status,title').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',currentProjectKey).in('status',['new','in_progress','working_changes']);
@@ -3436,8 +3508,10 @@ function ppCardHTML(p){
   var tipTxt=ppEsc((ts&&ts.titles||[]).join(' \u00b7 '));
   var statusPill = ts ? '<div class="pc-task" data-tip="'+tipTxt+'" title="'+tipTxt+'"><span class="task-light blink" style="--c:'+ts.color+'"></span><span class="pc-task-l">'+ppEsc(ts.label)+'</span></div>' : '';
   var apprPill = ppCanApprove(p) ? '<span class="pc-appr" title="Can approve deliverables">'+apprCheck()+'Approver</span>' : '';
+  var seenLine='';
+  if((typeof ADMIN!=='undefined'&&ADMIN) && !p.owner && p.email){ var sv=(PP.seen||{})[String(p.email).toLowerCase()]; seenLine='<div class="pc-seen'+(sv?'':' never')+'">'+(sv?('Seen '+caAgo(sv.at)):'Never signed in')+'</div>'; }
   return '<div class="pcard" data-pid="'+ppEsc(p.id)+'">'+rm+'<div class="pc-top"><div class="pc-avwrap"><div class="avatar" style="'+ppAvStyle(p)+'">'+(p.avatar_url?'':ppEsc(ppInitials(p.full_name).toUpperCase()))+'</div><span class="pc-dot'+online+'" data-dot="'+ppEsc(dotKey)+'"></span></div>'
-    +'<div class="pc-id"><div class="pc-name">'+ppEsc(p.full_name)+'</div><div class="pc-role">'+ppEsc(p.position)+'</div>'+(p.timezone?'<div class="pc-tz">'+caIcon('clock')+'<span>'+ppEsc(caLocalTime(p.timezone))+' \u00b7 '+ppEsc(caTzShort(p.timezone))+'</span></div>':'')+'</div>'+statusPill+'</div>'
+    +'<div class="pc-id"><div class="pc-name">'+ppEsc(p.full_name)+'</div><div class="pc-role">'+ppEsc(p.position)+'</div>'+(p.timezone?'<div class="pc-tz">'+caIcon('clock')+'<span>'+ppEsc(caLocalTime(p.timezone))+' \u00b7 '+ppEsc(caTzShort(p.timezone))+'</span></div>':'')+seenLine+'</div>'+statusPill+'</div>'
     +'<div class="pc-foot">'+logo+'<span class="pc-company">'+ppEsc(c.name)+'</span>'+apprPill+'</div></div>';
 }
 function ppCanApprove(p){ if(!p) return false; if(p.owner) return true; if(!p.email) return false; var iv=(INVITES||[]).find(function(x){ return (x.email||'').toLowerCase()===String(p.email).toLowerCase(); }); return !!(iv&&iv.can_approve); }
@@ -3571,8 +3645,10 @@ function openPartnerDetail(p){
     +phoneRow
     +(p.email?'<div class="pd-email"><a href="mailto:'+ppEsc(p.email)+'">'+ppEsc(p.email)+'</a></div>':'')
     +'<div class="pd-status">'+dot+(online?'Online now':'Offline')+'</div></div>'
+    +((isAdmin && !p.owner && p.email)?'<div class="pd-activity" id="pdActivity"></div>':'')
     +access+rm+'<div class="lm-foot"><button id="pdClose">Close</button></div></div>';
   document.body.appendChild(ov);
+  if(isAdmin && !p.owner && p.email){ loadPartnerActivity(p); }
   ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); });
   document.getElementById('pdClose').onclick=function(){ ov.remove(); };
   var rb=document.getElementById('pdRemove'); if(rb) rb.onclick=function(){ removeFlow(p.id); };
@@ -3594,6 +3670,26 @@ function openPartnerDetail(p){
 }
 
 /* ---------- admin remove ---------- */
+function actKindLabel(k){ var m={open:'Signed in',item:'Viewed',section:'Section',folder:'Opened',project:'Project'}; return m[k]||k; }
+async function loadPartnerActivity(p){
+  var host=document.getElementById('pdActivity'); if(!host) return;
+  host.innerHTML='<div class="pd-act-h">Activity</div><div class="pd-act-loading">Loading\u2026</div>';
+  var rows=[];
+  try{ var r=await sb.from('partner_activity').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).eq('email',String(p.email).toLowerCase()).order('created_at',{ascending:false}).limit(80); rows=r.data||[]; }catch(e){}
+  if(!rows.length){ host.innerHTML='<div class="pd-act-h">Activity</div><div class="pd-act-empty">No activity recorded yet \u2014 they haven\u2019t opened the portal since this was turned on.</div>'; return; }
+  var last=rows[0].created_at;
+  var viewed={}; rows.forEach(function(r){ if(r.kind==='item' && r.item_key) viewed[r.item_key]=1; });
+  var nViewed=Object.keys(viewed).length;
+  // coverage vs items in the projects this partner can access
+  var inv=(INVITES||[]).find(function(x){ return (x.email||'').toLowerCase()===String(p.email).toLowerCase(); });
+  var pkeys=(inv&&inv.project_keys)||[];
+  var total=0; (CONFIG.PROJECTS||[]).forEach(function(pr){ if(!pkeys.length||pkeys.indexOf(pr.id)>=0){ (pr.sections||[]).forEach(function(s){ total+=(s.stacks||[]).length; }); } });
+  var cover = total>0 ? ('Opened <b>'+nViewed+'</b> of <b>'+total+'</b> deliverables') : ('Opened <b>'+nViewed+'</b> deliverable'+(nViewed===1?'':'s'));
+  var lines=rows.map(function(r){ return '<div class="pd-act-row"><span class="pd-act-k k-'+esc(r.kind)+'">'+esc(actKindLabel(r.kind))+'</span><span class="pd-act-l">'+esc(r.label||r.item_key||r.project_key||'\u2014')+'</span><span class="pd-act-t">'+esc(caAgo(r.created_at))+'</span></div>'; }).join('');
+  host.innerHTML='<div class="pd-act-h">Activity</div>'
+    +'<div class="pd-act-sum">Last seen <b>'+esc(caAgo(last))+'</b> \u00b7 '+cover+'</div>'
+    +'<div class="pd-act-list">'+lines+'</div>';
+}
 function removeFlow(id){
   var p=(PP.profiles||[]).find(function(x){ return x.id===id; }); var nm=p?p.full_name:'this partner';
   var ov=document.createElement('div'); ov.className='onb show'; ov.id='rmOv';
