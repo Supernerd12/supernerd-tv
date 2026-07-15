@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v43';  // v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
+  const VERSION = 'v44';  // v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   const items    = (await getCollection('reviewItems')).filter(i => i.data.published !== false);
@@ -1298,6 +1298,23 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
    ============================================================ */
 .nl-studio{max-width:760px}
 .nl-block{padding:18px 0 20px; border-bottom:1px solid var(--hair)}
+/* v44 — presentations index (entrance page) */
+.dx-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px;margin-top:18px}
+.dx-card{display:flex;flex-direction:column;text-decoration:none;border:1px solid var(--hair);border-radius:14px;overflow:hidden;background:rgba(255,255,255,.015);transition:border-color .18s var(--ease-out),transform .18s var(--ease-out)}
+.dx-card:hover{border-color:var(--green);transform:translateY(-3px)}
+.dx-thumb{position:relative;display:block;width:100%;padding-top:60%;overflow:hidden;background:#0c0d0e;border-bottom:1px solid var(--hair)}
+.dx-thumb iframe{position:absolute;inset:0;width:100%;height:100%;border:0;pointer-events:none}
+.dx-shield{position:absolute;inset:0;display:block}
+.dx-thumb.dx-none{display:flex;align-items:center;justify-content:center;padding-top:0;height:170px;font:500 12px var(--mono);color:var(--dim)}
+.dx-meta{display:flex;align-items:center;gap:9px;padding:13px 15px 4px}
+.dx-name{flex:1 1 auto;min-width:0;font:700 15px var(--disp);color:var(--bone);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dx-sub{display:flex;align-items:center;gap:4px;padding:0 15px 14px;font:400 11.5px var(--mono);color:var(--dim)}
+.dx-notes.has{color:var(--green)}
+.dx-go{margin-left:auto;font:600 11px var(--mono);color:var(--dim)}
+.dx-card:hover .dx-go{color:var(--green)}
+.dx-back{display:inline-flex;align-items:center;gap:7px;margin-bottom:16px;font:600 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--dim);text-decoration:none}
+.dx-back:hover{color:var(--green)}
+
 /* v43 — Activity feed (grouped + collapsible) */
 .act-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;padding:11px 15px;border:1px solid var(--hair);border-radius:11px;background:rgba(255,255,255,.02)}
 .act-sum{font:500 12.5px var(--mono);color:var(--dim)}
@@ -2084,7 +2101,8 @@ function seenbyPaint(){
 function route(){
   players={}; closeOverlay();
   const hh=new URLSearchParams(location.hash.replace(/^#/,''));
-  const c=hh.get('c'), p=hh.get('p'), s=hh.get('s'), i=hh.get('i'), k=hh.get('k'), f=hh.get('f');
+  const c=hh.get('c'), p=hh.get('p'), s=hh.get('s'), i=hh.get('i'), k=hh.get('k'), f=hh.get('f'), dk=hh.get('dk');
+  DECK_PICK = (f==='decks') ? (dk||null) : null;
   const pids=visibleProjectIds(); const allow={}; pids.forEach(function(id){ allow[id]=1; });
 
   if(p){
@@ -2924,6 +2942,10 @@ function deckEmbedHTML(row){
 }
 function deckIframe(row){ var src=canvaEmbed(row.url); if(!src) return '<div class="deck-empty">No Canva link yet.</div>'; return '<iframe loading="lazy" src="'+esc(src)+'" allow="fullscreen" allowfullscreen referrerpolicy="no-referrer"></iframe>'; }
 var DECK_VIEW={items:{}};
+var DECK_PICK=null;
+function deckGrpSort(vers){ var v=null; vers.forEach(function(x){ if(x.sort!==null&&x.sort!==undefined&&x.sort!==''&&!isNaN(Number(x.sort))){ var n=Number(x.sort); if(v===null||n<v) v=n; } }); return v; }
+function deckGrpTime(vers){ var t=''; vers.forEach(function(x){ var c=String(x.created_at||''); if(c>t) t=c; }); return t; }
+function deckVersSorted(list){ return list.slice().sort(function(a,b){ return String(b.version||'').localeCompare(String(a.version||''),undefined,{numeric:true}); }); }
 async function deckLoad(projKey){
   var mount=document.getElementById('deckmount'); if(!mount) return;
   var rows=[];
@@ -2935,43 +2957,82 @@ async function deckLoad(projKey){
   var visible = ADMIN ? rows : rows.filter(function(x){ return x.published; });
   var order=[], map={};
   visible.forEach(function(x){ var n=x.name||'Presentation'; if(!map[n]){ map[n]=[]; order.push(n); } map[n].push(x); });
+  // Order: anything with an explicit sort first, then most recently added/updated first
+  // (new presentations used to land at the bottom because sort is empty and Postgres puts nulls last).
+  order.sort(function(a,b){
+    var sa=deckGrpSort(map[a]), sb2=deckGrpSort(map[b]);
+    if(sa!==null && sb2!==null && sa!==sb2) return sa-sb2;
+    if(sa!==null && sb2===null) return -1;
+    if(sa===null && sb2!==null) return 1;
+    return String(deckGrpTime(map[b])).localeCompare(String(deckGrpTime(map[a])));
+  });
   var addBtn = ADMIN ? '<button class="deck-add" id="deckAdd">+ Add presentation</button>' : '';
   if(!order.length){ mount.innerHTML=addBtn+'<div class="sec-empty">'+(ADMIN?'No presentations yet. Add one with a Canva link.':'No presentations shared yet.')+'</div>'; if(ADMIN){ var b0=document.getElementById('deckAdd'); if(b0) b0.onclick=function(){ deckOpen(projKey,null); }; } return; }
   var proj=CONFIG.PROJECTS.find(function(p){return p.id===projKey;})||{id:projKey,sections:[]};
   var sec={id:'__decks__', name:'Presentations', stacks:[]};
   DECK_VIEW={proj:proj, sec:sec, projKey:projKey, items:{}};
-  var html=addBtn+'<div class="deck-list decks-review">';
-  order.forEach(function(n,gi){
-    var vers=map[n].slice().sort(function(a,b){ return String(b.version||'').localeCompare(String(a.version||''),undefined,{numeric:true}); });
-    var sel=vers[0];
+  var pick=(DECK_PICK && order.indexOf(DECK_PICK)>=0) ? DECK_PICK : null;
+  if(order.length>1 && !pick){ deckRenderIndex(mount, projKey, order, map, addBtn); return; }
+  deckRenderOne(mount, projKey, proj, sec, map, (pick||order[0]), order.length>1, addBtn);
+}
+function deckRenderIndex(mount, projKey, order, map, addBtn){
+  var cards=order.map(function(n){
+    var vers=deckVersSorted(map[n]);
+    var sel=vers.filter(function(v){return v.published;})[0]||vers[0];
+    var emb=canvaEmbed(sel.url);
+    var thumb = emb
+      ? '<span class="dx-thumb"><iframe loading="lazy" src="'+esc(emb)+'" tabindex="-1" scrolling="no" referrerpolicy="no-referrer" aria-hidden="true"></iframe><span class="dx-shield"></span></span>'
+      : '<span class="dx-thumb dx-none">No preview yet</span>';
     var anyPub=vers.some(function(v){return v.published;});
-    var did='dk'+gi;
     var badge = ADMIN ? (anyPub?'<span class="deck-badge live">LIVE</span>':'<span class="deck-badge hid">HIDDEN</span>') : '';
-    var chips = vers.length>1 ? '<div class="ver-chips">'+vers.map(function(v,vi){ return '<button class="ver-chip deck-vchip'+(vi===0?' active':'')+(ADMIN&&!v.published?' off':'')+'" data-gi="'+gi+'" data-vid="'+esc(v.id)+'">'+esc(v.version||('v'+(vers.length-vi)))+'</button>'; }).join('')+'</div>' : '';
-    var adminRow = ADMIN ? '<div class="deck-admin">'
-        +vers.map(function(v){ return '<span class="deck-vrow"><b>'+esc(v.version||'v1')+'</b> <button class="deck-pub'+(v.published?' on':'')+'" data-vid="'+esc(v.id)+'" data-proj="'+esc(projKey)+'">'+(v.published?'Live':'Hidden')+'</button> <button class="deck-edit" data-vid="'+esc(v.id)+'" data-proj="'+esc(projKey)+'">Edit</button> <button class="deck-del" data-vid="'+esc(v.id)+'" data-proj="'+esc(projKey)+'">Delete</button></span>'; }).join('')
-        +'<button class="deck-addver" data-name="'+esc(n)+'" data-proj="'+esc(projKey)+'">+ Add version</button></div>' : '';
-    var below='<div class="deck-foot"><a class="deck-open" href="'+esc(sel.url||'#')+'" target="_blank" rel="noopener">Open in Canva \u2197</a></div>'+adminRow;
-    var dit={ id:did, type:'deck', title:n, deckAsset:deckAssetId(projKey,n), _embed:deckIframe(sel), _below:below, url:sel.url };
-    DECK_VIEW.items[gi]=dit;
-    html+='<section class="deliv" id="deckdeliv-'+gi+'"><div class="ver-layout" id="vlay-'+did+'">'
-      +'<div class="ver-head-l"><span class="deliv-title">'+esc(n)+'</span>'+badge+chips+'</div>'
-      +'<div class="ver-gutter" id="vgut-'+did+'" title="Drag to resize"><span class="vg-grip"></span></div>'
-      +'<div class="ver-body" id="vbody-'+did+'">'+versionBodyHTML(proj, sec, dit)+'</div>'
-      +'</div></section>';
-  });
-  html+='</div>';
-  mount.innerHTML=html;
+    return '<a class="dx-card" href="#p='+encodeURIComponent(projKey)+'&f=decks&dk='+encodeURIComponent(n)+'">'
+      +thumb
+      +'<span class="dx-meta"><span class="dx-name">'+esc(n)+'</span>'+badge+'</span>'
+      +'<span class="dx-sub">'+vers.length+' version'+(vers.length===1?'':'s')+'<span class="dx-notes" data-dxn="'+esc(n)+'"></span><span class="dx-go">Open \u2192</span></span>'
+      +'</a>';
+  }).join('');
+  mount.innerHTML=addBtn+'<div class="dx-grid">'+cards+'</div>';
   var ab=document.getElementById('deckAdd'); if(ab) ab.onclick=function(){ deckOpen(projKey,null); };
-  order.forEach(function(n,gi){ var dit=DECK_VIEW.items[gi]; if(dit) wireVersion(proj, sec, dit); });
+  deckNoteCounts(projKey);
+}
+async function deckNoteCounts(projKey){
+  try{
+    var pre='deck:'+projKey+':';
+    var r=await sb.from('comments').select('asset_id').eq('review_slug',CONFIG.REVIEW_SLUG).like('asset_id',pre+'%').limit(2000);
+    var c={}; (r&&r.data||[]).forEach(function(x){ var nm=String(x.asset_id||'').slice(pre.length); if(nm) c[nm]=(c[nm]||0)+1; });
+    document.querySelectorAll('[data-dxn]').forEach(function(el){ var n=c[el.dataset.dxn]||0; if(n){ el.textContent=' \u00b7 '+n+' note'+(n===1?'':'s'); el.classList.add('has'); } });
+  }catch(e){}
+}
+function deckRenderOne(mount, projKey, proj, sec, map, n, multi, addBtn){
+  var gi=0, did='dk0';
+  var vers=deckVersSorted(map[n]);
+  var sel=vers[0];
+  var anyPub=vers.some(function(v){return v.published;});
+  var badge = ADMIN ? (anyPub?'<span class="deck-badge live">LIVE</span>':'<span class="deck-badge hid">HIDDEN</span>') : '';
+  var chips = vers.length>1 ? '<div class="ver-chips">'+vers.map(function(v,vi){ return '<button class="ver-chip deck-vchip'+(vi===0?' active':'')+(ADMIN&&!v.published?' off':'')+'" data-gi="'+gi+'" data-vid="'+esc(v.id)+'">'+esc(v.version||('v'+(vers.length-vi)))+'</button>'; }).join('')+'</div>' : '';
+  var adminRow = ADMIN ? '<div class="deck-admin">'
+      +vers.map(function(v){ return '<span class="deck-vrow"><b>'+esc(v.version||'v1')+'</b> <button class="deck-pub'+(v.published?' on':'')+'" data-vid="'+esc(v.id)+'" data-proj="'+esc(projKey)+'">'+(v.published?'Live':'Hidden')+'</button> <button class="deck-edit" data-vid="'+esc(v.id)+'" data-proj="'+esc(projKey)+'">Edit</button> <button class="deck-del" data-vid="'+esc(v.id)+'" data-proj="'+esc(projKey)+'">Delete</button></span>'; }).join('')
+      +'<button class="deck-addver" data-name="'+esc(n)+'" data-proj="'+esc(projKey)+'">+ Add version</button></div>' : '';
+  var below='<div class="deck-foot"><a class="deck-open" href="'+esc(sel.url||'#')+'" target="_blank" rel="noopener">Open in Canva \u2197</a></div>'+adminRow;
+  var dit={ id:did, type:'deck', title:n, deckAsset:deckAssetId(projKey,n), _embed:deckIframe(sel), _below:below, url:sel.url };
+  DECK_VIEW.items[gi]=dit;
+  var top = multi ? '<a class="dx-back" href="#p='+encodeURIComponent(projKey)+'&f=decks">\u2190 All presentations</a>' : addBtn;
+  mount.innerHTML=top+'<div class="deck-list decks-review">'
+    +'<section class="deliv" id="deckdeliv-'+gi+'"><div class="ver-layout" id="vlay-'+did+'">'
+    +'<div class="ver-head-l"><span class="deliv-title">'+esc(n)+'</span>'+badge+chips+'</div>'
+    +'<div class="ver-gutter" id="vgut-'+did+'" title="Drag to resize"><span class="vg-grip"></span></div>'
+    +'<div class="ver-body" id="vbody-'+did+'">'+versionBodyHTML(proj, sec, dit)+'</div>'
+    +'</div></section></div>';
+  var ab=document.getElementById('deckAdd'); if(ab) ab.onclick=function(){ deckOpen(projKey,null); };
+  wireVersion(proj, sec, dit);
   if(typeof wireResizer==='function'){ try{ wireResizer(); }catch(e){} }
   mount.querySelectorAll('.deck-vchip').forEach(function(ch){ ch.onclick=function(){
-    var gi=ch.dataset.gi; var dit=DECK_VIEW.items[gi]; if(!dit) return;
+    var d2=DECK_VIEW.items[ch.dataset.gi]; if(!d2) return;
     var row=(DECKS_CACHE[projKey]||[]).find(function(x){return x.id===ch.dataset.vid;}); if(!row) return;
-    var sect=document.getElementById('deckdeliv-'+gi); if(sect){ sect.querySelectorAll('.deck-vchip').forEach(function(c){ c.classList.remove('active'); }); } ch.classList.add('active');
-    var frame=document.getElementById('deckframe-'+dit.id); if(frame){ frame.innerHTML=deckIframe(row); }
+    var sect=document.getElementById('deckdeliv-'+ch.dataset.gi); if(sect){ sect.querySelectorAll('.deck-vchip').forEach(function(c){ c.classList.remove('active'); }); } ch.classList.add('active');
+    var frame=document.getElementById('deckframe-'+d2.id); if(frame){ frame.innerHTML=deckIframe(row); }
     var open=sect?sect.querySelector('.deck-open'):null; if(open) open.href=row.url||'#';
-    dit._embed=deckIframe(row); dit.url=row.url;
+    d2._embed=deckIframe(row); d2.url=row.url;
   }; });
   if(ADMIN){
     mount.querySelectorAll('.deck-pub').forEach(function(b){ b.onclick=function(){ deckTogglePublish(b.dataset.proj, b.dataset.vid); }; });
