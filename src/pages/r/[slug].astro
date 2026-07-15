@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v41';  // v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
+  const VERSION = 'v42';  // v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   const items    = (await getCollection('reviewItems')).filter(i => i.data.published !== false);
@@ -1298,6 +1298,32 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
    ============================================================ */
 .nl-studio{max-width:760px}
 .nl-block{padding:18px 0 20px; border-bottom:1px solid var(--hair)}
+/* v42 — Activity feed */
+.act-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;padding:11px 15px;border:1px solid var(--hair);border-radius:11px;background:rgba(255,255,255,.02)}
+.act-sum{font:500 12.5px var(--mono);color:var(--dim)}
+.act-count{font:700 11px var(--mono);letter-spacing:.05em;text-transform:uppercase;color:#0a0b0d;background:var(--green);padding:4px 10px;border-radius:999px}
+.act-count.zero{background:transparent;color:var(--dim);border:1px solid var(--hair)}
+.act-list{display:flex;flex-direction:column}
+.act-div{font:700 10px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--dim);margin:16px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--hair)}
+.act-div.new{color:var(--green);border-color:rgba(186,192,30,.35)}
+.act-div:first-child{margin-top:0}
+.act-row{display:flex;align-items:flex-start;gap:12px;padding:11px 6px;border-bottom:1px solid rgba(255,255,255,.04)}
+.act-row:hover{background:rgba(255,255,255,.02)}
+.act-ico{flex:0 0 auto;width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);font-size:12px}
+.act-row.k-comment .act-ico,.act-row.k-reply .act-ico{background:rgba(186,192,30,.16)}
+.act-row.k-approval .act-ico,.act-row.k-task .act-ico{background:rgba(120,200,120,.14)}
+.act-main{flex:1 1 auto;min-width:0}
+.act-l1{font:400 13.5px/1.5 var(--disp);color:var(--dim)}
+.act-l1 b{color:var(--bone);font-weight:700}
+.act-where{color:var(--green)}
+.act-text{margin-top:3px;font:400 12.5px/1.5 var(--mono);color:var(--dim);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.act-t{flex:0 0 auto;font:400 10.5px var(--mono);color:var(--dim);white-space:nowrap;padding-top:3px}
+.act-go{flex:0 0 auto;font:600 10.5px var(--mono);color:var(--dim);text-decoration:none;padding-top:3px}
+.act-go:hover{color:var(--green)}
+.act-go-sp{flex:0 0 auto;width:38px}
+.act-empty{padding:26px 0;font:400 13px/1.6 var(--mono);color:var(--dim)}
+.n-badge.act-badge{background:var(--green);color:#0a0b0d}
+
 /* v36 — per-deliverable "seen by" (owner only) */
 .rc-seen{display:flex; align-items:center; gap:5px; margin-top:7px; padding-top:7px; border-top:1px solid var(--hair)}
 .seenby{display:flex; align-items:center; gap:7px; margin-top:10px}
@@ -1870,13 +1896,121 @@ function clientOf(projId){ var p=CONFIG.PROJECTS.find(function(x){return x.id===
 /* ---------- partner activity tracking (partners only; owner reads it) ---------- */
 var _trackLast={key:'',at:0};
 function folderLabel(f){ var m={calendar:'Calendar',decks:'Presentations',tasks:'Task Manager',partners:'Project Partners',assets:'Client Assets',brief:'Creative Brief',final:'Final Deliverables',newsletter:'Newsletter'}; return m[f]||f; }
-function track(kind, opts){
+var TRACK_ERR='';
+async function track(kind, opts){
   if(typeof ADMIN!=='undefined' && ADMIN) return;   // never log the owner's own clicks
   var em=myEmail(); if(!em) return;                  // only signed-in partners
   opts=opts||{};
   var key=kind+'|'+(opts.project||'')+'|'+(opts.section||'')+'|'+(opts.item||'')+'|'+(opts.folder||'');
   var now=Date.now(); if(key===_trackLast.key && now-_trackLast.at<4000) return; _trackLast={key:key,at:now};
-  try{ sb.from('partner_activity').insert({ review_slug:CONFIG.REVIEW_SLUG, email:em, name:(AUTH.profile&&AUTH.profile.full_name)||'', kind:kind, project_key:opts.project||null, section_id:opts.section||null, item_key:opts.item||null, label:opts.label||'' }); }catch(e){}
+  // CRITICAL: supabase query builders are LAZY — the HTTP request only fires when awaited.
+  // Do not remove this await or nothing is ever recorded (silently).
+  try{
+    var r=await sb.from('partner_activity').insert({ review_slug:CONFIG.REVIEW_SLUG, email:em, name:(AUTH.profile&&AUTH.profile.full_name)||'', kind:kind, project_key:opts.project||null, section_id:opts.section||null, item_key:opts.item||null, label:opts.label||'' });
+    if(r&&r.error){ TRACK_ERR=r.error.message||'insert blocked'; console.warn('[activity] not recorded:', TRACK_ERR); } else { TRACK_ERR=''; }
+  }catch(e){ TRACK_ERR=(e&&e.message)||'request failed'; console.warn('[activity] failed:', TRACK_ERR); }
+}
+/* ---------- Activity feed (owner only) — one list of everything since last visit ---------- */
+var ACT={proj:null, rows:[], since:''};
+function actKey(projId){ return 'act:'+CONFIG.REVIEW_SLUG+':'+projId; }
+function actLastSeen(projId){ try{ return localStorage.getItem(actKey(projId))||''; }catch(e){ return ''; } }
+function actMarkSeen(projId){ try{ localStorage.setItem(actKey(projId), new Date().toISOString()); }catch(e){} }
+function actOwnerSet(){ var o={}; (CONFIG.OWNER_LOGINS||[]).forEach(function(e){ o[String(e).toLowerCase()]=1; }); o[String(OWNER_EMAIL).toLowerCase()]=1; return o; }
+function actResolveAsset(aid){
+  if(!aid) return null;
+  if(aid.indexOf('deck:')===0){
+    var q=aid.split(':'), pk=q[1]||'', nm=q.slice(2).join(':');
+    var pr0=(CONFIG.PROJECTS||[]).find(function(x){return x.id===pk;});
+    var s0=(pr0&&pr0.sections&&pr0.sections[0])?pr0.sections[0].id:'';
+    return { proj:pk, label:'Presentations \u00b7 '+nm, link:'#p='+encodeURIComponent(pk)+'&s='+encodeURIComponent(s0)+'&f=decks' };
+  }
+  var p=aid.split(':'); if(p.length<3) return null;
+  var pk=p[0], sk=p[1], ik=p.slice(2).join(':');
+  var pr=(CONFIG.PROJECTS||[]).find(function(x){return x.id===pk;});
+  if(!pr) return { proj:pk, label:aid, link:'' };
+  var sc=(pr.sections||[]).find(function(x){return x.id===sk;});
+  var title=ik;
+  if(sc){ for(var i=0;i<(sc.stacks||[]).length;i++){ var st=sc.stacks[i]; if((st.versions||[]).some(function(v){return v.id===ik;})){ title=st.title; break; } } }
+  return { proj:pk, label:(sc?sc.name:sk)+' \u00b7 '+title, link:'#p='+encodeURIComponent(pk)+'&s='+encodeURIComponent(sk)+'&i='+encodeURIComponent(ik) };
+}
+function actVerb(k){ return ({comment:'commented on', reply:'replied on', view:'viewed', signin:'signed in', task:'completed', approval:'approved'})[k]||k; }
+function actIco(k){ return ({comment:'\ud83d\udcac', reply:'\u21b3', view:'\ud83d\udc41', signin:'\ud83d\udd11', task:'\u2705', approval:'\u2713'})[k]||'\u00b7'; }
+async function actLoad(projId){
+  var m=document.getElementById('actmount'); if(!m) return;
+  if(!(typeof ADMIN!=='undefined'&&ADMIN)){ m.innerHTML='<div class="act-empty">Not available.</div>'; return; }
+  var since=actLastSeen(projId);
+  ACT={proj:projId, rows:[], since:since};
+  var own=actOwnerSet(), rows=[], errs=[];
+  try{
+    var rc=await sb.from('comments').select('id,asset_id,author_name,author_email,body,audio_url,created_at,parent_id').eq('review_slug',CONFIG.REVIEW_SLUG).order('created_at',{ascending:false}).limit(400);
+    if(rc&&rc.error) errs.push('comments: '+rc.error.message);
+    (rc&&rc.data||[]).forEach(function(c){
+      var r=actResolveAsset(c.asset_id); if(!r || r.proj!==projId) return;
+      if(own[(c.author_email||'').toLowerCase()]) return;
+      rows.push({ at:c.created_at, kind:c.parent_id?'reply':'comment', who:c.author_name||'Someone', where:r.label, link:r.link, text:(c.body||'').slice(0,220)||'(voice note)' });
+    });
+  }catch(e){ errs.push('comments unreadable'); }
+  try{
+    var rv=await sb.from('partner_activity').select('email,name,kind,label,created_at').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',projId).order('created_at',{ascending:false}).limit(400);
+    if(rv&&rv.error) errs.push('activity: '+rv.error.message);
+    (rv&&rv.data||[]).forEach(function(a){
+      if(a.kind==='section'||a.kind==='project') return;
+      rows.push({ at:a.created_at, kind:(a.kind==='open'?'signin':'view'), who:a.name||a.email||'Someone', where:(a.kind==='open'?'':(a.label||'')), link:'', text:'' });
+    });
+  }catch(e){ errs.push('activity unreadable'); }
+  try{
+    var rt=await sb.from('tasks').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',projId).eq('status','complete');
+    (rt&&rt.data||[]).forEach(function(t){ rows.push({ at:t.updated_at||t.created_at, kind:'task', who:(t.owner_names&&t.owner_names.length?t.owner_names.join(', '):'Someone'), where:t.title||'Task', link:'#p='+encodeURIComponent(projId)+'&f=tasks', text:'' }); });
+  }catch(e){}
+  try{
+    var ra=await sb.from('approvals').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',projId);
+    (ra&&ra.data||[]).forEach(function(a){ rows.push({ at:a.approved_at, kind:'approval', who:a.approved_by_name||a.approved_by_email||'Client', where:(a.title||'')+(a.version_label?(' '+a.version_label):''), link:'', text:'' }); });
+  }catch(e){}
+  rows=rows.filter(function(r){ return r.at; });
+  rows.sort(function(a,b){ return String(b.at).localeCompare(String(a.at)); });
+  ACT.rows=rows.slice(0,300);
+  actRender(m, errs);
+  actMarkSeen(projId);
+  var b=document.getElementById('actBadge'); if(b) b.hidden=true;
+}
+function actRowHTML(r){
+  var link=r.link?('<a class="act-go" href="'+esc(r.link)+'">Open \u2192</a>'):'<span class="act-go-sp"></span>';
+  return '<div class="act-row k-'+esc(r.kind)+'"><span class="act-ico">'+actIco(r.kind)+'</span>'
+    +'<div class="act-main"><div class="act-l1"><b>'+esc(r.who)+'</b> '+esc(actVerb(r.kind))+(r.where?' <span class="act-where">'+esc(r.where)+'</span>':'')+'</div>'
+    +(r.text?'<div class="act-text">'+esc(r.text)+'</div>':'')+'</div>'
+    +'<span class="act-t">'+esc(caAgo(r.at))+'</span>'+link+'</div>';
+}
+function actRender(m, errs){
+  var since=ACT.since;
+  var isNew=function(r){ return since ? (String(r.at)>String(since)) : true; };
+  var news=ACT.rows.filter(isNew), old=ACT.rows.filter(function(r){ return !isNew(r); });
+  var warn=(errs&&errs.length)?'<div class="pp-warn"><b>Some activity couldn\u2019t be read.</b> '+esc(errs.join(' \u00b7 '))+'</div>':'';
+  var bar='<div class="act-bar"><span class="act-sum">'+(since?('Last checked '+esc(caAgo(since))):'First visit \u2014 showing everything so far')+'</span>'
+    +(news.length?'<span class="act-count">'+news.length+' new</span>':'<span class="act-count zero">Nothing new</span>')+'</div>';
+  var body='';
+  if(!ACT.rows.length){ body='<div class="act-empty">No activity yet. Once partners sign in, view work, comment, or complete tasks, it all shows up here.</div>'; }
+  else{
+    body='<div class="act-list">';
+    if(news.length){ body+='<div class="act-div new">'+(since?'Since your last visit':'Everything so far')+'</div>'+news.map(actRowHTML).join(''); }
+    if(old.length){ body+='<div class="act-div">Earlier</div>'+old.map(actRowHTML).join(''); }
+    body+='</div>';
+  }
+  m.innerHTML=warn+bar+body;
+}
+async function actBadgeLoad(projId){
+  if(!(typeof ADMIN!=='undefined'&&ADMIN)) return;
+  var b=document.getElementById('actBadge'); if(!b) return;
+  var since=actLastSeen(projId); if(!since){ b.hidden=true; return; }
+  var n=0, own=actOwnerSet();
+  try{
+    var rc=await sb.from('comments').select('asset_id,author_email,created_at').eq('review_slug',CONFIG.REVIEW_SLUG).gt('created_at',since).limit(200);
+    (rc&&rc.data||[]).forEach(function(c){ var r=actResolveAsset(c.asset_id); if(r&&r.proj===projId&&!own[(c.author_email||'').toLowerCase()]) n++; });
+  }catch(e){}
+  try{
+    var rv=await sb.from('partner_activity').select('id',{count:'exact',head:true}).eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',projId).gt('created_at',since);
+    n+=(rv&&rv.count)||0;
+  }catch(e){}
+  if(n>0){ b.textContent=(n>99?'99+':String(n)); b.hidden=false; } else { b.hidden=true; }
 }
 /* ---------- who-viewed-what: owner-side "seen by" on deliverables ---------- */
 var SEENBY={ proj:null, byItem:{} };
@@ -1919,6 +2053,7 @@ function route(){
       if(!sec){ routeHome(); return; }
     }
     updateTopbar(proj.client);
+    if(f==='activity' && !accessIsOwner()) f=null;
     if(f){ renderProject(proj, sec, null, f); track('folder',{project:proj.id, section:sec.id, folder:f, label:proj.title+' \u00b7 '+folderLabel(f)}); try{ window.scrollTo(0,0); }catch(e){} return; }
     let stack=null;
     if(k) stack=sec.stacks.find(x=>x.id===k)||null;
@@ -2037,10 +2172,10 @@ function renderProject(proj, sec, stack, folder){
     const tail=((typeof ADMIN!=='undefined'&&ADMIN)&&hid)?'<span class="nav-hid-tag">hidden</span>':'<span class="n-ct">'+(n||'')+'</span>';
     return '<a href="#p='+encodeURIComponent(proj.id)+'&s='+encodeURIComponent(s.id)+'" class="'+(s.id===sec.id?'active':'')+(hid?' nav-hidden':'')+'"><span class="n-num">'+String(i+1).padStart(2,'0')+'</span><span class="n-name">'+esc(s.name)+'</span>'+tail+'</a>';
   }).join('');
-  const FOLDERS=[{k:'calendar',name:'Calendar',ico:'cal'},{k:'tasks',name:'Task Manager',ico:'task'},{k:'assets',name:'Client Assets',ico:'pal'},{k:'brief',name:'Creative Brief',ico:'brief'},{k:'partners',name:'Project Partners',ico:'ppl'}];
+  const FOLDERS=((typeof ADMIN!=='undefined'&&ADMIN)?[{k:'activity',name:'Activity',ico:'act'}]:[]).concat([{k:'calendar',name:'Calendar',ico:'cal'},{k:'tasks',name:'Task Manager',ico:'task'},{k:'assets',name:'Client Assets',ico:'pal'},{k:'brief',name:'Creative Brief',ico:'brief'},{k:'partners',name:'Project Partners',ico:'ppl'}]);
   const folderNav=FOLDERS.map(function(ff){
     if(ff.soon) return '<a class="soon"><span class="n-ico">'+calNavIcon(ff.ico)+'</span><span class="n-name">'+esc(ff.name)+'</span><span class="soon-tag">soon</span></a>';
-    var badge = ff.k==='tasks' ? '<span class="n-badge" id="taskBadge" hidden></span>' : '';
+    var badge = ff.k==='tasks' ? '<span class="n-badge" id="taskBadge" hidden></span>' : (ff.k==='activity' ? '<span class="n-badge act-badge" id="actBadge" hidden></span>' : '');
     return '<a href="#p='+encodeURIComponent(proj.id)+'&f='+ff.k+'" class="'+(folder===ff.k?'active':'')+'"><span class="n-ico">'+calNavIcon(ff.ico)+'</span><span class="n-name">'+esc(ff.name)+'</span>'+badge+'</a>';
   }).join('');
   // Presentations lives ABOVE the Project group. Admin always sees it; clients only when a deck is published.
@@ -2050,7 +2185,8 @@ function renderProject(proj, sec, stack, folder){
   const signoffNav = ADMIN ? '<div class="signoff-nav"><button class="signoff-btn" id="signoffBtn" title="Export a branded review record (comments + approvals) as PDF"><span class="n-ico">'+calNavIcon('final')+'</span><span class="n-name">Export sign-off PDF</span></button></div>' : '';
   let head, body;
   if(folder){
-    if(folder==='calendar'){ head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>Calendar</h2></div>'; body='<div class="cal" id="calmount"><div class="cal-loading">Loading calendar\u2026</div></div>'; }
+    if(folder==='activity'){ head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>Activity</h2><div class="pp-sub">Everything that\u2019s happened on this project since you were last here \u2014 only you can see this.</div></div>'; body='<div id="actmount"><div class="cal-loading">Loading activity\u2026</div></div>'; }
+    else if(folder==='calendar'){ head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>Calendar</h2></div>'; body='<div class="cal" id="calmount"><div class="cal-loading">Loading calendar\u2026</div></div>'; }
     else if(folder==='decks'){ head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>Presentations</h2><div class="pp-sub">Live Canva decks — they stay current as you edit them in Canva.</div></div>'; body='<div id="deckmount" class="decks"><div class="cal-loading">Loading presentations\u2026</div></div>'; }
     else if(folder==='tasks'){ head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>Task Manager</h2><div class="pp-sub">Shared checklist. Both sides can add tasks, assign an owner &amp; due date, and set status.</div></div>'; body='<div id="taskmount" class="tasks-wrap"><div class="cal-loading">Loading tasks\u2026</div></div>'; }
     else if(folder==='partners'){ head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>Project Partners</h2><div class="pp-sub">Everyone onboarded to this project.</div></div>'; body='<div id="ppmount"><div class="cal-loading">Loading partners\u2026</div></div>'; }
@@ -2074,9 +2210,11 @@ function renderProject(proj, sec, stack, folder){
   if(!ADMIN) decksReveal(proj.id);
   projStatusLoad(proj.id);
   taskBadgeLoad(proj.id);
+  if(typeof ADMIN!=='undefined'&&ADMIN) actBadgeLoad(proj.id);
 
   if(folder){
-    if(folder==='calendar') calLoad(proj.id);
+    if(folder==='activity') actLoad(proj.id);
+    else if(folder==='calendar') calLoad(proj.id);
     else if(folder==='decks') deckLoad(proj.id);
     else if(folder==='tasks') taskLoad(proj.id);
     else if(folder==='partners') loadPartners();
@@ -2396,6 +2534,31 @@ function renderPins(it, pinned, pinNum){
   }));
 }
 
+function commentLinkFor(proj, sec, it){
+  if(it && it.type==='deck'){
+    var s0=(proj.sections&&proj.sections[0])?proj.sections[0].id:'';
+    return location.origin+'/r/'+CONFIG.REVIEW_SLUG+'/#p='+encodeURIComponent(proj.id)+'&s='+encodeURIComponent(s0)+'&f=decks';
+  }
+  return location.origin+'/r/'+CONFIG.REVIEW_SLUG+'/#p='+encodeURIComponent(proj.id)+'&s='+encodeURIComponent(sec.id)+'&i='+encodeURIComponent(it.id);
+}
+async function notifyComment(proj, sec, it, a, body, extra){
+  try{
+    var own={}; (CONFIG.OWNER_LOGINS||[]).forEach(function(e){ own[String(e).toLowerCase()]=1; }); own[String(OWNER_EMAIL).toLowerCase()]=1;
+    var me=(a.email||'').toLowerCase();
+    var toOwner=!own[me];
+    var others=[...new Set((extra||[]).filter(function(e){ return e && e!==me && !own[e]; }))];
+    if(!toOwner && !others.length) return;
+    var isDeck=it.type==='deck';
+    var where=isDeck?(proj.title+' \u00b7 Presentations \u00b7 '+(it.title||'')):(proj.title+' \u00b7 '+sec.name+' \u00b7 '+(itemTitle(it)||''));
+    var link=commentLinkFor(proj,sec,it);
+    var quoted=(body||'').slice(0,600);
+    var inner='<p style="margin:0 0 6px;font-size:13px;color:#8b8f96;">'+esc(where)+'</p>'
+      +'<p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#c9ccd1;"><b style="color:#fff;">'+esc(a.name)+'</b> left a note:</p>'
+      +(quoted?'<div style="margin:0 0 16px;padding:12px 14px;border-left:3px solid #BAC01E;background:#101114;font-size:15px;line-height:1.6;color:#c9ccd1;">'+esc(quoted).replace(/\n/g,'<br>')+'</div>':'<p style="margin:0 0 16px;font-size:14px;color:#8b8f96;">(voice note \u2014 open the review to listen)</p>')
+      +'<a href="'+link+'" style="display:inline-block;background:#BAC01E;color:#0a0b0d;font-weight:700;font-size:14px;text-decoration:none;padding:11px 20px;border-radius:9px;">Open the note \u2192</a>';
+    await sendEmail({ to:[OWNER_EMAIL], bcc:others, subject:'New note from '+a.name+' \u00b7 '+(isDeck?(it.title||'Presentation'):(itemTitle(it)||sec.name)), html:emailShell('New note on '+proj.title, inner), replyTo:a.email||OWNER_EMAIL });
+  }catch(e){ console.warn('comment notify failed', e); }
+}
 async function postNote(proj, sec, it){
   const tcEl=document.getElementById('tc-'+it.id), bodyEl=document.getElementById('body-'+it.id);
   const msg=document.getElementById('msg-'+it.id), btn=document.getElementById('post-'+it.id);
@@ -2427,6 +2590,7 @@ async function postNote(proj, sec, it){
     const { data:ins, error } = await sb.from('comments').insert(row).select();
     if(error) throw error;
     if(ins && ins[0] && ins[0].id) addMine(ins[0].id);
+    notifyComment(proj, sec, it, a, body, row.notify_emails);
     bodyEl.value=''; if(tcEl) tcEl.value='';
     pendingAudio[it.id]=null; pendingPin[it.id]=null; pinMode[it.id]=false;
     mentionState[it.id]=null; clearReply(it);
@@ -2676,7 +2840,8 @@ var CAL_DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 var CAL_DOWF=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 var CAL_MON=['January','February','March','April','May','June','July','August','September','October','November','December'];
 function calNavIcon(n){
-  var p={cal:'<rect x="3" y="4.5" width="18" height="16" rx="2"></rect><path d="M3 9.5h18M8 3v3M16 3v3"></path>',
+  var p={act:'<path d="M3 12h4l3 8 4-16 3 8h4"></path>',
+    cal:'<rect x="3" y="4.5" width="18" height="16" rx="2"></rect><path d="M3 9.5h18M8 3v3M16 3v3"></path>',
     deck:'<rect x="3" y="4" width="18" height="13" rx="2"></rect><path d="M12 17v3M8.5 20h7"></path>',
     task:'<path d="M4 6h10M4 12h10M4 18h7"></path><path d="M17.5 5.5l1.5 1.5 2.5-2.5"></path><path d="M17.5 11.5l1.5 1.5 2.5-2.5"></path>',
     pal:'<path d="M12 3a9 9 0 1 0 0 18 1.8 1.8 0 0 0 1.7-2.6 1.8 1.8 0 0 1 1.6-2.6H17a4 4 0 0 0 4-4c0-4.4-4-6.2-9-6.2Z"></path><circle cx="7.5" cy="11.5" r="1.1"></circle><circle cx="12" cy="8" r="1.1"></circle><circle cx="16.5" cy="11" r="1.1"></circle>',
