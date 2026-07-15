@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v42';  // v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
+  const VERSION = 'v43';  // v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   const items    = (await getCollection('reviewItems')).filter(i => i.data.published !== false);
@@ -1298,29 +1298,38 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
    ============================================================ */
 .nl-studio{max-width:760px}
 .nl-block{padding:18px 0 20px; border-bottom:1px solid var(--hair)}
-/* v42 — Activity feed */
-.act-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;padding:11px 15px;border:1px solid var(--hair);border-radius:11px;background:rgba(255,255,255,.02)}
+/* v43 — Activity feed (grouped + collapsible) */
+.act-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;padding:11px 15px;border:1px solid var(--hair);border-radius:11px;background:rgba(255,255,255,.02)}
 .act-sum{font:500 12.5px var(--mono);color:var(--dim)}
 .act-count{font:700 11px var(--mono);letter-spacing:.05em;text-transform:uppercase;color:#0a0b0d;background:var(--green);padding:4px 10px;border-radius:999px}
 .act-count.zero{background:transparent;color:var(--dim);border:1px solid var(--hair)}
-.act-list{display:flex;flex-direction:column}
-.act-div{font:700 10px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--dim);margin:16px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--hair)}
-.act-div.new{color:var(--green);border-color:rgba(186,192,30,.35)}
-.act-div:first-child{margin-top:0}
-.act-row{display:flex;align-items:flex-start;gap:12px;padding:11px 6px;border-bottom:1px solid rgba(255,255,255,.04)}
-.act-row:hover{background:rgba(255,255,255,.02)}
-.act-ico{flex:0 0 auto;width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);font-size:12px}
-.act-row.k-comment .act-ico,.act-row.k-reply .act-ico{background:rgba(186,192,30,.16)}
-.act-row.k-approval .act-ico,.act-row.k-task .act-ico{background:rgba(120,200,120,.14)}
+.act-groups{display:flex;flex-direction:column;gap:9px}
+.act-grp{border:1px solid var(--hair);border-radius:12px;background:rgba(255,255,255,.015);overflow:hidden}
+.act-gsum{display:flex;align-items:center;gap:11px;padding:12px 15px;cursor:pointer;list-style:none;user-select:none}
+.act-gsum::-webkit-details-marker{display:none}
+.act-gsum:hover{background:rgba(255,255,255,.03)}
+.act-gico{flex:0 0 auto;width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.05);font-size:12px}
+.act-gname{flex:1 1 auto;font:700 13.5px var(--disp);color:var(--bone)}
+.act-gct{flex:0 0 auto;font:600 11px var(--mono);color:var(--dim);background:rgba(255,255,255,.05);padding:3px 9px;border-radius:999px}
+.act-gnew{flex:0 0 auto;font:700 10px var(--mono);letter-spacing:.05em;text-transform:uppercase;color:#0a0b0d;background:var(--green);padding:3px 8px;border-radius:999px}
+.act-chev{flex:0 0 auto;color:var(--dim);font-size:11px;transition:transform .18s var(--ease-out)}
+.act-grp[open] .act-chev{transform:rotate(180deg)}
+.act-grp[open] .act-gsum{border-bottom:1px solid var(--hair)}
+.act-rows{padding:4px 15px 10px}
+.act-row{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.act-row:last-child{border-bottom:0}
+.act-row.is-new{margin:0 -15px;padding-left:12px;padding-right:15px;border-left:3px solid var(--green);background:rgba(186,192,30,.05)}
 .act-main{flex:1 1 auto;min-width:0}
 .act-l1{font:400 13.5px/1.5 var(--disp);color:var(--dim)}
 .act-l1 b{color:var(--bone);font-weight:700}
 .act-where{color:var(--green)}
-.act-text{margin-top:3px;font:400 12.5px/1.5 var(--mono);color:var(--dim);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.act-x{margin-left:6px;font:600 10px var(--mono);color:var(--dim)}
+.act-text{margin-top:3px;font:400 12.5px/1.5 var(--mono);color:var(--dim);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .act-t{flex:0 0 auto;font:400 10.5px var(--mono);color:var(--dim);white-space:nowrap;padding-top:3px}
 .act-go{flex:0 0 auto;font:600 10.5px var(--mono);color:var(--dim);text-decoration:none;padding-top:3px}
 .act-go:hover{color:var(--green)}
 .act-go-sp{flex:0 0 auto;width:38px}
+.act-more{padding:9px 0 2px;font:400 11px var(--mono);color:var(--dim)}
 .act-empty{padding:26px 0;font:400 13px/1.6 var(--mono);color:var(--dim)}
 .n-badge.act-badge{background:var(--green);color:#0a0b0d}
 
@@ -1897,9 +1906,19 @@ function clientOf(projId){ var p=CONFIG.PROJECTS.find(function(x){return x.id===
 var _trackLast={key:'',at:0};
 function folderLabel(f){ var m={calendar:'Calendar',decks:'Presentations',tasks:'Task Manager',partners:'Project Partners',assets:'Client Assets',brief:'Creative Brief',final:'Final Deliverables',newsletter:'Newsletter'}; return m[f]||f; }
 var TRACK_ERR='';
+function isOwnerEmail(em){
+  if(!em) return false;
+  var o={}; (CONFIG.OWNER_LOGINS||[]).forEach(function(e){ o[String(e).toLowerCase()]=1; });
+  o[String(OWNER_EMAIL).toLowerCase()]=1;
+  return !!o[String(em).toLowerCase()];
+}
 async function track(kind, opts){
-  if(typeof ADMIN!=='undefined' && ADMIN) return;   // never log the owner's own clicks
   var em=myEmail(); if(!em) return;                  // only signed-in partners
+  // Owner check must be by EMAIL, not the ADMIN flag: ADMIN is set only after an async
+  // profile load, so on boot there is a window where the owner looks like a partner and
+  // gets logged. Email is known the instant the session restores.
+  if(isOwnerEmail(em)) return;
+  if(typeof ADMIN!=='undefined' && ADMIN) return;
   opts=opts||{};
   var key=kind+'|'+(opts.project||'')+'|'+(opts.section||'')+'|'+(opts.item||'')+'|'+(opts.folder||'');
   var now=Date.now(); if(key===_trackLast.key && now-_trackLast.at<4000) return; _trackLast={key:key,at:now};
@@ -1955,6 +1974,7 @@ async function actLoad(projId){
     if(rv&&rv.error) errs.push('activity: '+rv.error.message);
     (rv&&rv.data||[]).forEach(function(a){
       if(a.kind==='section'||a.kind==='project') return;
+      if(isOwnerEmail(a.email)) return;
       rows.push({ at:a.created_at, kind:(a.kind==='open'?'signin':'view'), who:a.name||a.email||'Someone', where:(a.kind==='open'?'':(a.label||'')), link:'', text:'' });
     });
   }catch(e){ errs.push('activity unreadable'); }
@@ -1968,34 +1988,58 @@ async function actLoad(projId){
   }catch(e){}
   rows=rows.filter(function(r){ return r.at; });
   rows.sort(function(a,b){ return String(b.at).localeCompare(String(a.at)); });
-  ACT.rows=rows.slice(0,300);
+  var seenV={}, out=[];
+  rows.forEach(function(r){
+    if(r.kind==='view'||r.kind==='signin'){
+      var vk=r.kind+'|'+(r.who||'')+'|'+(r.where||'');
+      if(seenV[vk]){ seenV[vk].n=(seenV[vk].n||1)+1; return; }
+      seenV[vk]=r; r.n=1;
+    }
+    out.push(r);
+  });
+  ACT.rows=out.slice(0,400);
   actRender(m, errs);
   actMarkSeen(projId);
   var b=document.getElementById('actBadge'); if(b) b.hidden=true;
 }
-function actRowHTML(r){
+var ACT_GROUPS=[
+  {k:'notes', name:'Comments & replies', ico:'\ud83d\udcac', kinds:['comment','reply']},
+  {k:'approvals', name:'Approvals', ico:'\u2713', kinds:['approval']},
+  {k:'tasks', name:'Tasks completed', ico:'\u2705', kinds:['task']},
+  {k:'views', name:'Viewed work', ico:'\ud83d\udc41', kinds:['view']},
+  {k:'signins', name:'Sign-ins', ico:'\ud83d\udd11', kinds:['signin']}
+];
+function actRowHTML(r, isNew){
   var link=r.link?('<a class="act-go" href="'+esc(r.link)+'">Open \u2192</a>'):'<span class="act-go-sp"></span>';
-  return '<div class="act-row k-'+esc(r.kind)+'"><span class="act-ico">'+actIco(r.kind)+'</span>'
-    +'<div class="act-main"><div class="act-l1"><b>'+esc(r.who)+'</b> '+esc(actVerb(r.kind))+(r.where?' <span class="act-where">'+esc(r.where)+'</span>':'')+'</div>'
+  var times=(r.n&&r.n>1)?'<span class="act-x">\u00d7'+r.n+'</span>':'';
+  return '<div class="act-row k-'+esc(r.kind)+(isNew?' is-new':'')+'">'
+    +'<div class="act-main"><div class="act-l1"><b>'+esc(r.who)+'</b> '+esc(actVerb(r.kind))+(r.where?' <span class="act-where">'+esc(r.where)+'</span>':'')+times+'</div>'
     +(r.text?'<div class="act-text">'+esc(r.text)+'</div>':'')+'</div>'
     +'<span class="act-t">'+esc(caAgo(r.at))+'</span>'+link+'</div>';
 }
 function actRender(m, errs){
   var since=ACT.since;
-  var isNew=function(r){ return since ? (String(r.at)>String(since)) : true; };
-  var news=ACT.rows.filter(isNew), old=ACT.rows.filter(function(r){ return !isNew(r); });
+  var isNew=function(r){ return since ? (String(r.at)>String(since)) : false; };
+  var totalNew=ACT.rows.filter(isNew).length;
   var warn=(errs&&errs.length)?'<div class="pp-warn"><b>Some activity couldn\u2019t be read.</b> '+esc(errs.join(' \u00b7 '))+'</div>':'';
   var bar='<div class="act-bar"><span class="act-sum">'+(since?('Last checked '+esc(caAgo(since))):'First visit \u2014 showing everything so far')+'</span>'
-    +(news.length?'<span class="act-count">'+news.length+' new</span>':'<span class="act-count zero">Nothing new</span>')+'</div>';
-  var body='';
-  if(!ACT.rows.length){ body='<div class="act-empty">No activity yet. Once partners sign in, view work, comment, or complete tasks, it all shows up here.</div>'; }
-  else{
-    body='<div class="act-list">';
-    if(news.length){ body+='<div class="act-div new">'+(since?'Since your last visit':'Everything so far')+'</div>'+news.map(actRowHTML).join(''); }
-    if(old.length){ body+='<div class="act-div">Earlier</div>'+old.map(actRowHTML).join(''); }
-    body+='</div>';
-  }
-  m.innerHTML=warn+bar+body;
+    +(totalNew?'<span class="act-count">'+totalNew+' new</span>':'<span class="act-count zero">Nothing new</span>')+'</div>';
+  if(!ACT.rows.length){ m.innerHTML=warn+bar+'<div class="act-empty">No activity yet. Once partners sign in, view work, comment, or complete tasks, it all shows up here.</div>'; return; }
+  var groups=ACT_GROUPS.map(function(g){
+    var rows=ACT.rows.filter(function(r){ return g.kinds.indexOf(r.kind)>=0; });
+    if(!rows.length) return '';
+    var nn=rows.filter(isNew).length;
+    var open=(nn>0) || (!since && g.k==='notes');
+    var shown=rows.slice(0,50), more=rows.length-shown.length;
+    return '<details class="act-grp"'+(open?' open':'')+'>'
+      +'<summary class="act-gsum"><span class="act-gico">'+g.ico+'</span><span class="act-gname">'+esc(g.name)+'</span>'
+      +'<span class="act-gct">'+rows.length+'</span>'
+      +(nn?'<span class="act-gnew">'+nn+' new</span>':'')
+      +'<span class="act-chev">\u25be</span></summary>'
+      +'<div class="act-rows">'+shown.map(function(r){ return actRowHTML(r, isNew(r)); }).join('')
+      +(more>0?'<div class="act-more">+'+more+' older not shown</div>':'')+'</div></details>';
+  }).join('');
+  m.innerHTML=warn+bar+'<div class="act-groups">'+groups+'</div>';
 }
 async function actBadgeLoad(projId){
   if(!(typeof ADMIN!=='undefined'&&ADMIN)) return;
@@ -2020,7 +2064,7 @@ async function seenbyLoad(projId){
   if(!(typeof ADMIN!=='undefined'&&ADMIN)) return;
   try{
     var r=await sb.from('partner_activity').select('email,name,item_key,created_at').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',projId).eq('kind','item').order('created_at',{ascending:false}).limit(5000);
-    (r.data||[]).forEach(function(a){ var k=a.item_key; if(!k) return; var e=(a.email||'').toLowerCase(); if(!e) return; if(!SEENBY.byItem[k]) SEENBY.byItem[k]={}; if(!SEENBY.byItem[k][e]) SEENBY.byItem[k][e]={ name:a.name||a.email, at:a.created_at }; });
+    (r.data||[]).forEach(function(a){ var k=a.item_key; if(!k) return; var e=(a.email||'').toLowerCase(); if(!e||isOwnerEmail(e)) return; if(!SEENBY.byItem[k]) SEENBY.byItem[k]={}; if(!SEENBY.byItem[k][e]) SEENBY.byItem[k][e]={ name:a.name||a.email, at:a.created_at }; });
   }catch(e){}
   seenbyPaint();
 }
@@ -3681,7 +3725,7 @@ async function loadPartners(){
   PP.seen={};
   if(typeof ADMIN!=='undefined' && ADMIN){
     try{ var ra=await sb.from('partner_activity').select('email,created_at').eq('review_slug',CONFIG.REVIEW_SLUG).order('created_at',{ascending:false}).limit(3000);
-      (ra.data||[]).forEach(function(a){ var e=(a.email||'').toLowerCase(); if(!e) return; if(!PP.seen[e]){ PP.seen[e]={at:a.created_at, count:1}; } else { PP.seen[e].count++; } });
+      (ra.data||[]).forEach(function(a){ var e=(a.email||'').toLowerCase(); if(!e||isOwnerEmail(e)) return; if(!PP.seen[e]){ PP.seen[e]={at:a.created_at, count:1}; } else { PP.seen[e].count++; } });
     }catch(e){}
   }
   if(currentProjectKey){
