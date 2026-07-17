@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v44';  // v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
+  const VERSION = 'v45';  // v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   const items    = (await getCollection('reviewItems')).filter(i => i.data.published !== false);
@@ -2386,13 +2386,113 @@ function mediaHTML(it){
   return '<div class="stage '+(it.type==='image'?'is-image':'')+'" id="stage-'+it.id+'"><div class="ph">Add '+need+' for "'+esc(itemTitle(it))+'".</div></div>';
 }
 
+/* ---------- Export video notes as After Effects markers (.jsx) ---------- */
+function aeStr(s){
+  return '"'+String(s==null?'':s)
+    .replace(/\\/g,'\\\\')
+    .replace(/"/g,'\\"')
+    .replace(/\r/g,'')
+    .replace(/\n/g,' ')
+    .replace(/[\u007f-\uffff]/g, function(ch){ return '\\u'+('0000'+ch.charCodeAt(0).toString(16)).slice(-4); })
+    +'"';
+}
+function aeDownload(text, filename){
+  try{
+    var blob=new Blob([text],{type:'text/plain;charset=utf-8'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a'); a.href=url; a.download=filename;
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ try{ URL.revokeObjectURL(url); a.remove(); }catch(e){} },1500);
+    return true;
+  }catch(e){ return false; }
+}
+async function exportNotesAE(proj, sec, it){
+  var btn=document.getElementById('ae-'+it.id), orig=btn?btn.innerHTML:'';
+  if(btn){ btn.disabled=true; btn.innerHTML='<span>Building\u2026</span>'; }
+  var rows=[];
+  try{
+    var r=await sb.from('comments').select('author_name,body,timecode,created_at,audio_url,parent_id')
+      .eq('review_slug',CONFIG.REVIEW_SLUG).eq('asset_id',assetId(proj,sec,it))
+      .order('created_at',{ascending:true});
+    if(r.error) throw r.error; rows=r.data||[];
+  }catch(e){ alert('Could not load the notes for this video.'); if(btn){ btn.disabled=false; btn.innerHTML=orig; } return; }
+  var notes=rows.map(function(c){
+    var t=parseTimecode(c.timecode);
+    if(t===null||t===undefined) return null;
+    var body=String(c.body||'').trim();
+    if(!body && c.audio_url) body='[voice note - listen in the portal]';
+    if(!body) return null;
+    return { t:t, c:(c.author_name||'Someone')+': '+body };
+  }).filter(Boolean).sort(function(a,b){ return a.t-b.t; });
+  var skipped=rows.length-notes.length;
+  if(!notes.length){
+    alert('No timecoded notes on this video yet.\n\nOnly notes that have a timecode can become markers \u2014 add notes with the \u23f1 button while the video is playing.');
+    if(btn){ btn.disabled=false; btn.innerHTML=orig; } return;
+  }
+  var title=itemTitle(it)||'Video';
+  var when=new Date().toLocaleString();
+  var L=[];
+  L.push('// ===================================================================');
+  L.push('// SUPERNERD REVIEW NOTES  ->  AFTER EFFECTS MARKERS');
+  L.push('// Project : '+String(proj.title||'').replace(/[\r\n]/g,' '));
+  L.push('// Video   : '+String(title).replace(/[\r\n]/g,' '));
+  L.push('// Exported: '+when+'  ('+notes.length+' timecoded note'+(notes.length===1?'':'s')+')');
+  L.push('//');
+  L.push('// HOW TO USE');
+  L.push('//   1. Open the comp for this video in After Effects.');
+  L.push('//   2. File > Scripts > Run Script File...  and choose this file.');
+  L.push('//   Each note becomes a marker at its timecode, with the note as the');
+  L.push('//   marker comment. One Undo (Cmd+Z) removes them all.');
+  L.push('//');
+  L.push('//   Markers land on the COMPOSITION by default. To put them on a layer');
+  L.push('//   instead, select that one layer and set USE_SELECTED_LAYER to true below.');
+  L.push('// ===================================================================');
+  L.push('');
+  L.push('(function(){');
+  L.push('  var USE_SELECTED_LAYER = false;');
+  L.push('');
+  L.push('  var NOTES = [');
+  L.push(notes.map(function(n){ return '    {t:'+n.t+', c:'+aeStr(n.c)+'}'; }).join(',\n'));
+  L.push('  ];');
+  L.push('');
+  L.push('  var comp = app.project.activeItem;');
+  L.push('  if (!(comp && comp instanceof CompItem)) {');
+  L.push('    alert("Open the comp for this video first, then run this script again.");');
+  L.push('    return;');
+  L.push('  }');
+  L.push('  var target = null;');
+  L.push('  if (USE_SELECTED_LAYER) {');
+  L.push('    if (comp.selectedLayers.length !== 1) { alert("Select exactly one layer, or set USE_SELECTED_LAYER to false."); return; }');
+  L.push('    target = comp.selectedLayers[0];');
+  L.push('  }');
+  L.push('  app.beginUndoGroup("Supernerd notes");');
+  L.push('  var added = 0;');
+  L.push('  for (var i = 0; i < NOTES.length; i++) {');
+  L.push('    try {');
+  L.push('      var mv = new MarkerValue(NOTES[i].c);');
+  L.push('      if (target) { target.property("Marker").setValueAtTime(NOTES[i].t, mv); }');
+  L.push('      else { comp.markerProperty.setValueAtTime(NOTES[i].t, mv); }');
+  L.push('      added++;');
+  L.push('    } catch (err) {}');
+  L.push('  }');
+  L.push('  app.endUndoGroup();');
+  L.push('  alert(added + " note markers added to " + (target ? ("layer: " + target.name) : ("comp: " + comp.name)) + ".");');
+  L.push('})();');
+  var jsx=L.join('\n');
+  var fn=(String(proj.title||'project')+'-'+String(title)).replace(/[^A-Za-z0-9-_]+/g,'_').replace(/_+/g,'_').slice(0,80)+'-notes.jsx';
+  var ok=aeDownload(jsx, fn);
+  if(btn){ btn.disabled=false; btn.innerHTML=orig; }
+  if(!ok){ alert('Could not start the download.'); return; }
+  if(skipped>0) setTimeout(function(){ alert(notes.length+' note'+(notes.length===1?'':'s')+' exported.\n\n'+skipped+' note'+(skipped===1?'':'s')+' had no timecode, so '+(skipped===1?'it was':'they were')+' left out \u2014 only timecoded notes can become markers.'); },300);
+}
 function versionBodyHTML(proj, sec, it){
   const dl = downloadHref(it);
   const dlBtn = dl ? '<a class="dl-btn" href="'+esc(dl)+'" download target="_blank" rel="noopener">⤓ Download</a>' : '';
   const stamp = it.date ? '<span class="up-stamp">Uploaded '+esc(fmtStamp(it.date))+'</span>' : '';
   const shareBtn = it.type==='deck' ? '' : '<button class="meta-share" id="share-'+it.id+'" type="button" title="Share">'+svgIcon('share')+'<span>Share</span></button><div class="share-pop" id="sharepop-'+it.id+'" hidden></div>';
   const gifBtn = (it.type==='video' && it.stream_uid && (typeof ADMIN!=='undefined' && ADMIN)) ? '<button class="meta-share gifbtn" id="gif-'+it.id+'" type="button" title="Make a looping GIF for slides"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 9v6M11 9v6M15 12h2.5M15 9h3M15 9v6"/></svg><span>GIF</span></button>' : '';
-  const metaBar = it.type==='deck' ? '' : '<div class="meta-bar"><div class="meta-left">'+dlBtn+stamp+'</div><div class="meta-right"><span class="appr" id="appr-'+it.id+'"></span>'+gifBtn+shareBtn+'</div></div>';
+  const aeBtn = (it.type==='video' && (typeof ADMIN!=='undefined' && ADMIN)) ? '<button class="meta-share gifbtn" id="ae-'+it.id+'" type="button" title="Download these notes as After Effects markers (.jsx)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 20h16"/></svg><span>AE notes</span></button>' : '';
+  const metaBar = it.type==='deck' ? '' : '<div class="meta-bar"><div class="meta-left">'+dlBtn+stamp+'</div><div class="meta-right"><span class="appr" id="appr-'+it.id+'"></span>'+aeBtn+gifBtn+shareBtn+'</div></div>';
   const tcField = it.type==='video' ? '<div class="field f-tc"><label>Timecode</label><div class="tc-wrap"><input id="tc-'+it.id+'" placeholder="00:00"><button type="button" class="tc-now" id="tcnow-'+it.id+'" title="Grab the current play position">\u23f1 now</button></div></div>' : '';
   const pinTool = it.type==='image' ? '<button class="tool-btn" id="pin-'+it.id+'" type="button">📍 Pin to image</button><span class="pin-ind" id="pin-ind-'+it.id+'"></span>' : '';
   const composer = '<div class="composer"><div class="reply-ctx" id="replyctx-'+it.id+'" hidden></div>'
@@ -2417,6 +2517,7 @@ function gateFor(it){
 function wireVersion(proj, sec, it){
   if(it.type==='video' && it.stream_uid && window.Stream){ try{ players[it.id]=Stream(document.getElementById('if-'+it.id)); }catch(e){} }
   var _gb=document.getElementById('gif-'+it.id); if(_gb) _gb.onclick=function(){ gifMaker(proj,sec,it); };
+  var _ae=document.getElementById('ae-'+it.id); if(_ae) _ae.onclick=function(){ exportNotesAE(proj,sec,it); };
   if(it.type==='video'){
     var _tc=document.getElementById('tc-'+it.id), _body=document.getElementById('body-'+it.id), _now=document.getElementById('tcnow-'+it.id), _tcAuto=true;
     var _cur=function(){ try{ var p=players[it.id]; if(p && typeof p.currentTime==='number' && p.currentTime>0) return secsToTc(p.currentTime); }catch(e){} return null; };
