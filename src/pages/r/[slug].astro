@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v50';  // v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
+  const VERSION = 'v51';  // v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   const items    = (await getCollection('reviewItems')).filter(i => i.data.published !== false);
@@ -1306,8 +1306,9 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
 .fd-back{display:inline-flex;align-items:center;gap:7px;margin-bottom:12px;padding:0;border:0;background:transparent;font:700 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--dim);cursor:pointer;transition:color .4s cubic-bezier(.32,.72,0,1)}
 .fd-back:hover{color:var(--green)}
 /* folder grid */
-.fd-folders{display:grid;grid-template-columns:repeat(auto-fill,minmax(258px,1fr));gap:20px;margin-top:26px}
-.fd-folder{position:relative;display:block;text-align:left;border:0;background:transparent;padding:0;cursor:pointer;font:inherit;color:inherit}
+.fd-folders{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,268px));gap:18px;margin-top:26px;justify-content:start}
+.fd-folder{position:relative;display:block;text-align:left;border:0;background:transparent;padding:0;cursor:pointer;font:inherit;color:inherit;-webkit-appearance:none;appearance:none}
+.fd-folder:focus-visible{outline:2px solid var(--green);outline-offset:3px;border-radius:26px}
 .fd-folder-shell{display:block;padding:7px;border-radius:26px;background:rgba(255,255,255,.03);border:1px solid var(--hair);transition:transform .5s cubic-bezier(.32,.72,0,1),border-color .5s cubic-bezier(.32,.72,0,1),background .5s cubic-bezier(.32,.72,0,1)}
 .fd-folder:hover .fd-folder-shell{transform:translateY(-4px);border-color:rgba(186,192,30,.55);background:rgba(186,192,30,.05)}
 .fd-folder-core{display:block;padding:20px 20px 22px;border-radius:20px;background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.015));box-shadow:inset 0 1px 0 rgba(255,255,255,.06);min-height:150px;position:relative}
@@ -4753,13 +4754,13 @@ function fdFolderCard(fid, name, unfiled){
   var cls='fd-folder'+(unfiled?' unfiled':'');
   var key=unfiled?'__unfiled__':fid;
   var del=(!unfiled && (typeof ADMIN!=='undefined'&&ADMIN)) ? '<button class="fd-fdel" data-fdel="'+fid+'" title="Delete folder">\u00d7</button>' : '';
-  return '<button type="button" class="'+cls+'" data-open="'+esc(key)+'">'+del
+  return '<div class="'+cls+'" role="button" tabindex="0" data-open="'+esc(key)+'">'+del
     +'<span class="fd-folder-shell"><span class="fd-folder-core">'
     +'<span class="fd-folder-top"><span class="fd-folder-ic">'+(unfiled?'':fdFolderIco())+'</span>'
     +'<span class="fd-strip">'+(strip||'')+'</span></span>'
     +'<span class="fd-folder-name">'+esc(name)+'</span>'
     +'<span class="fd-folder-n">'+n+' file'+(n===1?'':'s')+'</span>'
-    +'</span></span></button>';
+    +'</span></span></div>';
 }
 function fdFileCard(it){
   var isAdmin=(typeof ADMIN!=='undefined' && ADMIN);
@@ -4809,7 +4810,7 @@ function finalRender(){
   if(!inDetail && hasFolders){
     var cards=FD.folders.map(function(f){ return fdFolderCard(f.id, f.name, false); }).join('');
     if(unfiledN>0) cards+=fdFolderCard(null, 'Unfiled', true);
-    var addNew = isAdmin ? '<button type="button" class="fd-folder fd-newfolder" id="fdNewFolder"><span class="fd-folder-shell"><span class="fd-folder-core add"><span class="fd-plus">+</span><span class="fd-folder-name">New folder</span></span></span></button>' : '';
+    var addNew = isAdmin ? '<div class="fd-folder fd-newfolder" role="button" tabindex="0" id="fdNewFolder"><span class="fd-folder-shell"><span class="fd-folder-core add"><span class="fd-plus">+</span><span class="fd-folder-name">New folder</span></span></span></div>' : '';
     var bar = isAdmin ? '<div class="ca-add"><button class="ca-btn" id="fdBtn">'+caIcon('up')+'Upload final</button><input type="file" id="fdFile" multiple style="display:none"><button class="ca-btn ghost" id="fdFromProj">'+caIcon('plus')+'Add from project</button>'+(FD.items.length?'<button class="ca-btn ghost" id="fdSelect">Select / move</button>':'')+'</div>' : '';
     m.innerHTML='<div class="ca-bar"><div class="ca-bar-l"><div class="fd-eyebrow">Final Deliverables</div><h3 class="fd-h">Your folders</h3></div>'+bar+'</div>'
       +'<div class="fd-folders">'+cards+addNew+'</div>';
@@ -4847,7 +4848,7 @@ function finalRender(){
 }
 function wireFinalCommon(m, isAdmin){
   var back=document.getElementById('fdBack'); if(back) back.onclick=function(){ FD.folder=null; FD.selMode=false; FD.sel={}; finalRender(); };
-  m.querySelectorAll('.fd-folder[data-open]').forEach(function(b){ b.onclick=function(e){ if(e.target.closest&&e.target.closest('.fd-fdel')) return; FD.folder=b.dataset.open; finalRender(); }; });
+  m.querySelectorAll('.fd-folder[data-open]').forEach(function(b){ b.onclick=function(e){ if(e.target.closest&&e.target.closest('.fd-fdel')) return; FD.folder=b.dataset.open; finalRender(); }; b.onkeydown=function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); FD.folder=b.dataset.open; finalRender(); } }; });
   m.querySelectorAll('.fd-fdel').forEach(function(b){ b.onclick=function(e){ e.stopPropagation(); fdDeleteFolder(b.dataset.fdel); }; });
   var nf=document.getElementById('fdNewFolder'); if(nf) nf.onclick=fdNewFolder;
   if(FD.selMode){
