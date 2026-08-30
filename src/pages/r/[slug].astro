@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v47';  // v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
+  const VERSION = 'v48';  // v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   const items    = (await getCollection('reviewItems')).filter(i => i.data.published !== false);
@@ -269,7 +269,8 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
   /* ---------- v2 additions ---------- */
   .deliv-date{font-family:var(--mono); font-size:11px; color:var(--dim); margin-left:auto}
   .dl-bar{margin-top:12px}
-  .dl-btn{display:inline-flex; align-items:center; gap:8px; font-family:var(--mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--green-hi); background:rgba(186,192,30,.08); border:1px solid rgba(186,192,30,.45); border-radius:7px; padding:10px 18px; transition:background .15s var(--ease), color .15s var(--ease)}
+  .dl-btn{display:inline-flex; align-items:center; gap:8px; font-family:var(--mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--green-hi); background:rgba(186,192,30,.08); border:1px solid rgba(186,192,30,.45); border-radius:7px; padding:10px 18px; transition:background .15s var(--ease), color .15s var(--ease); cursor:pointer; text-decoration:none; line-height:1}
+.dl-btn:disabled{opacity:.7; cursor:default}
   .dl-btn:hover{background:var(--green); color:var(--ink)}
   .stage.is-image img{cursor:zoom-in}
   .stage.is-audio{aspect-ratio:auto; max-height:none; min-height:0; padding:18px; display:flex; align-items:center}
@@ -2664,9 +2665,34 @@ async function exportNotesAE(proj, sec, it){
   if(!ok){ alert('Could not start the download.'); return; }
   if(skipped>0) setTimeout(function(){ alert(notes.length+' note'+(notes.length===1?'':'s')+' exported.\n\n'+skipped+' note'+(skipped===1?'':'s')+' had no timecode, so '+(skipped===1?'it was':'they were')+' left out \u2014 only timecoded notes can become markers.'); },300);
 }
+async function videoDownload(btn){
+  var uid=btn.dataset.uid, fn=btn.dataset.fn||'video';
+  if(!uid) return;
+  var orig=btn.innerHTML; btn.disabled=true; btn.innerHTML='Preparing\u2026';
+  try{
+    var res=await sb.functions.invoke('stream-dl', { body:{ uid:uid } });
+    var url=(res && res.data && res.data.url) || '';
+    if(res && res.error){ var j=null; try{ if(res.error.context && res.error.context.json) j=await res.error.context.json(); }catch(_){}
+      throw new Error((j&&j.error)||res.error.message||'could not prepare download'); }
+    if(!url) throw new Error((res&&res.data&&res.data.error)||'download not ready yet \u2014 try again in a minute');
+    var sep=url.indexOf('?')>=0?'&':'?';
+    var a=document.createElement('a'); a.href=url+sep+'filename='+encodeURIComponent(fn); a.download=fn; a.target='_blank'; a.rel='noopener';
+    document.body.appendChild(a); a.click(); setTimeout(function(){ try{ a.remove(); }catch(e){} }, 1500);
+    btn.innerHTML='\u2713 Downloaded';
+    setTimeout(function(){ btn.disabled=false; btn.innerHTML=orig; }, 2500);
+  }catch(e){
+    btn.disabled=false; btn.innerHTML=orig;
+    alert((e&&e.message)||'Could not prepare the download. If this is a new video, wait a minute and try again.');
+  }
+}
 function versionBodyHTML(proj, sec, it){
   const dl = downloadHref(it);
-  const dlBtn = dl ? '<a class="dl-btn" href="'+esc(dl)+'" download target="_blank" rel="noopener">⤓ Download</a>' : '';
+  // Video downloads must be enabled on Cloudflare first, so the direct URL 404s until then.
+  // Route video through the stream-dl function (enables + returns the ready URL); everything
+  // else (images, files with a download_url) keeps the plain direct link.
+  const dlBtn = (it.type==='video' && it.stream_uid && !it.download_url)
+    ? '<button class="dl-btn" type="button" id="dlv-'+it.id+'" data-uid="'+esc(it.stream_uid)+'" data-fn="'+esc((itemTitle(it)||'video').replace(/[^A-Za-z0-9-_]+/g,'_').slice(0,110)||'video')+'">⤓ Download</button>'
+    : (dl ? '<a class="dl-btn" href="'+esc(dl)+'" download target="_blank" rel="noopener">⤓ Download</a>' : '');
   const stamp = it.date ? '<span class="up-stamp">Uploaded '+esc(fmtStamp(it.date))+'</span>' : '';
   const shareBtn = it.type==='deck' ? '' : '<button class="meta-share" id="share-'+it.id+'" type="button" title="Share">'+svgIcon('share')+'<span>Share</span></button><div class="share-pop" id="sharepop-'+it.id+'" hidden></div>';
   const gifBtn = (it.type==='video' && it.stream_uid && (typeof ADMIN!=='undefined' && ADMIN)) ? '<button class="meta-share gifbtn" id="gif-'+it.id+'" type="button" title="Make a looping GIF for slides"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 9v6M11 9v6M15 12h2.5M15 9h3M15 9v6"/></svg><span>GIF</span></button>' : '';
@@ -2697,6 +2723,7 @@ function wireVersion(proj, sec, it){
   if(it.type==='video' && it.stream_uid && window.Stream){ try{ players[it.id]=Stream(document.getElementById('if-'+it.id)); }catch(e){} try{ vpWire(it); }catch(e){} }
   var _gb=document.getElementById('gif-'+it.id); if(_gb) _gb.onclick=function(){ gifMaker(proj,sec,it); };
   var _ae=document.getElementById('ae-'+it.id); if(_ae) _ae.onclick=function(){ exportNotesAE(proj,sec,it); };
+  var _dlv=document.getElementById('dlv-'+it.id); if(_dlv) _dlv.onclick=function(){ videoDownload(_dlv); };
   if(it.type==='video'){
     var _tc=document.getElementById('tc-'+it.id), _body=document.getElementById('body-'+it.id), _now=document.getElementById('tcnow-'+it.id), _tcAuto=true;
     var _cur=function(){ try{ var p=players[it.id]; if(p && typeof p.currentTime==='number' && p.currentTime>0) return secsToTc(p.currentTime); }catch(e){} return null; };
@@ -2891,6 +2918,9 @@ async function notifyComment(proj, sec, it, a, body, extra){
     var toOwner=!own[me];
     var others=[...new Set((extra||[]).filter(function(e){ return e && e!==me && !own[e]; }))];
     if(!toOwner && !others.length) return;
+    // Send to EVERY owner login (hello@ AND shaun@), not just OWNER_EMAIL — otherwise
+    // alerts land only in hello@ and Shaun, who watches shaun@, never sees them.
+    var ownerTo=[...new Set((CONFIG.OWNER_LOGINS||[]).concat([OWNER_EMAIL]).map(function(e){ return String(e||'').toLowerCase(); }).filter(Boolean))];
     var isDeck=it.type==='deck';
     var where=isDeck?(proj.title+' \u00b7 Presentations \u00b7 '+(it.title||'')):(proj.title+' \u00b7 '+sec.name+' \u00b7 '+(itemTitle(it)||''));
     var link=commentLinkFor(proj,sec,it);
@@ -2899,7 +2929,7 @@ async function notifyComment(proj, sec, it, a, body, extra){
       +'<p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#c9ccd1;"><b style="color:#fff;">'+esc(a.name)+'</b> left a note:</p>'
       +(quoted?'<div style="margin:0 0 16px;padding:12px 14px;border-left:3px solid #BAC01E;background:#101114;font-size:15px;line-height:1.6;color:#c9ccd1;">'+esc(quoted).replace(/\n/g,'<br>')+'</div>':'<p style="margin:0 0 16px;font-size:14px;color:#8b8f96;">(voice note \u2014 open the review to listen)</p>')
       +'<a href="'+link+'" style="display:inline-block;background:#BAC01E;color:#0a0b0d;font-weight:700;font-size:14px;text-decoration:none;padding:11px 20px;border-radius:9px;">Open the note \u2192</a>';
-    await sendEmail({ to:[OWNER_EMAIL], bcc:others, subject:'New note from '+a.name+' \u00b7 '+(isDeck?(it.title||'Presentation'):(itemTitle(it)||sec.name)), html:emailShell('New note on '+proj.title, inner), replyTo:a.email||OWNER_EMAIL });
+    await sendEmail({ to:ownerTo, bcc:others, subject:'New note from '+a.name+' \u00b7 '+(isDeck?(it.title||'Presentation'):(itemTitle(it)||sec.name)), html:emailShell('New note on '+proj.title, inner), replyTo:a.email||OWNER_EMAIL });
   }catch(e){ console.warn('comment notify failed', e); }
 }
 async function postNote(proj, sec, it){
