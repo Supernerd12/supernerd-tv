@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v48';  // v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
+  const VERSION = 'v49';  // v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   const items    = (await getCollection('reviewItems')).filter(i => i.data.published !== false);
@@ -1299,6 +1299,21 @@ const ADMIN_KEY       = 'sn-admin-7yq4';
    ============================================================ */
 .nl-studio{max-width:760px}
 .nl-block{padding:18px 0 20px; border-bottom:1px solid var(--hair)}
+/* v49 — Final Deliverables: select + bulk move */
+.ca-grid.selmode .ca-card-in{pointer-events:none}
+.ca-card{position:relative}
+.ca-card.sel{outline:2px solid var(--green); outline-offset:1px; border-radius:10px}
+.fd-selbox{position:absolute; top:8px; left:8px; z-index:5; width:22px; height:22px; border-radius:6px; border:1px solid var(--hair-2); background:rgba(10,11,13,.85); display:flex; align-items:center; justify-content:center; font:700 12px var(--mono); color:#0a0b0d; cursor:pointer}
+.fd-selbox.on{background:var(--green); border-color:var(--green)}
+.ca-grid.selmode .ca-card{cursor:pointer}
+.fd-movebar{display:flex; align-items:center; gap:10px; margin:0 0 14px; padding:10px 14px; border:1px solid rgba(186,192,30,.4); border-radius:10px; background:rgba(186,192,30,.06)}
+.fd-mb-n{font:700 12px var(--mono); color:var(--green-hi)}
+.fd-mb-sp{flex:1 1 auto}
+.fd-mb-lab{font:500 12px var(--mono); color:var(--dim)}
+.fd-mb-sel{font:500 13px var(--disp); color:var(--bone); background:#000; border:1px solid var(--line); border-radius:6px; padding:7px 10px}
+.ca-card-in.fd-dlv{border:0; background:transparent; text-align:left; cursor:pointer; font:inherit; width:100%}
+.ca-card-in.fd-dlv.busy{opacity:.7}
+
 /* v47 — custom player controls: one timeline, markers on it */
 .vp-stage:fullscreen{max-height:none;border-radius:0;aspect-ratio:auto;width:100vw;height:100vh}
 .vp-stage:fullscreen iframe{inset:0}
@@ -4641,36 +4656,116 @@ async function finalLoad(projId){
   finalRender();
 }
 function fdFolderItems(){ return FD.items.filter(function(it){ return (it.folder_id||null)===(FD.folder||null); }); }
+async function streamDlUrl(uid){
+  var res=await sb.functions.invoke('stream-dl', { body:{ uid:uid } });
+  if(res && res.error){ var j=null; try{ if(res.error.context && res.error.context.json) j=await res.error.context.json(); }catch(_){}
+    throw new Error((j&&j.error)||res.error.message||'could not prepare download'); }
+  var url=(res && res.data && res.data.url) || '';
+  if(!url) throw new Error((res&&res.data&&res.data.error)||'download not ready yet \u2014 try again in a minute');
+  return url;
+}
+function triggerDownload(url, fn){
+  var sep=url.indexOf('?')>=0?'&':'?';
+  var a=document.createElement('a'); a.href=url+sep+'filename='+encodeURIComponent(fn||'final'); a.download=fn||'final'; a.target='_blank'; a.rel='noopener';
+  document.body.appendChild(a); a.click(); setTimeout(function(){ try{ a.remove(); }catch(e){} }, 1500);
+}
+async function fdVideoDownload(btn){
+  var uid=btn.dataset.uid, fn=btn.dataset.fn||'final';
+  if(!uid) return;
+  var sub=btn.querySelector('.ca-sub'); var orig=sub?sub.textContent:'';
+  if(sub) sub.textContent='Preparing\u2026'; btn.classList.add('busy');
+  try{
+    var url=await streamDlUrl(uid);
+    triggerDownload(url, fn);
+    if(sub) sub.textContent='\u2713 Downloaded';
+    setTimeout(function(){ if(sub) sub.textContent=orig; btn.classList.remove('busy'); }, 2500);
+  }catch(e){ if(sub) sub.textContent=orig; btn.classList.remove('busy'); alert((e&&e.message)||'Could not prepare the download. If this is a new video, wait a minute and try again.'); }
+}
 function fdItemCard(it){
   var isAdmin=(typeof ADMIN!=='undefined' && ADMIN);
-  var del = isAdmin ? '<button class="ca-del" data-del="'+it.id+'" title="Remove">\u00d7</button>' : '';
+  var selmode=(isAdmin && FD.selMode);
+  var checked=!!FD.sel[it.id];
+  var sel = selmode ? '<span class="fd-selbox'+(checked?' on':'')+'" data-selid="'+it.id+'">'+(checked?'\u2713':'')+'</span>' : '';
+  var del = (isAdmin && !selmode) ? '<button class="ca-del" data-del="'+it.id+'" title="Remove">\u00d7</button>' : '';
   if(it.kind==='proj'){
     var poster = it.poster ? '<span class="ca-thumb" style="background-image:url('+esc(it.poster)+')"></span>' : '<span class="ca-thumb ext">'+((it.file_type==='video')?'VIDEO':'IMG')+'</span>';
+    // New pushes carry a real download target in url: 'stream:<uid>' for video, or a direct file URL.
+    // Old pushes stored a '#p=' deep link — those keep the open-in-review behaviour.
+    var isVid = it.file_type==='video' && it.url && it.url.indexOf('stream:')===0;
+    var isDirect = it.url && it.url.indexOf('#')!==0 && it.url.indexOf('stream:')!==0;
+    if(isVid){
+      var uid=it.url.slice(7);
+      return '<div class="ca-card file'+(checked?' sel':'')+'">'+sel+del+'<button type="button" class="ca-card-in fd-dlv" data-uid="'+esc(uid)+'" data-fn="'+esc(caSafe(it.title||'final'))+'">'+poster+'<div class="ca-meta"><div class="ca-name">'+esc(it.title||'Item')+'</div><div class="ca-sub">VIDEO \u00b7 Download</div></div></button></div>';
+    }
+    if(isDirect){
+      return '<div class="ca-card file'+(checked?' sel':'')+'">'+sel+del+'<a class="ca-card-in" href="'+esc(it.url)+'" target="_blank" rel="noopener" download>'+poster+'<div class="ca-meta"><div class="ca-name">'+esc(it.title||'Item')+'</div><div class="ca-sub">Download</div></div></a></div>';
+    }
     var href = it.url || ('#p='+encodeURIComponent(FD.proj)+(it.stack_key?('&k='+encodeURIComponent(it.stack_key)):''));
-    return '<div class="ca-card file">'+del+'<a class="ca-card-in" href="'+esc(href)+'">'+poster+'<div class="ca-meta"><div class="ca-name">'+esc(it.title||'Item')+'</div><div class="ca-note">From project</div><div class="ca-sub">Open in review \u2197</div></div></a></div>';
+    return '<div class="ca-card file'+(checked?' sel':'')+'">'+sel+del+'<a class="ca-card-in" href="'+esc(href)+'">'+poster+'<div class="ca-meta"><div class="ca-name">'+esc(it.title||'Item')+'</div><div class="ca-note">From project</div><div class="ca-sub">Open in review \u2197</div></div></a></div>';
   }
   var thumb = caIsImg(it.file_type,it.title) ? '<span class="ca-thumb" style="background-image:url('+esc(it.url)+')"></span>' : '<span class="ca-thumb ext">'+caExt(it.title)+'</span>';
   var sub = caExt(it.title)+(it.size_bytes?(' \u00b7 '+caHuman(it.size_bytes)):'')+' \u00b7 Download';
-  return '<div class="ca-card file">'+del+'<a class="ca-card-in" href="'+esc(it.url)+'" target="_blank" rel="noopener" download>'+thumb+'<div class="ca-meta"><div class="ca-name">'+esc(it.title)+'</div><div class="ca-sub">'+sub+'</div></div></a></div>';
+  return '<div class="ca-card file'+(checked?' sel':'')+'">'+sel+del+'<a class="ca-card-in" href="'+esc(it.url)+'" target="_blank" rel="noopener" download>'+thumb+'<div class="ca-meta"><div class="ca-name">'+esc(it.title)+'</div><div class="ca-sub">'+sub+'</div></div></a></div>';
 }
 function finalRender(){
   var m=document.getElementById('fdmount'); if(!m) return; var isAdmin=(typeof ADMIN!=='undefined' && ADMIN);
+  FD.sel=FD.sel||{};
   var unfiled=FD.items.filter(function(it){return !it.folder_id;}).length;
   var tabs='<button class="ca-tab'+(FD.folder===null?' active':'')+'" data-fd="">Unfiled'+(unfiled?'<span class="ca-n">'+unfiled+'</span>':'')+'</button>';
   FD.folders.forEach(function(f){ var n=FD.items.filter(function(it){return it.folder_id===f.id;}).length; tabs+='<button class="ca-tab'+(FD.folder===f.id?' active':'')+'" data-fd="'+f.id+'">'+esc(f.name)+(n?'<span class="ca-n">'+n+'</span>':'')+(isAdmin?'<span class="fd-foldel" data-fdel="'+f.id+'" title="Delete folder">\u00d7</span>':'')+'</button>'; });
   if(isAdmin) tabs+='<button class="ca-tab add" id="fdNewFolder">+ Folder</button>';
-  var ctr = isAdmin ? '<div class="ca-add"><button class="ca-btn" id="fdBtn">'+caIcon('up')+'Upload final</button><input type="file" id="fdFile" multiple style="display:none"><button class="ca-btn ghost" id="fdFromProj">'+caIcon('plus')+'Add from project</button></div>' : '';
+  var selCount=Object.keys(FD.sel).filter(function(k){return FD.sel[k];}).length;
+  var ctr='';
+  if(isAdmin){
+    if(FD.selMode){
+      ctr='<div class="ca-add"><button class="ca-btn ghost" id="fdSelCancel">Cancel</button></div>';
+    } else {
+      ctr='<div class="ca-add"><button class="ca-btn" id="fdBtn">'+caIcon('up')+'Upload final</button><input type="file" id="fdFile" multiple style="display:none"><button class="ca-btn ghost" id="fdFromProj">'+caIcon('plus')+'Add from project</button>'+(FD.items.length?'<button class="ca-btn ghost" id="fdSelect">Select / move</button>':'')+'</div>';
+    }
+  }
   var items=fdFolderItems();
-  var grid = items.length ? '<div class="ca-grid">'+items.map(fdItemCard).join('')+'</div>'
+  var grid = items.length ? '<div class="ca-grid'+(FD.selMode?' selmode':'')+'">'+items.map(fdItemCard).join('')+'</div>'
     : '<div class="ca-empty fd">'+(isAdmin?'Upload the locked final here \u2014 or push an already-approved item over from the project (no need to re-upload).':'Your final, approved deliverables will appear here to download.')+'</div>';
-  m.innerHTML='<div class="ca-bar"><div class="ca-bar-l"><h3>Final Deliverables</h3><div class="ca-hint">The locked, approved cut \u2014 organised in folders, ready to download.</div></div>'+ctr+'</div><div class="ca-tabs fd-tabs">'+tabs+'</div>'+grid;
+  var movebar='';
+  if(FD.selMode){
+    var opts='<option value="">Unfiled</option>'+FD.folders.map(function(f){ return '<option value="'+f.id+'">'+esc(f.name)+'</option>'; }).join('');
+    movebar='<div class="fd-movebar"><span class="fd-mb-n">'+selCount+' selected</span><span class="fd-mb-sp"></span>'
+      +'<label class="fd-mb-lab">Move to</label><select class="fd-mb-sel" id="fdMoveSel">'+opts+'</select>'
+      +'<button class="ca-btn" id="fdMoveGo"'+(selCount?'':' disabled')+'>Move</button></div>';
+  }
+  m.innerHTML='<div class="ca-bar"><div class="ca-bar-l"><h3>Final Deliverables</h3><div class="ca-hint">The locked, approved cut \u2014 organised in folders, ready to download.</div></div>'+ctr+'</div><div class="ca-tabs fd-tabs">'+tabs+'</div>'+movebar+grid;
+
   m.querySelectorAll('.ca-tab[data-fd]').forEach(function(b){ b.onclick=function(e){ if(e.target.closest&&e.target.closest('.fd-foldel')) return; FD.folder=b.dataset.fd||null; finalRender(); }; });
   m.querySelectorAll('.fd-foldel').forEach(function(b){ b.onclick=function(e){ e.stopPropagation(); fdDeleteFolder(b.dataset.fdel); }; });
   var nf=document.getElementById('fdNewFolder'); if(nf) nf.onclick=fdNewFolder;
-  var b=document.getElementById('fdBtn'), f=document.getElementById('fdFile');
-  if(b&&f){ b.onclick=function(){ f.click(); }; f.onchange=async function(){ var fs=Array.prototype.slice.call(f.files||[]); f.value=''; if(!fs.length) return; b.disabled=true; b.innerHTML=caIcon('up')+'Uploading\u2026'; for(var i=0;i<fs.length;i++){ await fdUploadFile(fs[i]); } b.disabled=false; finalRender(); }; }
-  var fp=document.getElementById('fdFromProj'); if(fp) fp.onclick=fdOpenPicker;
-  m.querySelectorAll('.ca-del').forEach(function(bb){ bb.onclick=function(e){ e.preventDefault(); e.stopPropagation(); fdDeleteItem(bb.dataset.del); }; });
+
+  if(FD.selMode){
+    m.querySelectorAll('.fd-selbox').forEach(function(bx){ bx.onclick=function(e){ e.preventDefault(); e.stopPropagation(); var id=bx.dataset.selid; if(FD.sel[id]) delete FD.sel[id]; else FD.sel[id]=true; finalRender(); }; });
+    m.querySelectorAll('.ca-card').forEach(function(card){ card.onclick=function(e){ if(e.target.closest('.fd-selbox')) return; var bx=card.querySelector('.fd-selbox'); if(!bx) return; var id=bx.dataset.selid; if(FD.sel[id]) delete FD.sel[id]; else FD.sel[id]=true; finalRender(); }; });
+    var mc=document.getElementById('fdSelCancel'); if(mc) mc.onclick=function(){ FD.selMode=false; FD.sel={}; finalRender(); };
+    var mg=document.getElementById('fdMoveGo'); if(mg) mg.onclick=fdMoveSelected;
+  } else {
+    var sb2=document.getElementById('fdSelect'); if(sb2) sb2.onclick=function(){ FD.selMode=true; FD.sel={}; finalRender(); };
+    var b=document.getElementById('fdBtn'), f=document.getElementById('fdFile');
+    if(b&&f){ b.onclick=function(){ f.click(); }; f.onchange=async function(){ var fs=Array.prototype.slice.call(f.files||[]); f.value=''; if(!fs.length) return; b.disabled=true; b.innerHTML=caIcon('up')+'Uploading\u2026'; for(var i=0;i<fs.length;i++){ await fdUploadFile(fs[i]); } b.disabled=false; finalRender(); }; }
+    var fp=document.getElementById('fdFromProj'); if(fp) fp.onclick=fdOpenPicker;
+    m.querySelectorAll('.ca-del').forEach(function(bb){ bb.onclick=function(e){ e.preventDefault(); e.stopPropagation(); fdDeleteItem(bb.dataset.del); }; });
+    m.querySelectorAll('.fd-dlv').forEach(function(bb){ bb.onclick=function(e){ e.preventDefault(); fdVideoDownload(bb); }; });
+  }
+}
+async function fdMoveSelected(){
+  var ids=Object.keys(FD.sel).filter(function(k){return FD.sel[k];});
+  if(!ids.length){ FD.selMode=false; finalRender(); return; }
+  var selEl=document.getElementById('fdMoveSel'); var dest=selEl?selEl.value:''; var folderId=dest||null;
+  var go=document.getElementById('fdMoveGo'); if(go){ go.disabled=true; go.textContent='Moving\u2026'; }
+  try{
+    var r=await sb.from('final_items').update({folder_id:folderId}).in('id', ids);
+    if(r.error){ alert('Could not move: '+r.error.message); if(go){ go.disabled=false; go.textContent='Move'; } return; }
+    FD.items.forEach(function(it){ if(FD.sel[it.id]) it.folder_id=folderId; });
+  }catch(e){ alert('Could not move those items.'); if(go){ go.disabled=false; go.textContent='Move'; } return; }
+  FD.selMode=false; FD.sel={};
+  if(folderId) FD.folder=folderId;
+  finalRender();
 }
 async function fdNewFolder(){
   var name=(window.prompt('New folder name')||'').trim(); if(!name) return;
@@ -4682,6 +4777,11 @@ async function fdDeleteFolder(id){
   FD.folders=FD.folders.filter(function(x){return x.id!==id;}); FD.items.forEach(function(it){ if(it.folder_id===id) it.folder_id=null; }); if(FD.folder===id) FD.folder=null; finalRender();
 }
 async function fdUploadFile(file){
+  var MAXB=45*1024*1024; // Supabase Storage default cap; big video masters should come via "Add from project"
+  if(file.size && file.size>MAXB){
+    alert('\u201c'+file.name+'\u201d is '+caHuman(file.size)+', over the ~45\u202fMB upload limit.\n\nFor the final video, use \u201cAdd from project\u201d instead \u2014 it delivers the approved cut straight from Cloudflare as a download, with no upload needed.');
+    return;
+  }
   try{ var path=CONFIG.REVIEW_SLUG+'/'+FD.proj+'/final/'+Date.now()+'_'+caSafe(file.name); var up=await sb.storage.from('client-assets').upload(path, file, {upsert:false, cacheControl:'3600'}); if(up.error){ alert('Upload failed: '+up.error.message); return; } var pub=sb.storage.from('client-assets').getPublicUrl(path); var row={ review_slug:CONFIG.REVIEW_SLUG, project_key:FD.proj, folder_id:FD.folder, kind:'file', title:file.name, url:pub.data.publicUrl, file_type:file.type||'', size_bytes:file.size||null, created_by:myEmail() }; var r=await sb.from('final_items').insert(row).select().single(); if(r.error){ alert('Could not record: '+r.error.message); return; } FD.items.unshift(r.data); }catch(e){ alert('Upload error.'); }
 }
 async function fdDeleteItem(id){
@@ -4701,21 +4801,27 @@ async function fdOpenPicker(){
       var poster=previewFor(v)||''; var thumb=poster?'<span class="fp-th" style="background-image:url('+esc(poster)+')"></span>':'<span class="fp-th ext">'+((v.type==='video')?'VID':'IMG')+'</span>';
       var tag = added?'<span class="fp-tag added">Added</span>':(approved?'<span class="fp-tag ok">'+apprCheck()+'Approved</span>':'<span class="fp-tag wait">Not approved</span>');
       var cls='fp-row'+(approved?'':' fp-unappr')+(added?' fp-added':'');
-      return '<label class="'+cls+'"><input type="checkbox" class="fp-pick" data-k="'+esc(st.id)+'" data-title="'+esc(st.title||'')+'" data-poster="'+esc(poster)+'" data-type="'+esc(v.type||'')+'"'+(added?' disabled':'')+'>'+thumb+'<span class="fp-name">'+esc(st.title||'Item')+(v.version?(' \u00b7 '+esc(v.version)):'')+'</span>'+tag+'</label>';
+      return '<label class="'+cls+'"><input type="checkbox" class="fp-pick" data-k="'+esc(st.id)+'" data-title="'+esc(st.title||'')+'" data-poster="'+esc(poster)+'" data-type="'+esc(v.type||'')+'" data-uid="'+esc(v.stream_uid||'')+'" data-src="'+esc(v.type==='image'?absUrl(v.src||''):(v.download_url||''))+'"'+(added?' disabled':'')+'>'+thumb+'<span class="fp-name">'+esc(st.title||'Item')+(v.version?(' \u00b7 '+esc(v.version)):'')+'</span>'+tag+'</label>';
     }).join('');
     if(stItems) rows+='<div class="fp-sec"><div class="fp-sec-h">'+esc(sec.name)+'</div>'+stItems+'</div>';
   });
   if(!rows) rows='<div class="ca-empty">No project items to push yet.</div>';
   var dest = FD.folder ? ((FD.folders.filter(function(f){return f.id===FD.folder;})[0]||{}).name) : 'Unfiled';
-  openOverlay('<div class="fp-wrap" id="fpWrap"><div class="fp-head">Push from project</div><div class="fp-hint">Approved cuts land in Final Deliverables (\u201c'+esc(dest||'Unfiled')+'\u201d) \u2014 already hosted, no re-upload.</div><label class="fp-alltog"><input type="checkbox" id="fpAll"> Show all, including not-yet-approved</label><div class="fp-list">'+rows+'</div><div class="fp-foot"><span class="fp-foot-n">'+apprCount+' approved</span><button class="ca-btn ghost" onclick="closeOverlay()">Cancel</button><button class="ca-btn" id="fpAdd">Add selected</button></div></div>', true);
+  openOverlay('<div class="fp-wrap" id="fpWrap"><div class="fp-head">Push from project</div><div class="fp-hint">Approved cuts land in Final Deliverables (\u201c'+esc(dest||'Unfiled')+'\u201d) as instant downloads \u2014 already hosted, no re-upload.</div><label class="fp-alltog"><input type="checkbox" id="fpAll"> Show all, including not-yet-approved</label><div class="fp-list">'+rows+'</div><div class="fp-foot"><span class="fp-foot-n">'+apprCount+' approved</span><button class="ca-btn ghost" onclick="closeOverlay()">Cancel</button><button class="ca-btn" id="fpAdd">Add selected</button></div></div>', true);
   var all=document.getElementById('fpAll'), wrap=document.getElementById('fpWrap'); if(all&&wrap){ all.onchange=function(){ wrap.classList.toggle('show-all', all.checked); }; }
   var add=document.getElementById('fpAdd'); if(add) add.onclick=fdAddPicked;
 }
 async function fdAddPicked(){
-  var picks=[]; document.querySelectorAll('.fp-pick:checked').forEach(function(c){ picks.push({ k:c.dataset.k, title:c.dataset.title, poster:c.dataset.poster, type:c.dataset.type }); });
+  var picks=[]; document.querySelectorAll('.fp-pick:checked').forEach(function(c){ picks.push({ k:c.dataset.k, title:c.dataset.title, poster:c.dataset.poster, type:c.dataset.type, uid:c.dataset.uid, src:c.dataset.src }); });
   if(!picks.length){ closeOverlay(); return; }
   var add=document.getElementById('fpAdd'); if(add){ add.disabled=true; add.textContent='Adding\u2026'; }
-  for(var i=0;i<picks.length;i++){ var p=picks[i]; var row={ review_slug:CONFIG.REVIEW_SLUG, project_key:FD.proj, folder_id:FD.folder, kind:'proj', title:p.title, url:'#p='+encodeURIComponent(FD.proj)+'&k='+encodeURIComponent(p.k), poster:p.poster||'', file_type:p.type||'', stack_key:p.k, created_by:myEmail() }; try{ var r=await sb.from('final_items').insert(row).select().single(); if(!r.error&&r.data) FD.items.unshift(r.data); }catch(e){} }
+  for(var i=0;i<picks.length;i++){ var p=picks[i];
+    var dlUrl;
+    if(p.type==='video' && p.uid){ dlUrl='stream:'+p.uid; }
+    else if(p.src){ dlUrl=p.src; }
+    else { dlUrl='#p='+encodeURIComponent(FD.proj)+'&k='+encodeURIComponent(p.k); }
+    var row={ review_slug:CONFIG.REVIEW_SLUG, project_key:FD.proj, folder_id:FD.folder, kind:'proj', title:p.title, url:dlUrl, poster:p.poster||'', file_type:p.type||'', stack_key:p.k, created_by:myEmail() };
+    try{ var r=await sb.from('final_items').insert(row).select().single(); if(!r.error&&r.data) FD.items.unshift(r.data); }catch(e){} }
   closeOverlay(); finalRender();
 }
 
