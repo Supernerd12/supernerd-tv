@@ -1,7 +1,7 @@
 // Fitness Hub — shared library (Cloudflare Pages Functions)
 // Underscore prefix = not routed, importable only.
 
-export const VERSION = 'v7';
+export const VERSION = 'v8';
 export const TZ = 'America/New_York';
 
 export const dayStr = (offset = 0) =>
@@ -452,6 +452,46 @@ export async function parseFood(env, input) {
 
   // Nothing recognised. Log it at zero and flag it rather than inventing a number.
   return [{ item: input.slice(0, 120), kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, src: 'unparsed' }];
+}
+
+// Resolve free text or a typed name to a row in the exercise library.
+export async function matchExercise(env, name) {
+  const n = String(name || '').toLowerCase().trim();
+  if (!n) return null;
+  const lib = await all(env, 'SELECT id,name,discipline,muscle,unit,aliases,cue FROM exercises WHERE archived=0');
+  let best = null, bestLen = 0;
+  for (const e of lib) {
+    const keys = [e.name.toLowerCase(), ...(e.aliases || '').split(',').map((x) => x.trim().toLowerCase())].filter(Boolean);
+    for (const k of keys) {
+      if (k.length > 2 && n.includes(k) && k.length > bestLen) { best = e; bestLen = k.length; }
+    }
+  }
+  return best;
+}
+
+// Anything unrecognised becomes a new library entry rather than a dead string.
+export async function ensureExercise(env, name, hint = {}) {
+  const hit = await matchExercise(env, name);
+  if (hit) return hit;
+  const clean = String(name).trim().replace(/\s+/g, ' ').slice(0, 60);
+  const t = clean.toLowerCase();
+  const muscle = hint.muscle ||
+    (/(curl|tricep|dip|forearm)/.test(t) ? 'arms' :
+     /(squat|lunge|leg|calf|quad|hamstring)/.test(t) ? 'legs' :
+     /(glute|bridge|thrust|hinge|deadlift)/.test(t) ? 'glutes' :
+     /(press|bench|fly|chest|push)/.test(t) ? 'chest' :
+     /(row|pull|lat|back)/.test(t) ? 'back' :
+     /(shoulder|raise|delt)/.test(t) ? 'shoulders' :
+     /(plank|ab|core|crunch|twist)/.test(t) ? 'core' :
+     /(run|jog|walk|sprint|bike|cardio)/.test(t) ? 'cardio' : 'fullbody');
+  const discipline = hint.discipline ||
+    (muscle === 'cardio' ? 'cardio' :
+     /(dumbbell|barbell|machine|cable|weight|lb|kg)/.test(t) ? 'resistance' :
+     ['arms', 'chest', 'back', 'shoulders', 'legs', 'glutes'].includes(muscle) ? 'resistance' : 'calisthenics');
+  const unit = hint.unit || (muscle === 'cardio' ? 'distance' : /plank|hold|hang/.test(t) ? 'time' : 'reps');
+  await run(env, 'INSERT OR IGNORE INTO exercises (name,discipline,muscle,unit,aliases,active) VALUES (?1,?2,?3,?4,?5,1)',
+    [clean, discipline, muscle, unit, t]);
+  return await one(env, 'SELECT id,name,discipline,muscle,unit,cue FROM exercises WHERE name=?1', [clean]);
 }
 
 export async function parseWorkout(env, input) {
