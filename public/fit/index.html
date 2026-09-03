@@ -52,10 +52,16 @@ input::placeholder,textarea::placeholder{color:var(--faint)}
 :focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 .hide{display:none!important}
 
-header{display:flex;align-items:center;gap:10px;padding:max(16px,env(safe-area-inset-top)) 0 16px;position:sticky;top:0;z-index:5;
+header{display:flex;align-items:center;justify-content:space-between;gap:10px;position:relative;padding:max(16px,env(safe-area-inset-top)) 0 16px;position:sticky;top:0;z-index:5;
   background:linear-gradient(180deg,var(--bg) 62%,transparent)}
 header h1{font-family:var(--display);font-size:30px;font-weight:600;margin:0;letter-spacing:.005em;line-height:1;text-transform:uppercase}
-header .date{margin-left:auto;font:11px/1 var(--mono);color:var(--dim);text-transform:uppercase;letter-spacing:.14em}
+header .date{font:11px/1 var(--mono);color:var(--dim);text-transform:uppercase;letter-spacing:.14em;
+  min-width:74px;text-align:right}
+#ver{position:absolute;left:50%;transform:translateX(-50%);font:10px/1 var(--mono);letter-spacing:.14em;
+  color:var(--dim);background:rgba(255,255,255,.06);border:1px solid var(--rule);border-radius:99px;padding:6px 12px}
+#ver.ok{color:var(--acc);border-color:var(--acc)}
+#ver.bad{color:var(--over);border-color:var(--over);background:rgba(229,107,91,.12)}
+header{position:sticky}
 
 h2{font:11px/1 var(--mono);text-transform:uppercase;letter-spacing:.16em;font-weight:400;
   margin:30px 0 12px;color:var(--faint)}
@@ -240,7 +246,11 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
 </div>
 
 <div id="app" class="hide">
-<header><h1 id="vtitle">Today</h1><span class="date" id="vdate"></span></header>
+<header>
+  <h1 id="vtitle">Today</h1>
+  <button id="ver" title="Tap to force a fresh copy">v5</button>
+  <span class="date" id="vdate"></span>
+</header>
 
 <section class="view" id="v-hub">
   <div class="coach" id="coach"></div>
@@ -569,6 +579,9 @@ async function refresh(){
   const s=await api('status'); S=s;
   const t=s.today, g=t.target, tr=s.trends;
   $('#vdate').textContent=fmtD(t.date);
+  const v=$('#ver'), mine=v.textContent.trim().split(' ')[0];
+  if(s.version===mine){v.className='ok';v.textContent=mine;}
+  else{v.className='bad';v.textContent=`${mine} / api ${s.version}`;}
 
   api('brief').then(b=>{
     $('#coach').innerHTML=`<p class="hi">${esc(b.greeting)}</p>
@@ -994,6 +1007,7 @@ document.addEventListener('click',async e=>{
     if(!r.ok){$('#gateMsg').textContent='Wrong passphrase.';return;}
     show('app');boot();return;
   }
+  if(b.id==='ver'){location.replace(location.pathname+'?r='+Date.now());return;}
   if(b.dataset.v)return go(b.dataset.v);
   if(b.dataset.go)return go(b.dataset.go);
   if(b.dataset.w){await post('water',{oz:+b.dataset.w});return refresh();}
