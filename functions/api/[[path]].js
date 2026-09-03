@@ -127,6 +127,41 @@ export async function onRequest(ctx) {
       /* Walking and cardio read straight out of Apple Health. Nothing to log by hand. */
       case 'GET cardio': {
         const range = url.searchParams.get('range') || 'week';
+
+        // Day means the last 24 hours from right now, in hourly buckets — not the calendar date.
+        if (range === 'day') {
+          const now = new Date();
+          const keys = [];
+          for (let i = 23; i >= 0; i--) {
+            const d = new Date(now.getTime() - i * 3600000);
+            const local = d.toLocaleString('sv-SE', { timeZone: TZ });
+            keys.push({ t: local.slice(0, 13).replace(' ', 'T'), hour: Number(local.slice(11, 13)) });
+          }
+          const have = await all(env,
+            'SELECT t, steps, distance FROM activity_hours WHERE t >= ?1 ORDER BY t',
+            [keys[0].t]);
+          const byT = Object.fromEntries(have.map((r) => [r.t, r]));
+          const series = keys.map((k) => ({
+            d: k.t,
+            label: (k.hour % 12 === 0 ? 12 : k.hour % 12) + (k.hour < 12 ? 'a' : 'p'),
+            value: byT[k.t]?.steps || 0,
+            distance: byT[k.t]?.distance || 0
+          }));
+          const t2 = await currentTarget(env);
+          const totalSteps = series.reduce((a, r) => a + r.value, 0);
+          const totalDist = series.reduce((a, r) => a + (r.distance || 0), 0);
+          const busiest = series.reduce((a, b) => (b.value > a.value ? b : a), series[0]);
+          return json({
+            range, rolling: true, target_steps: t2.steps,
+            today: { steps: Math.round(totalSteps), distance: Math.round(totalDist * 100) / 100 },
+            total_steps: Math.round(totalSteps),
+            total_distance: Math.round(totalDist * 100) / 100,
+            busiest_hour: busiest && busiest.value ? busiest.label : null,
+            hours_with_data: series.filter((r) => r.value > 0).length,
+            series, sessions: []
+          });
+        }
+
         const from = rangeStart(range);
         const days = await all(env,
           `SELECT d, COALESCE(steps,0) steps, COALESCE(walk_min,0) walk_min,
@@ -257,10 +292,78 @@ export async function onRequest(ctx) {
       case 'POST checkin':
         return json(await checkin(env));
 
+      /* ---- editing and deleting anything already logged ---- */
+
+      case 'POST food/edit': {
+        const f = ['item','kcal','protein','carbs','fat','fiber'].filter(k => body[k] !== undefined);
+        if (!body.id || !f.length) return json({ error: 'nothing to change' }, 400);
+        await run(env, `UPDATE food_log SET ${f.map((k,i)=>`${k}=?${i+2}`).join(', ')}, src='edited' WHERE id=?1`,
+          [body.id, ...f.map(k => body[k])]);
+        // Optionally remember it, so the same thing matches correctly next time.
+        if (body.save_as_food && body.item)
+          await run(env,
+            `INSERT INTO foods (name,kcal,protein,carbs,fat,fiber,serving,kind,in_stock)
+             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)
+             ON CONFLICT(name) DO UPDATE SET kcal=excluded.kcal, protein=excluded.protein,
+               carbs=excluded.carbs, fat=excluded.fat, fiber=excluded.fiber`,
+            [String(body.item).slice(0,80), body.kcal||0, body.protein||0, body.carbs||0,
+             body.fat||0, body.fiber||0, body.serving||'1 serving', body.kind||'other', body.in_stock?1:0]);
+        return json({ ok: true, today: await today(env, d) });
+      }
+
+      case 'POST food/delete': {
+        await run(env, 'DELETE FROM food_log WHERE id=?1', [body.id]);
+        return json({ ok: true, today: await today(env, d) });
+      }
+
+      case 'POST workout/edit': {
+        const f = ['exercise','sets','reps','weight','minutes','distance'].filter(k => body[k] !== undefined);
+        if (!body.id || !f.length) return json({ error: 'nothing to change' }, 400);
+        await run(env, `UPDATE workout_log SET ${f.map((k,i)=>`${k}=?${i+2}`).join(', ')} WHERE id=?1`,
+          [body.id, ...f.map(k => body[k])]);
+        return json({ ok: true, today: await today(env, d) });
+      }
+
+      case 'POST workout/delete': {
+        await run(env, 'DELETE FROM workout_log WHERE id=?1', [body.id]);
+        return json({ ok: true, today: await today(env, d) });
+      }
+
+      case 'POST weight/delete': {
+        await run(env, 'DELETE FROM weights WHERE d=?1', [body.date || d]);
+        return json({ ok: true });
+      }
+
+      /* Tells the app which optional bindings are actually wired up. */
+      case 'GET diagnostics': {
+        const counts = await one(env,
+          `SELECT (SELECT COUNT(*) FROM foods) foods, (SELECT COUNT(*) FROM exercises) exercises,
+                  (SELECT COUNT(*) FROM food_log) food_log, (SELECT COUNT(*) FROM workout_log) workout_log,
+                  (SELECT COUNT(*) FROM weights) weights, (SELECT COUNT(*) FROM activity) activity,
+                  (SELECT COUNT(*) FROM activity_hours) activity_hours, (SELECT COUNT(*) FROM photos) photos`);
+        return json({
+          version: VERSION, database: true,
+          natural_language: !!env.AI ? 'workers-ai' : env.OPENAI_KEY ? 'openai' : env.GROQ_KEY ? 'groq' : 'none',
+          photos_storage: !!env.FIT_R2, coach_chat: !!(env.AI || env.OPENAI_KEY),
+          counts
+        });
+      }
+
       case 'GET inventory':
         return json(await all(env, 'SELECT id,name,kcal,protein,fiber,serving,kind,in_stock FROM foods ORDER BY kind,name'));
 
       case 'POST inventory': {
+        if (body.delete != null) {
+          await run(env, 'DELETE FROM foods WHERE id=?1', [body.delete]);
+          return json({ ok: true });
+        }
+        if (body.id != null && body.edit) {
+          const f = ['name','kcal','protein','carbs','fat','fiber','serving','kind'].filter(k => body[k] !== undefined);
+          if (f.length)
+            await run(env, `UPDATE foods SET ${f.map((k,i)=>`${k}=?${i+2}`).join(', ')} WHERE id=?1`,
+              [body.id, ...f.map(k => body[k])]);
+          return json({ ok: true });
+        }
         if (body.id != null)
           await run(env, 'UPDATE foods SET in_stock=?1 WHERE id=?2', [body.in_stock ? 1 : 0, body.id]);
         else if (body.name)
@@ -290,6 +393,26 @@ export async function onRequest(ctx) {
                distance=COALESCE(excluded.distance,distance), src=excluded.src`,
             [r.d, r.steps, r.walk_min, r.active_kcal, r.resting_hr, r.exercise_hr, r.sleep_min, r.src, r.distance]);
 
+        // Hourly buckets, so the Day view can be a rolling 24 hours instead of a calendar date.
+        // Shortcuts sends these as a plain array from Find Health Samples grouped by hour.
+        for (const [arr, day, field] of [
+          [body.hourly_steps, body.date || dayStr(), 'steps'],
+          [body.hourly_distance, body.date || dayStr(), 'distance'],
+          [body.hourly_steps_prev, body.date_prev || dayStr(-1), 'steps'],
+          [body.hourly_distance_prev, body.date_prev || dayStr(-1), 'distance']
+        ]) {
+          if (!Array.isArray(arr)) continue;
+          const d = String(day).slice(0, 10);
+          for (let h = 0; h < Math.min(24, arr.length); h++) {
+            const v = Number(arr[h]);
+            if (!isFinite(v)) continue;
+            const t = `${d}T${String(h).padStart(2, '0')}`;
+            await run(env,
+              `INSERT INTO activity_hours (t,${field},src) VALUES (?1,?2,'apple-health')
+               ON CONFLICT(t) DO UPDATE SET ${field}=excluded.${field}`, [t, v]);
+          }
+        }
+
         for (const b of bodyRows)
           await run(env,
             `INSERT INTO weights (d,lb,bodyfat,muscle,visceral) VALUES (?1,?2,?3,?4,?5)
@@ -298,7 +421,8 @@ export async function onRequest(ctx) {
                muscle=COALESCE(excluded.muscle,muscle), visceral=COALESCE(excluded.visceral,visceral)`,
             [b.d, b.lb, b.bodyfat, b.muscle, b.visceral]);
 
-        return json({ ok: true, days: rows.length, body_days: bodyRows.length });
+        const hourCount = await one(env, 'SELECT COUNT(*) n FROM activity_hours');
+        return json({ ok: true, days: rows.length, body_days: bodyRows.length, hours_stored: hourCount?.n ?? 0 });
       }
 
       case 'DELETE food':

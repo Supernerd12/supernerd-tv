@@ -1,7 +1,7 @@
 // Fitness Hub — shared library (Cloudflare Pages Functions)
 // Underscore prefix = not routed, importable only.
 
-export const VERSION = 'v5';
+export const VERSION = 'v7';
 export const TZ = 'America/New_York';
 
 export const dayStr = (offset = 0) =>
@@ -143,7 +143,7 @@ export async function today(env, d = dayStr()) {
     'SELECT COALESCE(SUM(kcal),0) kcal, COALESCE(SUM(protein),0) protein, COALESCE(SUM(carbs),0) carbs, COALESCE(SUM(fat),0) fat, COALESCE(SUM(fiber),0) fiber, COUNT(*) n FROM food_log WHERE d=?1',
     [d]
   );
-  const items = await all(env, 'SELECT id,ts,item,kcal,protein,fiber FROM food_log WHERE d=?1 ORDER BY id', [d]);
+  const items = await all(env, 'SELECT id,ts,item,kcal,protein,carbs,fat,fiber,src FROM food_log WHERE d=?1 ORDER BY id', [d]);
   const w = await all(env, 'SELECT * FROM workout_log WHERE d=?1 ORDER BY id', [d]);
   const a = await one(env, 'SELECT * FROM activity WHERE d=?1', [d]);
   const wt = await one(env, 'SELECT * FROM weights WHERE d=?1', [d]);
@@ -359,12 +359,67 @@ const grabJSON = (s) => {
   try { return JSON.parse(m[0]); } catch { return null; }
 };
 
+// Pull macros the user stated outright. If he says "at 240 calories", that IS the number —
+// no estimate, no library lookup, no multiplication. Stated beats guessed, always.
+export function statedMacros(text) {
+  const t = ' ' + String(text).toLowerCase() + ' ';
+  const grab = (re) => { const m = t.match(re); return m ? parseFloat(m[1]) : null; };
+  return {
+    kcal: grab(/(\d+(?:\.\d+)?)\s*(?:k?cals?\b|calories?\b|kcal\b)/),
+    protein: grab(/(\d+(?:\.\d+)?)\s*(?:g|grams?)?\s*(?:of\s+)?protein/),
+    carbs: grab(/(\d+(?:\.\d+)?)\s*(?:g|grams?)?\s*(?:of\s+)?(?:carbs?|carbohydrates?)/),
+    fat: grab(/(\d+(?:\.\d+)?)\s*(?:g|grams?)?\s*(?:of\s+)?fat\b/),
+    fiber: grab(/(\d+(?:\.\d+)?)\s*(?:g|grams?)?\s*(?:of\s+)?fib(?:re|er)/)
+  };
+}
+
+// Strip the macro clauses back out so the item is named for the food, not the numbers.
+function cleanName(text) {
+  return String(text)
+    .replace(/\b(?:at|with|which is|that'?s|about|approx\.?|roughly)?\s*\d+(?:\.\d+)?\s*(?:k?cals?|calories?|kcal)\b/gi, '')
+    .replace(/\b(?:and|with)?\s*\d+(?:\.\d+)?\s*(?:g|grams?)?\s*(?:of\s+)?(?:protein|carbs?|carbohydrates?|fat|fib(?:re|er))\b/gi, '')
+    .replace(/\s*,\s*$/, '').replace(/\s+/g, ' ').replace(/^[\s,.-]+|[\s,.-]+$/g, '').trim();
+}
+
+// Only treat a number as a quantity when it is clearly a count, never when it belongs to a macro.
+function quantityOf(chunk, food) {
+  const t = chunk.toLowerCase();
+  const explicit = t.match(/(?:^|\s)(\d+(?:\.\d+)?)\s*x(?:\s|$)/) || t.match(/(?:^|\s)x\s*(\d+(?:\.\d+)?)(?:\s|$)/);
+  if (explicit) return Math.min(20, Math.max(0.25, parseFloat(explicit[1])));
+
+  const words = { a: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, half: 0.5 };
+  const w = t.match(/(?:^|\s)(one|two|three|four|five|six|half)\s/);
+  if (w) return words[w[1]];
+
+  // A bare number counts only if it is not part of a macro phrase.
+  const bare = t.match(/(?:^|\s)(\d+(?:\.\d+)?)\s+(?!k?cals?|calories?|kcal|g\b|grams?|of\b)/);
+  if (!bare) return 1;
+  const n = parseFloat(bare[1]);
+
+  // "15 fries" against a serving of "12 fries" means 1.25 servings, not 15 of them.
+  const perServing = food?.serving ? parseFloat(food.serving) : NaN;
+  if (perServing > 1 && n > perServing) return Math.min(20, n / perServing);
+  return n > 20 ? 1 : Math.max(0.25, n);
+}
+
 export async function parseFood(env, input) {
-  const known = await all(env, 'SELECT name,kcal,protein,carbs,fat,fiber,serving FROM foods LIMIT 100');
+  const known = await all(env, 'SELECT name,kcal,protein,carbs,fat,fiber,serving FROM foods LIMIT 120');
+  const stated = statedMacros(input);
+
+  // Anything he spelled out is authoritative. Log it exactly and stop.
+  if (stated.kcal != null) {
+    return [{
+      item: cleanName(input).slice(0, 120) || input.slice(0, 120),
+      kcal: stated.kcal, protein: stated.protein ?? 0, carbs: stated.carbs ?? 0,
+      fat: stated.fat ?? 0, fiber: stated.fiber ?? 0, src: 'stated'
+    }];
+  }
+
   const sys =
     'You convert a spoken food log into JSON. Return ONLY a JSON array, no prose, no markdown. ' +
     'Each element: {"item":string,"kcal":number,"protein":number,"carbs":number,"fat":number,"fiber":number}. ' +
-    'Scale by the quantity described. Use this known-food table when the text matches an entry, otherwise use standard USDA-style estimates.\n' +
+    'If the user states a calorie or macro number, use that number exactly. Otherwise estimate from the quantity described. ' +
+    'Never invent large multiples — a single named product is one serving unless a count is given.\n' +
     known.map((f) => `${f.name} | ${f.serving} | ${f.kcal}kcal ${f.protein}p ${f.carbs}c ${f.fat}f ${f.fiber}fib`).join('\n');
 
   const parsed = grabJSON(await callAI(env, sys, input));
@@ -376,64 +431,27 @@ export async function parseFood(env, input) {
     }));
   }
 
-  // Fallback: substring match against the food table, with a leading quantity multiplier.
+  // No AI available: match against the food table, conservatively.
   const out = [];
   for (const chunk of input.split(/,| and | plus |\+/i)) {
-    const c = chunk.trim().toLowerCase();
+    const c = chunk.trim();
     if (!c) continue;
-    const hit = known.find((f) => c.includes(f.name.toLowerCase().split(',')[0].split(' + ')[0].toLowerCase()))
-      || known.find((f) => f.name.toLowerCase().split(/[\s,]+/).some((w) => w.length > 4 && c.includes(w)));
+    const lc = c.toLowerCase();
+    const hit = known.find((f) => lc.includes(f.name.toLowerCase().split(/[,+]/)[0].trim()))
+      || known.find((f) => f.name.toLowerCase().split(/[\s,]+/).some((w) => w.length > 4 && lc.includes(w)));
     if (!hit) continue;
-    const qm = c.match(/(\d+(?:\.\d+)?)/);
-    const q = qm ? Math.min(10, Math.max(0.25, parseFloat(qm[1]) > 20 ? parseFloat(qm[1]) / 12 : parseFloat(qm[1]))) : 1;
+    const q = quantityOf(c, hit);
+    const r = (v) => Math.round(v * q * 10) / 10;
     out.push({
-      item: `${hit.name}${q !== 1 ? ` ×${r1(q)}` : ''}`,
-      kcal: r1(hit.kcal * q), protein: r1(hit.protein * q), carbs: r1(hit.carbs * q),
-      fat: r1(hit.fat * q), fiber: r1(hit.fiber * q), src: 'match'
+      item: `${hit.name}${q !== 1 ? ` ×${Math.round(q * 100) / 100}` : ''}`,
+      kcal: r(hit.kcal), protein: r(hit.protein), carbs: r(hit.carbs),
+      fat: r(hit.fat), fiber: r(hit.fiber), src: 'match'
     });
   }
   if (out.length) return out;
+
+  // Nothing recognised. Log it at zero and flag it rather than inventing a number.
   return [{ item: input.slice(0, 120), kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, src: 'unparsed' }];
-}
-
-// Resolve free text or a typed name to a row in the exercise library.
-export async function matchExercise(env, name) {
-  const n = String(name || '').toLowerCase().trim();
-  if (!n) return null;
-  const lib = await all(env, 'SELECT id,name,discipline,muscle,unit,aliases,cue FROM exercises WHERE archived=0');
-  let best = null, bestLen = 0;
-  for (const e of lib) {
-    const keys = [e.name.toLowerCase(), ...(e.aliases || '').split(',').map((x) => x.trim().toLowerCase())].filter(Boolean);
-    for (const k of keys) {
-      if (k.length > 2 && n.includes(k) && k.length > bestLen) { best = e; bestLen = k.length; }
-    }
-  }
-  return best;
-}
-
-// Anything unrecognised becomes a new library entry rather than a dead string.
-export async function ensureExercise(env, name, hint = {}) {
-  const hit = await matchExercise(env, name);
-  if (hit) return hit;
-  const clean = String(name).trim().replace(/\s+/g, ' ').slice(0, 60);
-  const t = clean.toLowerCase();
-  const muscle = hint.muscle ||
-    (/(curl|tricep|dip|forearm)/.test(t) ? 'arms' :
-     /(squat|lunge|leg|calf|quad|hamstring)/.test(t) ? 'legs' :
-     /(glute|bridge|thrust|hinge|deadlift)/.test(t) ? 'glutes' :
-     /(press|bench|fly|chest|push)/.test(t) ? 'chest' :
-     /(row|pull|lat|back)/.test(t) ? 'back' :
-     /(shoulder|raise|delt)/.test(t) ? 'shoulders' :
-     /(plank|ab|core|crunch|twist)/.test(t) ? 'core' :
-     /(run|jog|walk|sprint|bike|cardio)/.test(t) ? 'cardio' : 'fullbody');
-  const discipline = hint.discipline ||
-    (muscle === 'cardio' ? 'running' :
-     /(dumbbell|barbell|machine|cable|weight|lb|kg)/.test(t) ? 'resistance' :
-     ['arms', 'chest', 'back', 'shoulders', 'legs', 'glutes'].includes(muscle) ? 'resistance' : 'calisthenics');
-  const unit = hint.unit || (muscle === 'cardio' ? 'distance' : /plank|hold|hang/.test(t) ? 'time' : 'reps');
-  await run(env, 'INSERT OR IGNORE INTO exercises (name,discipline,muscle,unit,aliases) VALUES (?1,?2,?3,?4,?5)',
-    [clean, discipline, muscle, unit, t]);
-  return await one(env, 'SELECT id,name,discipline,muscle,unit,cue FROM exercises WHERE name=?1', [clean]);
 }
 
 export async function parseWorkout(env, input) {

@@ -248,7 +248,7 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
 <div id="app" class="hide">
 <header>
   <h1 id="vtitle">Today</h1>
-  <button id="ver" title="Tap to force a fresh copy">v5</button>
+  <button id="ver" title="Tap to force a fresh copy">v7</button>
   <span class="date" id="vdate"></span>
 </header>
 
@@ -344,9 +344,16 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
   <h2>Eaten today</h2>
   <div id="fLog"></div>
 
+  <div id="fEdit" class="hide" style="margin-top:12px"></div>
+
   <h2>In the kitchen</h2>
   <div id="inv"></div>
-  <p class="tiny">Tap to mark what you actually have. Suggestions only use what's lit.</p>
+  <div class="row" style="margin-top:10px">
+    <button class="btn ghost" id="invManage">Edit the list</button>
+    <button class="btn ghost" id="invAdd" style="flex:0 0 104px">Add an item</button>
+  </div>
+  <div id="invForm" class="hide" style="margin-top:10px"></div>
+  <p class="tiny" style="margin-top:8px">Lit means you have it. Suggestions only use what's lit.</p>
 
   <h2>Grocery list</h2>
   <div class="row" style="margin-bottom:8px">
@@ -553,7 +560,8 @@ const MUSCLES={
   calisthenics:[['fullbody','Full body'],['core','Core'],['chest','Chest'],['back','Back'],['arms','Arms'],['legs','Legs']],
   cardio:[]
 };
-let CHAT=[], CARDIORANGE='week', GUIDE='bright';
+let CHAT=[], CARDIORANGE='day', GUIDE='bright';
+let FOODITEMS=[], INVMANAGE=false;
 const TITLES={hub:'Today',food:'Food and water',train:'Training',photos:'Progress',days:'History'};
 
 function roll(el,to){const from=+el.dataset.v||0;el.dataset.v=to;
@@ -620,17 +628,29 @@ async function refresh(){
   const cups=Math.round(t.water_target/8), full=Math.round(t.water_oz/8);
   $('#drops').innerHTML=Array.from({length:cups},(_,i)=>`<div class="drop ${i<full?'f':''}"></div>`).join('');
   $('#fLog').innerHTML=t.food_items.length
-    ? t.food_items.map(i=>`<div class="item"><span>${esc(i.item)}</span><span class="m">${Math.round(i.kcal)} kcal · ${Math.round(i.protein)}g</span></div>`).join('')
+    ? t.food_items.map(i=>{
+        const bad = !i.kcal || i.src==='unparsed';
+        return `<button class="item" data-fedit="${i.id}" style="width:100%;text-align:left">
+          <span style="${bad?'color:var(--over)':''}">${esc(i.item)}</span>
+          <span class="m" style="${bad?'color:var(--over)':''}">${bad?'no macros · tap to fix':`${Math.round(i.kcal)} kcal · ${Math.round(i.protein)}g`}</span>
+          <span style="color:var(--faint);margin-left:6px">›</span></button>`;}).join('')
     : '<p class="empty">Nothing logged yet today.</p>';
+  FOODITEMS=t.food_items;
 
   $('#tLog').innerHTML=t.workouts.length
-    ? t.workouts.map(w=>`<div class="item"><span>${esc(w.exercise)}</span><span class="m">${[w.sets&&`${w.sets}×${w.reps}`,w.minutes&&`${w.minutes} min`,w.resistance].filter(Boolean).join(' · ')||'logged'}</span></div>`).join('')
+    ? t.workouts.map(w=>`<button class="item" data-wdel="${w.id}" style="width:100%;text-align:left"><span>${esc(w.exercise)}</span>
+       <span class="m">${[w.sets&&`${w.sets}×${w.reps}`,w.weight&&`${w.weight} lb`,w.minutes&&`${w.minutes} min`].filter(Boolean).join(' · ')||'logged'}</span>
+       <span style="color:var(--faint);margin-left:6px">×</span></button>`).join('')
     : '<p class="empty">Nothing logged yet today.</p>';
 }
 
 async function loadInv(){
   const [inv,gr]=await Promise.all([api('inventory'),api('todos')]);
-  $('#inv').innerHTML=inv.map(f=>`<button class="pill ${f.in_stock?'on':''}" data-inv="${f.id}" data-s="${f.in_stock}">${esc(f.name.split(' + ')[0].slice(0,32))}</button>`).join('');
+  $('#inv').innerHTML = INVMANAGE
+    ? inv.map(f=>`<div class="item"><span>${esc(f.name)}</span>
+        <span class="m">${Math.round(f.kcal)} kcal · ${Math.round(f.protein)}g</span>
+        <button class="m" data-invdel="${f.id}" style="color:var(--over);margin-left:10px">remove</button></div>`).join('')
+    : inv.map(f=>`<button class="pill ${f.in_stock?'on':''}" data-inv="${f.id}" data-s="${f.in_stock}">${esc(f.name.split(' + ')[0].slice(0,32))}</button>`).join('');
   $('#grocery').innerHTML=(gr.list.length?gr.list.map(g=>
     `<div class="item"><button data-todo="${g.id}" style="text-align:left;text-decoration:${g.done?'line-through':'none'};opacity:${g.done?.5:1}">${esc(g.text)}</button><button class="m" data-del="${g.id}">remove</button></div>`).join('')
     :'<p class="empty">List is empty.</p>')
@@ -830,18 +850,24 @@ async function loadTrain(){
 async function loadCardio(){
   const c = await api('cardio?range='+CARDIORANGE);
   const t = c.today||{};
+  const roll = !!c.rolling;
   const pct = c.target_steps ? Math.min(100,(t.steps||0)/c.target_steps*100) : 0;
   $('#cardioBox').innerHTML=`
     <div class="card acc">
       <div style="display:flex;align-items:baseline;gap:9px">
-        <span class="big" id="cSteps">${(t.steps||0).toLocaleString()}</span><span class="tiny">steps today</span>
+        <span class="big" id="cSteps">${(t.steps||0).toLocaleString()}</span>
+        <span class="tiny">steps<br>${roll?'last 24 hours':'today'}</span>
         <span class="tiny" style="margin-left:auto;text-align:right">target<br>${(c.target_steps||0).toLocaleString()}</span>
       </div>
       <div class="bar"><i style="width:${pct}%"></i></div>
       <div class="line"><span>Distance</span><b>${t.distance?t.distance+' mi':'—'}</b></div>
-      <div class="line"><span>Walking time</span><b>${t.walk_min?Math.round(t.walk_min)+' min':'—'}</b></div>
-      <div class="line"><span>Active calories</span><b>${t.active_kcal?Math.round(t.active_kcal):'—'}</b></div>
-      <p class="tiny" style="margin:12px 0 0">Straight from Apple Health. Nothing to log by hand.</p>
+      ${roll?`<div class="line"><span>Busiest hour</span><b>${c.busiest_hour||'—'}</b></div>`
+            :`<div class="line"><span>Walking time</span><b>${t.walk_min?Math.round(t.walk_min)+' min':'—'}</b></div>
+              <div class="line"><span>Active calories</span><b>${t.active_kcal?Math.round(t.active_kcal):'—'}</b></div>`}
+      <p class="tiny" style="margin:12px 0 0">${roll
+        ? (c.hours_with_data ? 'Rolling 24 hours, hour by hour. Straight from Apple Health.'
+                             : 'No hourly data yet — run the shortcut once and this fills in.')
+        : 'Straight from Apple Health. Nothing to log by hand.'}</p>
     </div>
     <div class="seg sm" style="margin-top:12px">
       ${['day','week','month','ytd','all'].map(r=>`<button data-crange="${r}" class="${r===CARDIORANGE?'on':''}">${r==='ytd'?'YTD':cap(r)}</button>`).join('')}
@@ -852,15 +878,20 @@ async function loadCardio(){
         <button class="pill ${CHARTMODE==='line'?'on':''}" data-cm2="line" style="margin:0">Line</button>
       </div>
       <canvas class="chart" id="cChart"></canvas>
+      ${roll?`
+      <div class="line" style="margin-top:10px"><span>Steps in 24 hours</span><b>${(c.total_steps||0).toLocaleString()}</b></div>
+      <div class="line"><span>Hours with movement</span><b>${c.hours_with_data} of 24</b></div>
+      <div class="line"><span>Distance</span><b>${c.total_distance||0} mi</b></div>
+      `:`
       <div class="line" style="margin-top:10px"><span>Daily average</span><b>${c.avg_steps?c.avg_steps.toLocaleString():'—'}</b></div>
       <div class="line"><span>Best day</span><b>${c.best_day?c.best_day.steps.toLocaleString()+' · '+shortD(c.best_day.d):'—'}</b></div>
       <div class="line"><span>Days at target</span><b>${c.days_counted?`${c.days_at_target} of ${c.days_counted}`:'—'}</b></div>
       <div class="line"><span>Total distance</span><b>${c.total_distance||0} mi</b></div>
-      <div class="line"><span>Total walking time</span><b>${c.total_walk_min||0} min</b></div>
+      <div class="line"><span>Total walking time</span><b>${c.total_walk_min||0} min</b></div>`}
     </div>
     ${c.sessions.length?`<h2>Walks you logged</h2>`+c.sessions.map(x=>
       `<div class="item"><span>${esc(x.ex||'walk')}</span><span class="m">${shortD(x.d)}${x.minutes?' · '+Math.round(x.minutes)+' min':''}</span></div>`).join(''):''}`;
-  const series=c.series.map(r=>({d:r.d,value:r.steps}));
+  const series=c.series.map(r=>({d:r.d,value:r.value!=null?r.value:r.steps,label:r.label}));
   LASTSERIES={series,unit:'steps'};
   drawChart($('#cChart'),series,'steps',CHARTMODE);
 }
@@ -962,8 +993,11 @@ function drawChart(c, series, unit, mode='bar'){
   }
 
   x.fillStyle=dim; x.font='10px ui-monospace,Menlo,monospace';
-  x.fillText(shortD(series[0].d),0,H-6);
-  const lbl=shortD(series[n-1].d);
+  const lab=r=>r.label||shortD(r.d);
+  x.fillText(lab(series[0]),0,H-6);
+  if(n>6){const mid=series[Math.floor(n/2)],ml=lab(mid);
+    x.fillText(ml,(W-x.measureText(ml).width)/2,H-6);}
+  const lbl=lab(series[n-1]);
   x.fillText(lbl, W-x.measureText(lbl).width, H-6);
   x.fillStyle=hexA(acc,.85);
   x.fillText(fmtN(max)+(unit==='distance'?' MI':unit==='time'?' MIN':''),0,11);
@@ -1036,6 +1070,76 @@ document.addEventListener('click',async e=>{
       :`<p class="empty">${esc(s.note)}</p>`;
     b.disabled=false;return;
   }
+  if(b.dataset.fedit){
+    const i=FOODITEMS.find(x=>x.id==b.dataset.fedit); if(!i)return;
+    $('#fEdit').classList.remove('hide');
+    $('#fEdit').innerHTML=`<div class="card">
+      <div style="display:flex;align-items:baseline"><b style="font-family:var(--display);font-size:19px;text-transform:uppercase">Fix this entry</b>
+      <button class="tiny" id="feClose" style="margin-left:auto;color:var(--dim)">close</button></div>
+      <input id="feItem" value="${esc(i.item)}" style="width:100%;margin-top:10px">
+      <div class="row" style="margin-top:8px">
+        <div><label class="tiny">Calories</label><input id="feKcal" type="number" inputmode="decimal" value="${Math.round(i.kcal)}" style="width:100%;margin-top:4px"></div>
+        <div><label class="tiny">Protein g</label><input id="feProt" type="number" inputmode="decimal" value="${Math.round(i.protein)}" style="width:100%;margin-top:4px"></div>
+        <div><label class="tiny">Fibre g</label><input id="feFib" type="number" inputmode="decimal" value="${Math.round(i.fiber||0)}" style="width:100%;margin-top:4px"></div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div><label class="tiny">Carbs g</label><input id="feCarb" type="number" inputmode="decimal" value="${Math.round(i.carbs||0)}" style="width:100%;margin-top:4px"></div>
+        <div><label class="tiny">Fat g</label><input id="feFat" type="number" inputmode="decimal" value="${Math.round(i.fat||0)}" style="width:100%;margin-top:4px"></div>
+      </div>
+      <label class="tiny" style="display:flex;align-items:center;gap:9px;margin-top:12px;text-transform:none;letter-spacing:0;font-size:13px;color:var(--ink)">
+        <input type="checkbox" id="feSave" style="width:20px;height:20px;padding:0;flex:0 0 20px"> Remember this food for next time</label>
+      <div class="row" style="margin-top:12px">
+        <button class="btn primary" data-fsave="${i.id}">Save</button>
+        <button class="btn ghost" data-fdel="${i.id}" style="flex:0 0 78px;color:var(--over)">Delete</button>
+      </div></div>`;
+    $('#fEdit').scrollIntoView({behavior:'smooth',block:'center'});return;
+  }
+  if(b.id==='feClose'){$('#fEdit').classList.add('hide');return;}
+  if(b.dataset.fsave){
+    await post('food/edit',{id:+b.dataset.fsave,item:$('#feItem').value.trim(),
+      kcal:+$('#feKcal').value||0,protein:+$('#feProt').value||0,carbs:+$('#feCarb').value||0,
+      fat:+$('#feFat').value||0,fiber:+$('#feFib').value||0,
+      save_as_food:$('#feSave').checked, in_stock:1});
+    $('#fEdit').classList.add('hide');toast('Updated.');return refresh();
+  }
+  if(b.dataset.fdel){await post('food/delete',{id:+b.dataset.fdel});
+    $('#fEdit').classList.add('hide');toast('Deleted.');return refresh();}
+  if(b.dataset.wdel){await post('workout/delete',{id:+b.dataset.wdel});toast('Deleted.');return refresh();}
+
+  if(b.id==='invManage'){INVMANAGE=!INVMANAGE;b.textContent=INVMANAGE?'Done editing':'Edit the list';return loadInv();}
+  if(b.id==='invAdd'){
+    $('#invForm').classList.remove('hide');
+    $('#invForm').innerHTML=`<div class="card">
+      <input id="ivName" placeholder="What is it?" style="width:100%">
+      <div class="row" style="margin-top:8px">
+        <div><label class="tiny">Serving</label><input id="ivServ" placeholder="1 bottle" style="width:100%;margin-top:4px"></div>
+        <div><label class="tiny">Calories</label><input id="ivKcal" type="number" inputmode="decimal" style="width:100%;margin-top:4px"></div>
+        <div><label class="tiny">Protein g</label><input id="ivProt" type="number" inputmode="decimal" style="width:100%;margin-top:4px"></div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div><label class="tiny">Fibre g</label><input id="ivFib" type="number" inputmode="decimal" style="width:100%;margin-top:4px"></div>
+        <div><label class="tiny">Kind</label><select id="ivKind" style="width:100%;margin-top:4px">
+          <option value="protein">Protein</option><option value="veg">Vegetable</option><option value="carb">Carb</option>
+          <option value="meal">Whole meal</option><option value="treat">Treat</option><option value="other">Other</option>
+        </select></div>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn primary" id="ivSave">Add to the kitchen</button>
+        <button class="btn ghost" id="ivCancel" style="flex:0 0 78px">Cancel</button>
+      </div></div>`;
+    $('#invForm').scrollIntoView({behavior:'smooth',block:'center'});return;
+  }
+  if(b.id==='ivCancel'){$('#invForm').classList.add('hide');return;}
+  if(b.id==='ivSave'){
+    const n=$('#ivName').value.trim(); if(!n)return toast('Name it first.');
+    await post('inventory',{name:n,serving:$('#ivServ').value.trim()||'1 serving',
+      kcal:+$('#ivKcal').value||0,protein:+$('#ivProt').value||0,fiber:+$('#ivFib').value||0,kind:$('#ivKind').value});
+    $('#invForm').classList.add('hide');toast('Added.');return loadInv();
+  }
+  if(b.dataset.invdel){
+    if(!confirm('Remove this from your food list entirely?'))return;
+    await post('inventory',{delete:+b.dataset.invdel});toast('Removed.');return loadInv();}
+
   if(b.dataset.inv){
     const on=b.dataset.s==='1';
     await post('inventory',{id:+b.dataset.inv,in_stock:!on});
