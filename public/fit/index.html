@@ -1,0 +1,1051 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="robots" content="noindex,nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Board">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#08090A">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">
+<title>Board</title>
+<style>
+:root{
+  --bg:#07070A; --ink:#EDEBE8; --dim:#8A8F98; --faint:#5A606A;
+  --glass:linear-gradient(158deg,rgba(255,255,255,.055),rgba(255,255,255,.018));
+  --rule:rgba(255,255,255,.085); --rule2:rgba(255,255,255,.14);
+  --over:#FF6B5B; --good:#5BE49B; --water:#4FA8E8; --sync:#5BC8F5;
+  --r-card:18px; --r-ctl:12px; --r-sm:9px;
+  --pad:clamp(15px,4.5vw,24px); --nav:66px;
+  --acc:#FFB627; --acc2:#FF6B35;
+  --glowA:rgba(255,182,39,.26); --glowB:rgba(255,107,53,.18); --wash:rgba(255,182,39,.13);
+  --display:'Barlow Condensed',"Oswald","Helvetica Neue Condensed",Impact,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+body[data-sec="food"]{--acc:#34E0A1;--acc2:#0EA5E9;--glowA:rgba(52,224,161,.24);--glowB:rgba(14,165,233,.18);--wash:rgba(52,224,161,.12)}
+body[data-sec="train"]{--acc:#B368F7;--acc2:#F0499E;--glowA:rgba(179,104,247,.30);--glowB:rgba(240,73,158,.20);--wash:rgba(179,104,247,.14)}
+body[data-sec="photos"]{--acc:#4FC3F7;--acc2:#7C6BF5;--glowA:rgba(79,195,247,.26);--glowB:rgba(124,107,245,.20);--wash:rgba(79,195,247,.12)}
+body[data-sec="days"]{--acc:#FF8A76;--acc2:#C084FC;--glowA:rgba(255,138,118,.24);--glowB:rgba(192,132,252,.20);--wash:rgba(255,138,118,.12)}
+
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{background:var(--bg)}
+body{
+  margin:0 auto;background:var(--bg);color:var(--ink);
+  font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  padding:0 var(--pad) calc(var(--nav) + 30px + env(safe-area-inset-bottom));
+  max-width:600px;overscroll-behavior-y:none;-webkit-font-smoothing:antialiased;
+}
+#glow{position:fixed;inset:0;z-index:-1;pointer-events:none;transition:opacity .5s;
+  background:
+    radial-gradient(125% 52% at 50% -8%, var(--glowA), transparent 60%),
+    radial-gradient(90% 44% at 88% 6%, var(--glowB), transparent 58%),
+    radial-gradient(80% 40% at 6% 34%, var(--glowB), transparent 62%);
+  filter:blur(6px);opacity:.85}
+button,input,textarea,select{font:inherit;color:inherit;border:0;background:none}
+button{cursor:pointer}
+input,textarea,select{background:rgba(255,255,255,.05);border:1px solid var(--rule);border-radius:var(--r-ctl);padding:13px 14px;
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+input::placeholder,textarea::placeholder{color:var(--faint)}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.hide{display:none!important}
+
+header{display:flex;align-items:center;gap:10px;padding:max(16px,env(safe-area-inset-top)) 0 16px;position:sticky;top:0;z-index:5;
+  background:linear-gradient(180deg,var(--bg) 62%,transparent)}
+header h1{font-family:var(--display);font-size:30px;font-weight:600;margin:0;letter-spacing:.005em;line-height:1;text-transform:uppercase}
+header .date{margin-left:auto;font:11px/1 var(--mono);color:var(--dim);text-transform:uppercase;letter-spacing:.14em}
+
+h2{font:11px/1 var(--mono);text-transform:uppercase;letter-spacing:.16em;font-weight:400;
+  margin:30px 0 12px;color:var(--faint)}
+.card{background:var(--glass);border:1px solid var(--rule);border-radius:var(--r-card);padding:18px;
+  -webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.07), 0 20px 44px -28px #000}
+.card.acc{background:linear-gradient(152deg,var(--wash),rgba(255,255,255,.02))}
+.row{display:flex;gap:9px}
+.row>*{flex:1;min-width:0}
+.btn{padding:14px 12px;border-radius:var(--r-ctl);background:rgba(255,255,255,.07);border:1px solid var(--rule);
+  font-weight:600;font-size:14px;text-align:center;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);transition:.15s}
+.btn.primary{background:linear-gradient(120deg,var(--acc),var(--acc2));color:#0A0A0C;border-color:transparent;
+  box-shadow:0 8px 26px -10px var(--glowA)}
+.btn.ghost{background:none;color:var(--dim);font-weight:500}
+.btn:active{transform:scale(.985)}
+.btn[disabled]{opacity:.45}
+.line{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:11px 0;border-top:1px solid var(--rule)}
+.card .line:first-child{border-top:0;padding-top:0}
+.line span{color:var(--dim);font-size:13px}
+.line b{font-family:var(--display);font-weight:600;font-size:21px;letter-spacing:.01em;font-variant-numeric:tabular-nums;text-align:right}
+.tiny{font-size:12.5px;color:var(--dim);line-height:1.6}
+.big{font-family:var(--display);font-size:clamp(62px,17vw,86px);font-weight:700;line-height:.8;letter-spacing:.005em;
+  font-variant-numeric:tabular-nums;background:linear-gradient(150deg,var(--acc),var(--acc2));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.big.over{background:linear-gradient(150deg,var(--over),#FF9F7A);-webkit-background-clip:text;background-clip:text}
+.big.plain{background:none;color:var(--ink);-webkit-text-fill-color:currentColor}
+.bar{height:6px;background:rgba(255,255,255,.07);border-radius:99px;overflow:hidden;margin:16px 0 13px}
+.bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--acc),var(--acc2));width:0;
+  transition:width .5s cubic-bezier(.2,.7,.2,1);box-shadow:0 0 14px -2px var(--glowA)}
+.bar.over i{background:linear-gradient(90deg,var(--over),#FF9F7A)}
+.bar.w i{background:linear-gradient(90deg,var(--water),#7CC8F5)}
+.item{display:flex;gap:10px;align-items:baseline;padding:12px 0;border-top:1px solid var(--rule);font-size:15px}
+.item .m{margin-left:auto;color:var(--dim);font:11px/1.3 var(--mono);white-space:nowrap;letter-spacing:.05em}
+.empty{color:var(--faint);font-size:13px;padding:16px 0}
+.pill{display:inline-block;padding:7px 13px;border-radius:99px;font-size:12.5px;background:rgba(255,255,255,.06);
+  border:1px solid var(--rule);color:var(--dim);margin:0 6px 6px 0;transition:.15s}
+.pill.on{background:linear-gradient(120deg,var(--acc),var(--acc2));color:#0A0A0C;border-color:transparent;
+  box-shadow:0 6px 20px -8px var(--glowA)}
+.pill.g{color:var(--ink)}
+
+.alert{display:flex;gap:11px;align-items:center;padding:14px 16px;border-radius:var(--r-card);
+  background:linear-gradient(140deg,var(--wash),rgba(255,255,255,.025));border:1px solid var(--rule);
+  margin-bottom:9px;font-size:14px;width:100%;text-align:left}
+.alert.nudge{background:var(--glass)}
+.alert em{margin-left:auto;font-style:normal;color:var(--dim);font-size:19px;line-height:1}
+
+.compose{position:relative}
+.compose textarea{width:100%;min-height:82px;resize:none;padding-right:54px;border-radius:var(--r-card)}
+#mic{position:absolute;right:9px;top:9px;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.09);
+  border:1px solid var(--rule);display:grid;place-items:center;font-size:16px}
+#mic.on{background:linear-gradient(120deg,var(--acc),var(--acc2));color:#000;border-color:transparent}
+
+.drops{display:flex;flex-wrap:wrap;gap:7px;margin:14px 0}
+.drop{width:24px;height:33px;border-radius:6px 6px 12px 12px;background:rgba(255,255,255,.06);border:1px solid var(--rule)}
+.drop.f{background:linear-gradient(180deg,#7CC8F5,var(--water));border-color:transparent;box-shadow:0 4px 14px -6px var(--water)}
+
+.seg{display:flex;background:rgba(255,255,255,.05);border:1px solid var(--rule);border-radius:14px;padding:4px;gap:4px;
+  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.seg button{flex:1;padding:10px 6px;border-radius:10px;font-size:13px;font-weight:600;color:var(--dim);transition:.18s}
+.seg button.on{background:rgba(255,255,255,.1);color:var(--ink)}
+.seg.sm{border-radius:12px;padding:3px;gap:3px}
+.seg.sm button{padding:8px 4px;font-size:11.5px;border-radius:9px;white-space:nowrap}
+.seg.sm button.on{background:linear-gradient(120deg,var(--acc),var(--acc2));color:#0A0A0C;
+  box-shadow:0 6px 18px -8px var(--glowA)}
+
+.coach{padding:2px 0 4px}
+.coach .hi{font-family:var(--display);font-size:38px;font-weight:600;letter-spacing:.005em;line-height:1;margin:0 0 14px;
+  text-transform:uppercase;background:linear-gradient(120deg,var(--ink),var(--acc));
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.coach p{margin:0 0 10px;font-size:15.5px;line-height:1.5}
+.coach .em{color:var(--acc)}
+.coach .chase{display:flex;gap:11px;align-items:center;width:100%;text-align:left;margin-top:14px;padding:14px 16px;
+  background:linear-gradient(140deg,var(--wash),rgba(255,255,255,.025));border:1px solid var(--rule);
+  border-radius:var(--r-card);font-size:14px}
+.coach .chase em{margin-left:auto;font-style:normal;color:var(--dim);font-size:19px}
+
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.dow{font:10px/1 var(--mono);color:var(--faint);text-align:center;padding-bottom:6px;letter-spacing:.1em}
+.cell{aspect-ratio:1;border-radius:13px;background:rgba(255,255,255,.045);border:1px solid transparent;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:2px;font-size:12px;
+  font-variant-numeric:tabular-nums;color:var(--dim);transition:.15s}
+.cell.has{color:var(--ink);background:rgba(255,255,255,.075)}
+.cell.today{border-color:var(--acc);box-shadow:0 0 18px -6px var(--glowA)}
+.cell.sel{background:linear-gradient(140deg,var(--acc),var(--acc2));color:#0A0A0C;border-color:transparent}
+.cell .dots{display:flex;gap:3px;height:4px}
+.cell .dots i{width:4px;height:4px;border-radius:50%;display:block}
+.cell.out{background:none;border:0}
+
+.ex{display:flex;align-items:center;gap:11px;width:100%;text-align:left;padding:14px 4px;
+  border-top:1px solid var(--rule);font-size:15px;transition:.15s}
+.ex .sub{margin-left:auto;color:var(--dim);font:10.5px/1.3 var(--mono);text-align:right;white-space:nowrap;letter-spacing:.05em}
+.ex .chev{color:var(--faint);font-size:17px;margin-left:2px}
+.ex.act{color:var(--acc)}
+
+.ring{position:relative;width:min(240px,66vw);margin:10px auto 0;aspect-ratio:1;display:block}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg);display:block;overflow:visible}
+.ring circle{fill:none;stroke-linecap:round}
+.ring .trk{stroke:rgba(255,255,255,.08);stroke-width:10}
+.ring .arc{stroke:url(#ringGrad);stroke-width:10;transition:stroke-dashoffset .45s cubic-bezier(.2,.75,.2,1);
+  filter:drop-shadow(0 0 10px var(--glowA))}
+.ring .mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+.ring .mid b{font-family:var(--display);font-size:76px;font-weight:700;font-variant-numeric:tabular-nums;line-height:.82;
+  background:linear-gradient(150deg,var(--acc),var(--acc2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.ring .mid .of{font:11px/1 var(--mono);color:var(--dim);text-transform:uppercase;letter-spacing:.16em}
+.ring .mid .hint{font-size:12.5px;color:var(--acc);margin-top:4px}
+.ring.done .arc{stroke:url(#ringDone)}
+canvas.chart{width:100%;height:158px;display:block;border-radius:var(--r-sm)}
+
+.stage{position:relative;width:100%;aspect-ratio:3/4;background:#000;border-radius:22px;overflow:hidden;border:1px solid var(--rule);
+  box-shadow:0 24px 60px -34px #000}
+.stage video,.stage img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+#ghost{opacity:.32;filter:grayscale(1)}
+.guides{position:absolute;inset:0;pointer-events:none}
+.guides b{position:absolute;background:var(--acc);opacity:.55;display:block}
+.guides .gv{left:50%;top:0;bottom:0;width:1px}
+.guides .g1{left:6%;right:6%;top:13%;height:1px}
+.guides .g2{left:6%;right:6%;top:31%;height:1px}
+.guides .g3{left:6%;right:6%;bottom:5%;height:1px}
+.stamp{position:absolute;left:12px;bottom:12px;font:11px/1 var(--mono);color:#fff;letter-spacing:.1em;
+  background:rgba(0,0,0,.5);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  padding:8px 11px;border-radius:99px;font-variant-numeric:tabular-nums;border:1px solid rgba(255,255,255,.12)}
+
+input[type=range]{-webkit-appearance:none;appearance:none;background:none;padding:0;border:0;width:100%;height:36px}
+input[type=range]::-webkit-slider-runnable-track{height:6px;background:rgba(255,255,255,.08);border-radius:99px}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:26px;border-radius:50%;
+  background:linear-gradient(140deg,var(--acc),var(--acc2));margin-top:-10px;border:0;box-shadow:0 3px 14px -3px var(--glowA)}
+input[type=range]::-moz-range-track{height:6px;background:rgba(255,255,255,.08);border-radius:99px}
+input[type=range]::-moz-range-thumb{width:26px;height:26px;border:0;border-radius:50%;background:var(--acc)}
+
+nav{position:fixed;left:0;right:0;bottom:0;z-index:10;display:flex;
+  background:rgba(9,9,12,.72);-webkit-backdrop-filter:blur(22px) saturate(1.5);backdrop-filter:blur(22px) saturate(1.5);
+  border-top:1px solid var(--rule);padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;height:var(--nav);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+  color:var(--faint);font:10px/1 var(--mono);text-transform:uppercase;letter-spacing:.1em;position:relative;transition:.2s}
+nav button svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+nav button.on{color:var(--acc)}
+nav button.on::before{content:"";position:absolute;top:0;left:50%;transform:translateX(-50%);width:34px;height:2px;
+  border-radius:99px;background:linear-gradient(90deg,var(--acc),var(--acc2));box-shadow:0 0 16px 1px var(--glowA)}
+nav button.on svg{filter:drop-shadow(0 0 8px var(--glowA))}
+
+#toast{position:fixed;left:50%;bottom:calc(var(--nav) + 18px + env(safe-area-inset-bottom));transform:translate(-50%,14px);
+  background:linear-gradient(120deg,var(--acc),var(--acc2));color:#0A0A0C;padding:13px 20px;border-radius:99px;
+  font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:.22s;max-width:86vw;text-align:center;z-index:20;
+  box-shadow:0 12px 34px -12px var(--glowA)}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#gate{display:grid;place-items:center;min-height:76vh;text-align:center}
+pre{white-space:pre-wrap;font:12px/1.7 var(--mono);background:var(--glass);border:1px solid var(--rule);
+  border-radius:var(--r-card);padding:16px;margin:0;overflow-x:auto}
+label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter-spacing:.12em;color:var(--faint)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div id="glow"></div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0%" style="stop-color:var(--acc)"/><stop offset="100%" style="stop-color:var(--acc2)"/></linearGradient>
+<linearGradient id="ringDone" x1="0" y1="0" x2="1" y2="1">
+<stop offset="0%" style="stop-color:#5BE49B"/><stop offset="100%" style="stop-color:#34E0A1"/></linearGradient>
+</defs></svg>
+
+<div id="gate">
+  <div style="width:100%;max-width:290px">
+    <div class="big" style="text-align:center">—</div>
+    <p class="tiny" style="margin:16px 0">Enter the passphrase to open the board.</p>
+    <input id="pass" type="password" autocomplete="current-password" placeholder="Passphrase" enterkeyhint="go" style="width:100%;text-align:center">
+    <button class="btn primary" id="unlock" style="width:100%;margin-top:9px">Open</button>
+    <p class="tiny" id="gateMsg" style="margin-top:12px"></p>
+  </div>
+</div>
+
+<div id="app" class="hide">
+<header><h1 id="vtitle">Today</h1><span class="date" id="vdate"></span></header>
+
+<section class="view" id="v-hub">
+  <div class="coach" id="coach"></div>
+  <div id="alerts" style="margin-top:14px"></div>
+  <div class="card acc" style="margin-top:16px">
+    <div style="display:flex;align-items:baseline;gap:10px">
+      <span class="big plain" id="hWeight">—</span>
+      <span class="tiny">lb</span>
+      <span class="tiny" id="hTrend" style="margin-left:auto;text-align:right"></span>
+    </div>
+    <div class="line" style="margin-top:14px"><span>7-day average</span><b id="hAvg">—</b></div>
+    <div class="line"><span>Since the start</span><b id="hTotal">—</b></div>
+    <div class="line"><span>Waist</span><b id="hWaist">—</b></div>
+    <div class="line"><span>Steps</span><b id="hSteps" style="color:var(--sync)">—</b></div>
+  </div>
+
+  <h2>Log this morning</h2>
+  <div class="row">
+    <input id="lb" type="number" step="0.1" inputmode="decimal" placeholder="Weight lb">
+    <input id="waist" type="number" step="0.1" inputmode="decimal" placeholder="Waist in">
+    <button class="btn" id="saveW" style="flex:0 0 78px">Save</button>
+  </div>
+  <p class="tiny" style="margin-top:8px">After the bathroom, before food or drink. One day is noise — the 7-day average is the signal.</p>
+
+  <h2>Today at a glance</h2>
+  <div class="card">
+    <div class="line"><span>Calories</span><b id="hKcal">—</b></div>
+    <div class="line"><span>Protein</span><b id="hProt">—</b></div>
+    <div class="line"><span>Water</span><b id="hWater">—</b></div>
+    <div class="line"><span>Training</span><b id="hTrain">—</b></div>
+    <div class="line"><span>Photo</span><b id="hPhoto">—</b></div>
+  </div>
+
+  <h2>Weekly check-in</h2>
+  <button class="btn ghost" id="run" style="width:100%">Run the check-in</button>
+  <pre id="report" class="hide" style="margin-top:9px"></pre>
+  <button class="btn hide" id="accept" style="width:100%;margin-top:8px">Apply this change</button>
+</section>
+
+<section class="view hide" id="v-food">
+  <div class="card acc">
+    <div style="display:flex;align-items:baseline;gap:9px">
+      <span class="big" id="fLeft">—</span><span class="tiny">kcal left</span>
+      <span class="tiny" id="fSub" style="margin-left:auto;text-align:right"></span>
+    </div>
+    <div class="bar" id="fBar"><i></i></div>
+    <div class="line"><span>Protein</span><b id="fProt">—</b></div>
+    <div class="line"><span>Fibre</span><b id="fFib">—</b></div>
+  </div>
+
+  <h2>Water</h2>
+  <div class="card">
+    <div style="display:flex;align-items:baseline;gap:9px">
+      <b id="wNum" style="font-size:28px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--water)">0</b>
+      <span class="tiny" id="wTarget">of 80 oz</span>
+      <button class="btn ghost" id="wUndo" style="margin-left:auto;flex:0 0 auto;padding:7px 12px;font-size:12px">Undo</button>
+    </div>
+    <div class="bar w" id="wBar"><i></i></div>
+    <div class="drops" id="drops"></div>
+    <div class="row">
+      <button class="btn" data-w="8">+8 oz</button>
+      <button class="btn" data-w="16">+16 oz</button>
+      <button class="btn" data-w="24">+24 oz</button>
+    </div>
+  </div>
+
+  <h2>Log what you ate</h2>
+  <div class="compose">
+    <textarea id="sayF" placeholder="the short rib meal and about 15 fries" enterkeyhint="done"></textarea>
+    <button id="mic" aria-label="Dictate">🎙</button>
+  </div>
+  <div class="row" style="margin-top:8px">
+    <button class="btn primary" id="logFood">Log food</button>
+    <button class="btn ghost" id="undoFood" style="flex:0 0 96px">Undo last</button>
+  </div>
+  <button class="btn ghost" id="eat" style="width:100%;margin-top:8px">What should I eat?</button>
+  <div id="meal" style="margin-top:10px"></div>
+
+  <h2>Eaten today</h2>
+  <div id="fLog"></div>
+
+  <h2>In the kitchen</h2>
+  <div id="inv"></div>
+  <p class="tiny">Tap to mark what you actually have. Suggestions only use what's lit.</p>
+
+  <h2>Grocery list</h2>
+  <div class="row" style="margin-bottom:8px">
+    <input id="gAdd" placeholder="Add an item" enterkeyhint="done">
+    <button class="btn" id="gBtn" style="flex:0 0 62px">Add</button>
+  </div>
+  <div id="grocery"></div>
+</section>
+
+<section class="view hide" id="v-train">
+  <div class="seg" id="discSeg">
+    <button data-disc="resistance" class="on">Resistance</button>
+    <button data-disc="calisthenics">Calisthenics</button>
+    <button data-disc="running">Running</button>
+  </div>
+
+  <div id="muscles" style="margin-top:12px"></div>
+
+  <div id="exList" style="margin-top:6px"></div>
+
+  <div id="exDetail" class="hide" style="margin-top:16px"></div>
+
+  <h2>Rep counter</h2>
+  <div class="card">
+    <input id="rcName" placeholder="Exercise, e.g. Squats" style="width:100%">
+    <div class="row" style="margin-top:10px">
+      <div><label class="tiny">Sets</label><input id="rcSets" type="number" inputmode="numeric" value="3" style="width:100%;margin-top:5px"></div>
+      <div><label class="tiny">Reps each</label><input id="rcReps" type="number" inputmode="numeric" value="12" style="width:100%;margin-top:5px"></div>
+      <div><label class="tiny">Weight lb</label><input id="rcWt" type="number" inputmode="decimal" placeholder="—" style="width:100%;margin-top:5px"></div>
+    </div>
+
+    <button class="ring" id="ring" aria-label="Bank one completed set">
+      <svg viewBox="0 0 120 120"><circle class="trk" cx="60" cy="60" r="52"></circle>
+      <circle class="arc" cx="60" cy="60" r="52" stroke-dasharray="326.7" stroke-dashoffset="326.7"></circle></svg>
+      <span class="mid"><b id="rcDone">0</b><span class="of" id="rcOf">of 3 sets</span><span class="hint" id="rcSetsOf">tap when a set is done</span></span>
+    </button>
+
+    <div class="row" style="margin-top:16px">
+      <button class="btn ghost" id="rcMinus">Undo a set</button>
+      <button class="btn ghost" id="rcReset" style="flex:0 0 76px">Reset</button>
+    </div>
+    <button class="btn primary" id="rcSave" style="width:100%;margin-top:9px">Save this exercise</button>
+    <p class="tiny" style="margin-top:10px">One tap per finished set — not per rep. Set 3 × 12 and tap three times over the course of the exercise. Save whenever you stop; two and a half sets logs as two and a half.</p>
+  </div>
+
+  <h2>Or just say it</h2>
+  <div class="compose">
+    <textarea id="sayT" placeholder="200 jumping jacks in 2 sets of 100, goblet squats 3x12 at 25 lb, walked 18 minutes" enterkeyhint="done"></textarea>
+  </div>
+  <div class="row" style="margin-top:8px">
+    <button class="btn primary" id="logTrain">Log training</button>
+    <button class="btn ghost" id="undoTrain" style="flex:0 0 96px">Undo last</button>
+  </div>
+
+  <h2>Today</h2>
+  <div id="tLog"></div>
+
+  <h2>This month</h2>
+  <div class="card">
+    <div class="line"><span>Sessions, last 14 days</span><b id="tSess">—</b></div>
+    <div class="line"><span>Steps, 7-day average</span><b id="tSteps" style="color:var(--sync)">—</b></div>
+    <div class="line"><span>Walking today</span><b id="tWalk">—</b></div>
+  </div>
+  <div id="tSplit" style="margin-top:10px"></div>
+
+  <h2>Watch the Achilles</h2>
+  <div class="card">
+    <p class="tiny" style="margin:0">Jumping jacks stay at 200 for the first several sessions. 200 → 250 → 300 only when recovery is clean. The moment the Achilles, ankle, knee or shin talks back, switch to step jacks. Don't push through it — that tendon has already told you once.</p>
+  </div>
+</section>
+
+<section class="view hide" id="v-photos">
+  <div class="stage">
+    <img id="ghost" alt="">
+    <video id="cam" playsinline muted class="hide"></video>
+    <img id="shot" alt="Progress photo">
+    <div class="guides"><b class="gv"></b><b class="g1"></b><b class="g2"></b><b class="g3"></b></div>
+    <div class="stamp" id="stamp"></div>
+  </div>
+
+  <div id="scrubWrap" style="margin-top:10px">
+    <input type="range" id="scrub" min="0" max="0" value="0">
+    <div class="row">
+      <button class="btn ghost" id="play" style="flex:0 0 72px">Play</button>
+      <button class="btn primary" id="shoot">Take today's photo</button>
+      <button class="btn ghost" id="more" style="flex:0 0 52px">•••</button>
+    </div>
+  </div>
+
+  <div id="camCtl" class="hide" style="margin-top:12px">
+    <p class="tiny" style="margin:0 0 10px">Head on the top line, shoulders on the second, feet on the bottom. The faded frame behind you is your last photo — match it.</p>
+    <div class="row">
+      <button class="btn ghost" id="camOff" style="flex:0 0 82px">Cancel</button>
+      <button class="btn primary" id="capture">Capture</button>
+      <button class="btn ghost" id="flip" style="flex:0 0 60px">Flip</button>
+    </div>
+  </div>
+  <input type="file" id="fileIn" accept="image/*" capture="user" class="hide">
+
+  <div id="tools" class="hide" style="margin-top:16px">
+    <h2 style="margin-top:0">Nudge this frame into line</h2>
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:10px"><span class="tiny" style="flex:0 0 46px">Across</span><input type="range" id="ox" min="-25" max="25" value="0"></div>
+      <div style="display:flex;align-items:center;gap:10px"><span class="tiny" style="flex:0 0 46px">Up</span><input type="range" id="oy" min="-25" max="25" value="0"></div>
+      <div style="display:flex;align-items:center;gap:10px"><span class="tiny" style="flex:0 0 46px">Size</span><input type="range" id="sc" min="80" max="130" value="100"></div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn ghost" id="alignSave">Save alignment</button>
+        <button class="btn ghost" id="delPhoto" style="flex:0 0 76px;color:var(--over)">Delete</button>
+      </div>
+    </div>
+    <h2>Export</h2>
+    <div class="row">
+      <select id="fps" style="flex:0 0 106px"><option value="6">6 fps</option><option value="10" selected>10 fps</option><option value="15">15 fps</option><option value="24">24 fps</option></select>
+      <button class="btn primary" id="export">Export video</button>
+    </div>
+    <button class="btn ghost" id="frames" style="width:100%;margin-top:8px">Download aligned frames</button>
+    <p class="tiny" style="margin-top:8px">Video records straight off the canvas — MP4 on iPhone, WebM on desktop Chrome. Frames give you numbered PNGs to take into C4D or After Effects instead.</p>
+  </div>
+
+  <p class="tiny" id="phCount" style="margin-top:16px"></p>
+  <canvas id="rc" width="1080" height="1440" class="hide"></canvas>
+</section>
+
+<section class="view hide" id="v-days">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+    <button class="btn ghost" id="prevM" style="flex:0 0 44px">‹</button>
+    <b id="monthName" style="flex:1;text-align:center;font-size:15px"></b>
+    <button class="btn ghost" id="nextM" style="flex:0 0 44px">›</button>
+  </div>
+  <div class="cal" id="dow"></div>
+  <div class="cal" id="cal" style="margin-top:4px"></div>
+  <p class="tiny" style="margin-top:10px">
+    <span style="color:var(--lit)">●</span> food ·
+    <span style="color:var(--good)">●</span> training ·
+    <span style="color:var(--ink)">●</span> weight ·
+    <span style="color:var(--sync)">●</span> photo
+  </p>
+  <div id="dayDetail" style="margin-top:14px"></div>
+
+  <h2>Reminders</h2>
+  <div id="reminders"></div>
+  <div class="row" style="margin-top:8px">
+    <input id="rText" placeholder="New reminder">
+    <input id="rAt" type="time" value="09:00" style="flex:0 0 106px">
+  </div>
+  <div class="row" style="margin-top:8px">
+    <select id="rRep"><option value="daily">Every day</option><option value="weekdays">Weekdays</option><option value="weekly">Weekly</option><option value="">Once</option></select>
+    <button class="btn" id="rAdd" style="flex:0 0 62px">Add</button>
+  </div>
+
+  <h2>To do</h2>
+  <div id="todos"></div>
+  <div class="row" style="margin-top:8px">
+    <input id="tText" placeholder="Add a task">
+    <button class="btn" id="tAdd" style="flex:0 0 62px">Add</button>
+  </div>
+
+  <h2>Send these to your calendar</h2>
+  <div class="card">
+    <p class="tiny" style="margin:0 0 10px">Subscribe once in Apple Calendar and every reminder above arrives with an alert, refreshing on its own. Settings → Calendar → Accounts → Add Subscribed Calendar.</p>
+    <input id="feed" readonly style="width:100%;font:12px ui-monospace,Menlo,monospace">
+    <div class="row" style="margin-top:8px">
+      <button class="btn ghost" id="copyFeed">Copy the link</button>
+      <button class="btn ghost" id="openFeed">Subscribe now</button>
+    </div>
+  </div>
+</section>
+
+<nav>
+  <button data-v="hub" class="on"><svg viewBox="0 0 24 24"><path d="M3 12l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Hub</button>
+  <button data-v="food"><svg viewBox="0 0 24 24"><path d="M6 3v8a3 3 0 006 0V3"/><path d="M9 11v10"/><path d="M18 3c-1.5 2-2 4-2 7h4c0-3-.5-5-2-7z"/><path d="M18 10v11"/></svg>Food</button>
+  <button data-v="train"><svg viewBox="0 0 24 24"><path d="M4 9v6M20 9v6M7 6v12M17 6v12M7 12h10"/></svg>Train</button>
+  <button data-v="photos"><svg viewBox="0 0 24 24"><path d="M3 8h4l1.5-2h7L17 8h4v12H3z"/><circle cx="12" cy="13.5" r="3.5"/></svg>Photos</button>
+  <button data-v="days"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg>Days</button>
+</nav>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s??'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+const api=async(p,o={})=>{const r=await fetch('/api/'+p,{...o,headers:o.body?{'content-type':'application/json'}:{}});
+  if(r.status===401){show('gate');throw new Error('locked');}
+  return (r.headers.get('content-type')||'').includes('json')?r.json():r.text();};
+const post=(p,b)=>api(p,{method:'POST',body:JSON.stringify(b||{})});
+const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(t._x);t._x=setTimeout(()=>t.classList.remove('show'),2600);};
+const show=w=>{$('#gate').classList.toggle('hide',w!=='gate');$('#app').classList.toggle('hide',w==='gate');};
+const fmtD=s=>new Date(s+'T12:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+const iso=d=>d.toLocaleDateString('en-CA');
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+let S=null, VIEW='hub', PHOTOS=[], PI=0, CAL=new Date(), SEL=null, CALDATA={}, FACING='user', stream=null;
+let PLAYING=false, DISC='resistance', MUSCLE=null, EXID=null, EXRANGE='month';
+let RC={done:0};
+let CHARTMODE='bar', LASTSERIES=null;
+const MUSCLES={
+  resistance:[['legs','Legs'],['glutes','Glutes'],['chest','Chest'],['back','Back'],['shoulders','Shoulders'],['arms','Arms'],['core','Core']],
+  calisthenics:[['fullbody','Full body'],['core','Core'],['chest','Chest'],['back','Back'],['arms','Arms'],['legs','Legs']],
+  running:[]
+};
+const TITLES={hub:'Today',food:'Food and water',train:'Training',photos:'Progress',days:'History'};
+
+function roll(el,to){const from=+el.dataset.v||0;el.dataset.v=to;
+  if(matchMedia('(prefers-reduced-motion:reduce)').matches){el.textContent=to.toLocaleString();return;}
+  const t0=performance.now();const s=t=>{const k=Math.min(1,(t-t0)/400),e=1-Math.pow(1-k,3);
+    el.textContent=Math.round(from+(to-from)*e).toLocaleString();if(k<1)requestAnimationFrame(s);};requestAnimationFrame(s);}
+
+function go(v){
+  VIEW=v;
+  document.body.dataset.sec=v;
+  $$('.view').forEach(s=>s.classList.toggle('hide',s.id!=='v-'+v));
+  $$('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  $('#vtitle').textContent=TITLES[v];
+  window.scrollTo({top:0});
+  if(v!=='photos'){PLAYING=false;if(stream)camOff();}
+  if(v==='photos')loadPhotos();
+  if(v==='days'){drawCal();loadTodos();}
+  if(v==='food')loadInv();
+  if(v==='train')loadTrain();
+}
+
+async function refresh(){
+  const s=await api('status'); S=s;
+  const t=s.today, g=t.target, tr=s.trends;
+  $('#vdate').textContent=fmtD(t.date);
+
+  api('brief').then(b=>{
+    $('#coach').innerHTML=`<p class="hi">${esc(b.greeting)}</p>
+      <p>${esc(b.progress)}</p>
+      <p class="em">${esc(b.plan)}</p>
+      <p>${esc(b.food)}</p>
+      ${b.chase?`<button class="chase" data-go="${b.chase_go}"><span>${esc(b.chase)}</span><em>›</em></button>`:''}`;
+  }).catch(()=>{});
+
+  $('#alerts').innerHTML=t.alerts.length
+    ? t.alerts.map(a=>`<button class="alert ${a.level==='nudge'?'nudge':''}" data-go="${a.go}"><span>${esc(a.text)}</span><em>›</em></button>`).join('')
+    : `<p class="tiny" style="padding:10px 0">Everything's logged for today. Nothing to chase.</p>`;
+  $('#hWeight').textContent=tr.latest_weight??'—';
+  $('#hTrend').innerHTML=tr.rate_lb_per_week!=null
+    ? `${tr.rate_lb_per_week>0?'+':''}${tr.rate_lb_per_week} lb<br>per week` : 'not enough<br>weigh-ins yet';
+  $('#hAvg').textContent=tr.avg7?tr.avg7+' lb':'—';
+  $('#hTotal').textContent=tr.total_change_lb!=null?`${tr.total_change_lb>0?'+':''}${tr.total_change_lb} lb`:'—';
+  $('#hWaist').textContent=tr.waist_in?tr.waist_in+'"'+(tr.waist_change_in!=null?`  (${tr.waist_change_in})`:''):'not measured';
+  $('#hSteps').textContent=t.steps==null?'not synced':`${t.steps.toLocaleString()} / ${g.steps.toLocaleString()}`;
+  $('#hKcal').textContent=`${t.kcal} / ${g.kcal_high}`;
+  $('#hProt').textContent=`${t.protein} / ${g.protein} g`;
+  $('#hWater').textContent=`${t.water_oz} / ${t.water_target} oz`;
+  $('#hTrain').textContent=t.workouts.length?`${t.workouts.length} logged`:'nothing yet';
+  $('#hPhoto').textContent=t.has_photo?'taken':'not taken';
+
+  const left=t.kcal_remaining, fl=$('#fLeft');
+  fl.classList.toggle('over',left<0); roll(fl,Math.abs(left));
+  $('#fSub').innerHTML=`${t.kcal} eaten<br>of ${g.kcal_low}–${g.kcal_high}`+(left<0?'<br>over — watch the week':'');
+  $('#fBar').classList.toggle('over',left<0);
+  $('#fBar').firstElementChild.style.width=Math.min(100,t.kcal/g.kcal_high*100)+'%';
+  $('#fProt').textContent=`${t.protein} / ${g.protein} g`;
+  $('#fFib').textContent=`${t.fiber} g`;
+  $('#wNum').textContent=t.water_oz;
+  $('#wTarget').textContent=`of ${t.water_target} oz`;
+  $('#wBar').firstElementChild.style.width=Math.min(100,t.water_oz/t.water_target*100)+'%';
+  const cups=Math.round(t.water_target/8), full=Math.round(t.water_oz/8);
+  $('#drops').innerHTML=Array.from({length:cups},(_,i)=>`<div class="drop ${i<full?'f':''}"></div>`).join('');
+  $('#fLog').innerHTML=t.food_items.length
+    ? t.food_items.map(i=>`<div class="item"><span>${esc(i.item)}</span><span class="m">${Math.round(i.kcal)} kcal · ${Math.round(i.protein)}g</span></div>`).join('')
+    : '<p class="empty">Nothing logged yet today.</p>';
+
+  $('#tSess').textContent=tr.strength_sessions_14;
+  $('#tSteps').textContent=tr.steps_7day_avg?tr.steps_7day_avg.toLocaleString():'—';
+  $('#tWalk').textContent=t.walk_min?t.walk_min+' min':'—';
+  $('#tLog').innerHTML=t.workouts.length
+    ? t.workouts.map(w=>`<div class="item"><span>${esc(w.exercise)}</span><span class="m">${[w.sets&&`${w.sets}×${w.reps}`,w.minutes&&`${w.minutes} min`,w.resistance].filter(Boolean).join(' · ')||'logged'}</span></div>`).join('')
+    : '<p class="empty">Nothing logged yet today.</p>';
+}
+
+async function loadInv(){
+  const [inv,gr]=await Promise.all([api('inventory'),api('todos')]);
+  $('#inv').innerHTML=inv.map(f=>`<button class="pill ${f.in_stock?'on':''}" data-inv="${f.id}" data-s="${f.in_stock}">${esc(f.name.split(' + ')[0].slice(0,32))}</button>`).join('');
+  $('#grocery').innerHTML=(gr.list.length?gr.list.map(g=>
+    `<div class="item"><button data-todo="${g.id}" style="text-align:left;text-decoration:${g.done?'line-through':'none'};opacity:${g.done?.5:1}">${esc(g.text)}</button><button class="m" data-del="${g.id}">remove</button></div>`).join('')
+    :'<p class="empty">List is empty.</p>')
+    +(gr.suggested.length?`<p class="tiny" style="margin-top:12px">Out of stock — tap to add:</p><div style="margin-top:6px">`+
+      gr.suggested.slice(0,14).map(x=>`<button class="pill g" data-gadd="${esc(x.name)}">${esc(x.name.slice(0,26))}</button>`).join('')+'</div>':'');
+}
+
+async function loadTodos(){
+  const t=await api('todos');
+  $('#reminders').innerHTML=t.reminders.length?t.reminders.map(r=>
+    `<div class="item"><span>${esc(r.text)}</span><span class="m">${r.at||''} ${r.repeat||'once'}</span><button class="m" data-del="${r.id}">×</button></div>`).join('')
+    :'<p class="empty">No reminders set.</p>';
+  $('#todos').innerHTML=t.todos.length?t.todos.map(x=>
+    `<div class="item"><button data-todo="${x.id}" style="text-align:left;text-decoration:${x.done?'line-through':'none'};opacity:${x.done?.5:1}">${esc(x.text)}</button><button class="m" data-del="${x.id}">×</button></div>`).join('')
+    :'<p class="empty">Nothing on the list.</p>';
+}
+
+async function drawCal(){
+  const y=CAL.getFullYear(), m=CAL.getMonth();
+  const first=new Date(y,m,1), last=new Date(y,m+1,0);
+  $('#monthName').textContent=CAL.toLocaleDateString('en-US',{month:'long',year:'numeric'});
+  $('#dow').innerHTML=['S','M','T','W','T','F','S'].map(d=>`<div class="dow">${d}</div>`).join('');
+  const rows=await api(`days?from=${iso(first)}&to=${iso(last)}`);
+  CALDATA={}; rows.forEach(r=>CALDATA[r.d]=r);
+  const cells=[], t=iso(new Date());
+  for(let i=0;i<first.getDay();i++)cells.push('<div class="cell out"></div>');
+  for(let n=1;n<=last.getDate();n++){
+    const ds=iso(new Date(y,m,n)), r=CALDATA[ds]||{};
+    const dots=[r.kcal&&'var(--lit)',r.workouts&&'var(--good)',r.lb&&'var(--ink)',r.photo&&'var(--sync)']
+      .filter(Boolean).map(c=>`<i style="background:${c}"></i>`).join('');
+    cells.push(`<button class="cell ${Object.keys(r).length>1?'has':''} ${ds===t?'today':''} ${ds===SEL?'sel':''}" data-day="${ds}">${n}<div class="dots">${dots}</div></button>`);
+  }
+  $('#cal').innerHTML=cells.join('');
+  if(SEL)showDay(SEL);
+}
+
+function showDay(ds){
+  SEL=ds; $$('.cell').forEach(c=>c.classList.toggle('sel',c.dataset.day===ds));
+  const r=CALDATA[ds]||{};
+  $('#dayDetail').innerHTML=`<div class="card">
+    <div style="display:flex;align-items:baseline"><b style="font-size:16px">${fmtD(ds)}</b>
+      ${r.photo?`<span class="tiny" style="margin-left:auto;color:var(--sync)">photo on file</span>`:''}</div>
+    <div class="line" style="margin-top:12px;border-top:1px solid var(--rule)"><span>Weight</span><b>${r.lb?r.lb+' lb':'—'}</b></div>
+    <div class="line"><span>Waist</span><b>${r.waist?r.waist+'"':'—'}</b></div>
+    <div class="line"><span>Calories</span><b>${r.kcal??'—'}</b></div>
+    <div class="line"><span>Protein</span><b>${r.protein!=null?r.protein+' g':'—'}</b></div>
+    <div class="line"><span>Fibre</span><b>${r.fiber!=null?r.fiber+' g':'—'}</b></div>
+    <div class="line"><span>Water</span><b>${r.water_oz!=null?r.water_oz+' oz':'—'}</b></div>
+    <div class="line"><span>Steps</span><b style="color:var(--sync)">${r.steps?r.steps.toLocaleString():'—'}</b></div>
+    <div class="line"><span>Training</span><b style="font-size:14px;font-weight:500">${r.exercises?esc(r.exercises.slice(0,60)):'—'}</b></div>
+    ${r.photo?`<img src="/api/img/${ds}" alt="" style="width:100%;border-radius:5px;margin-top:12px;display:block">`:''}
+  </div>`;
+}
+
+async function loadPhotos(){
+  PHOTOS=await api('photos');
+  const sc=$('#scrub');
+  sc.max=Math.max(0,PHOTOS.length-1);
+  PI=Math.max(0,PHOTOS.length-1); sc.value=PI;
+  $('#phCount').textContent=PHOTOS.length
+    ? `${PHOTOS.length} frame${PHOTOS.length>1?'s':''}, ${fmtD(PHOTOS[0].d)} to ${fmtD(PHOTOS[PHOTOS.length-1].d)}. Drag the slider to scrub.`
+    : 'No photos yet. Take the first one and the timeline starts.';
+  $('#tools').classList.toggle('hide',PHOTOS.length<1);
+  paint();
+}
+
+function paint(){
+  const p=PHOTOS[PI], shot=$('#shot');
+  if(!p){shot.removeAttribute('src');$('#stamp').textContent='no photo yet';return;}
+  shot.src='/api/img/'+p.d;
+  shot.style.transform=`translate(${p.ox||0}%,${p.oy||0}%) scale(${p.scale||1})`;
+  $('#stamp').textContent=p.d;
+  $('#ox').value=Math.round(p.ox||0); $('#oy').value=Math.round(p.oy||0); $('#sc').value=Math.round((p.scale||1)*100);
+}
+
+async function camOn(){
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:FACING,width:{ideal:1440},height:{ideal:1920}},audio:false});
+    const v=$('#cam'); v.srcObject=stream; await v.play();
+    v.classList.remove('hide'); $('#shot').classList.add('hide');
+    if(PHOTOS.length)$('#ghost').src='/api/img/'+PHOTOS[PHOTOS.length-1].d;
+    $('#camCtl').classList.remove('hide'); $('#scrubWrap').classList.add('hide'); $('#tools').classList.add('hide');
+    $('#stamp').textContent='line up with the guides';
+  }catch(e){ toast('Camera unavailable — opening the picker.'); $('#fileIn').click(); }
+}
+function camOff(){
+  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
+  $('#cam').classList.add('hide'); $('#shot').classList.remove('hide'); $('#ghost').removeAttribute('src');
+  $('#camCtl').classList.add('hide'); $('#scrubWrap').classList.remove('hide');
+  $('#tools').classList.toggle('hide',PHOTOS.length<1); paint();
+}
+
+function frameToJpeg(src,sw,sh,mirror){
+  const W=1080,H=1440,c=document.createElement('canvas');c.width=W;c.height=H;
+  const x=c.getContext('2d');
+  const s=Math.max(W/sw,H/sh), dw=sw*s, dh=sh*s;
+  if(mirror){x.translate(W,0);x.scale(-1,1);}
+  x.drawImage(src,(W-dw)/2,(H-dh)/2,dw,dh);
+  return c.toDataURL('image/jpeg',.86);
+}
+
+async function capture(){
+  const v=$('#cam');
+  if(!v.videoWidth)return toast('Camera is still warming up.');
+  const data=frameToJpeg(v,v.videoWidth,v.videoHeight,FACING==='user');
+  toast('Saving…');
+  await post('photo',{image:data,w:1080,h:1440});
+  camOff(); await loadPhotos(); refresh(); toast('Photo saved.');
+}
+
+const loadImg=d=>new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src='/api/img/'+d;});
+
+function drawFrame(x,img,p,label){
+  const W=1080,H=1440;
+  x.fillStyle='#000';x.fillRect(0,0,W,H);
+  x.save();
+  x.translate(W/2+(p.ox||0)/100*W, H/2+(p.oy||0)/100*H);
+  x.scale(p.scale||1,p.scale||1);
+  const s=Math.max(W/img.width,H/img.height);
+  x.drawImage(img,-img.width*s/2,-img.height*s/2,img.width*s,img.height*s);
+  x.restore();
+  x.fillStyle='rgba(0,0,0,.55)';x.fillRect(28,H-96,250,66);
+  x.fillStyle='#fff';x.font='600 40px ui-monospace,Menlo,monospace';x.fillText(label,46,H-51);
+}
+
+async function exportVideo(){
+  if(PHOTOS.length<2)return toast('Need at least two photos.');
+  const btn=$('#export');btn.disabled=true;
+  try{
+    const c=$('#rc'),x=c.getContext('2d');
+    const fps=+$('#fps').value, hold=1000/fps;
+    const type=['video/mp4;codecs=avc1.42E01E','video/mp4','video/webm;codecs=vp9','video/webm']
+      .find(t=>window.MediaRecorder&&MediaRecorder.isTypeSupported(t));
+    if(!type){btn.disabled=false;btn.textContent='Export video';return toast('This browser can\u2019t record. Use Download frames.');}
+    const rec=new MediaRecorder(c.captureStream(fps),{mimeType:type,videoBitsPerSecond:6e6});
+    const chunks=[];rec.ondataavailable=e=>e.data.size&&chunks.push(e.data);
+    const done=new Promise(r=>rec.onstop=r);
+    rec.start();
+    for(let i=0;i<PHOTOS.length;i++){
+      const p=PHOTOS[i];
+      drawFrame(x,await loadImg(p.d),p,p.d);
+      btn.textContent=`Rendering ${i+1}/${PHOTOS.length}`;
+      await sleep(hold);
+    }
+    await sleep(400); rec.stop(); await done;
+    const ext=type.includes('mp4')?'mp4':'webm';
+    dl(new Blob(chunks,{type}),`progress-${PHOTOS[0].d}-to-${PHOTOS[PHOTOS.length-1].d}.${ext}`);
+    toast('Exported .'+ext);
+  }catch(e){toast('Export failed: '+e.message);}
+  btn.disabled=false;btn.textContent='Export video';
+}
+
+async function exportFrames(){
+  const btn=$('#frames');btn.disabled=true;
+  const c=$('#rc'),x=c.getContext('2d');
+  for(let i=0;i<PHOTOS.length;i++){
+    const p=PHOTOS[i];
+    drawFrame(x,await loadImg(p.d),p,p.d);
+    btn.textContent=`Saving ${i+1}/${PHOTOS.length}`;
+    await new Promise(r=>c.toBlob(b=>{dl(b,`frame_${String(i+1).padStart(4,'0')}_${p.d}.png`);setTimeout(r,240);},'image/png'));
+  }
+  btn.disabled=false;btn.textContent='Download aligned frames';toast('Frames saved.');
+}
+
+function dl(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000);}
+
+/* ───────── training ───────── */
+async function loadTrain(){
+  $('#muscles').innerHTML = MUSCLES[DISC].length
+    ? '<div class="seg sm">'+MUSCLES[DISC].map(([k,l])=>
+        `<button data-muscle="${k}" class="${MUSCLE===k?'on':''}">${l}</button>`).join('')+'</div>'
+    : '';
+  const q = 'exercises?discipline='+DISC + (MUSCLE&&MUSCLES[DISC].length?'&muscle='+MUSCLE:'');
+  const list = await api(q);
+  $('#exList').innerHTML = list.length ? list.map(e=>`
+    <button class="ex ${e.last===S?.today.date?'act':''}" data-ex="${e.id}">
+      <span>${esc(e.name)}</span>
+      <span class="sub">${e.days?`${e.days} day${e.days>1?'s':''}${e.last?' · '+shortD(e.last):''}`:'not logged yet'}</span>
+      <span class="chev">›</span></button>`).join('')
+    : '<p class="empty">Nothing here yet. Log anything and it files itself into the right group.</p>';
+
+  const ov = await api('training?range=month');
+  $('#tSplit').innerHTML = ov.by_discipline.length ? '<div class="card">'+ov.by_discipline.map(r=>
+    `<div class="line"><span>${esc(cap(r.discipline))}</span><b style="font-size:15px">${r.days} day${r.days>1?'s':''}${r.reps?` · ${Math.round(r.reps)} reps`:''}${r.distance?` · ${Math.round(r.distance*10)/10} mi`:''}</b></div>`).join('')+'</div>' : '';
+}
+const cap=x=>x?x[0].toUpperCase()+x.slice(1):'';
+const shortD=d=>new Date(d+'T12:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
+
+async function openExercise(id){
+  EXID=id;
+  const st=await api(`exercise?id=${id}&range=${EXRANGE}`);
+  const e=st.exercise, u=e.unit;
+  const val=u==='distance'?`${st.total_distance} mi`:u==='time'?`${st.total_minutes} min`:`${st.total_reps} reps`;
+  $('#exDetail').classList.remove('hide');
+  $('#exDetail').innerHTML=`
+    <div class="card">
+      <div style="display:flex;align-items:baseline;gap:10px">
+        <b style="font-size:18px">${esc(e.name)}</b>
+        <button class="tiny" id="exClose" style="margin-left:auto;color:var(--dim)">close</button>
+      </div>
+      ${e.cue?`<p class="tiny" style="margin:8px 0 0">${esc(e.cue)}</p>`:''}
+      <div class="seg sm" style="margin:12px 0">
+        ${['day','week','month','ytd','all'].map(r=>`<button data-range="${r}" class="${r===EXRANGE?'on':''}">${r==='ytd'?'YTD':cap(r)}</button>`).join('')}
+      </div>
+      <div style="display:flex;gap:7px;justify-content:flex-end;margin-bottom:6px">
+        <button class="pill ${CHARTMODE==='bar'?'on':''}" data-cm="bar" style="margin:0">Bars</button>
+        <button class="pill ${CHARTMODE==='line'?'on':''}" data-cm="line" style="margin:0">Line</button>
+      </div>
+      <canvas class="chart" id="exChart"></canvas>
+      <div class="line" style="margin-top:10px"><span>Sessions</span><b>${st.sessions}</b></div>
+      <div class="line"><span>Total</span><b>${val}</b></div>
+      ${st.total_volume?`<div class="line"><span>Volume moved</span><b>${st.total_volume.toLocaleString()} lb</b></div>`:''}
+      ${st.best_weight?`<div class="line"><span>Best set</span><b>${st.best_reps} × ${st.best_weight} lb</b></div>`:st.best_reps?`<div class="line"><span>Best set</span><b>${st.best_reps} reps</b></div>`:''}
+      ${st.change_vs_prev!=null?`<div class="line"><span>Against the previous ${EXRANGE}</span><b style="color:${st.change_vs_prev>=0?'var(--good)':'var(--dim)'}">${st.change_vs_prev>=0?'+':''}${st.change_vs_prev}%</b></div>`:''}
+      <button class="btn primary" id="exStart" data-name="${esc(e.name)}" style="width:100%;margin-top:12px">Load into the rep counter</button>
+    </div>`;
+  LASTSERIES={series:st.series,unit:u};
+  drawChart($('#exChart'), st.series, u, CHARTMODE);
+  $('#exDetail').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+const cssVar=n=>getComputedStyle(document.body).getPropertyValue(n).trim();
+
+function drawChart(c, series, unit, mode='bar'){
+  const dpr=devicePixelRatio||1, W=c.clientWidth||300, H=158;
+  c.width=W*dpr; c.height=H*dpr;
+  const x=c.getContext('2d'); x.scale(dpr,dpr); x.clearRect(0,0,W,H);
+  const acc=cssVar('--acc')||'#FFB627', acc2=cssVar('--acc2')||'#FF6B35';
+  const dim='rgba(255,255,255,.34)';
+  if(!series.length){
+    x.fillStyle=dim;x.font='13px -apple-system,sans-serif';
+    x.fillText('Nothing logged in this window.',0,H/2);return;
+  }
+  const vals=series.map(s=>s.value||0), max=Math.max(...vals,1);
+  const n=series.length, top=20, bot=H-24, plot=bot-top;
+
+  x.strokeStyle='rgba(255,255,255,.07)';x.lineWidth=1;
+  [0,.5,1].forEach(f=>{const y=top+plot*f;x.beginPath();x.moveTo(0,y+.5);x.lineTo(W,y+.5);x.stroke();});
+
+  const g=x.createLinearGradient(0,top,W,bot); g.addColorStop(0,acc); g.addColorStop(1,acc2);
+
+  if(mode==='line'){
+    const px=i=>n===1?W/2:(i/(n-1))*(W-8)+4, py=v=>bot-(v/max)*plot;
+    const fill=x.createLinearGradient(0,top,0,bot);
+    fill.addColorStop(0,hexA(acc,.30)); fill.addColorStop(1,hexA(acc,0));
+    x.beginPath(); x.moveTo(px(0),bot);
+    series.forEach((s,i)=>x.lineTo(px(i),py(s.value||0)));
+    x.lineTo(px(n-1),bot); x.closePath(); x.fillStyle=fill; x.fill();
+    x.beginPath();
+    series.forEach((s,i)=>i?x.lineTo(px(i),py(s.value||0)):x.moveTo(px(i),py(s.value||0)));
+    x.strokeStyle=g; x.lineWidth=2.5; x.lineJoin='round'; x.lineCap='round';
+    x.shadowColor=hexA(acc,.55); x.shadowBlur=12; x.stroke(); x.shadowBlur=0;
+    x.beginPath(); x.arc(px(n-1),py(vals[n-1]),4.5,0,7); x.fillStyle=acc; x.fill();
+    x.beginPath(); x.arc(px(n-1),py(vals[n-1]),8,0,7); x.strokeStyle=hexA(acc,.35); x.lineWidth=1.5; x.stroke();
+  }else{
+    const gap=n>28?2:4, bw=Math.max(3,(W-gap*(n-1))/n), r=Math.min(bw/2,5);
+    series.forEach((s,i)=>{
+      const h=Math.max(3,((s.value||0)/max)*plot);
+      x.fillStyle=i===n-1?g:hexA(acc,.34);
+      rr(x, i*(bw+gap), bot-h, bw, h, r); x.fill();
+    });
+  }
+
+  x.fillStyle=dim; x.font='10px ui-monospace,Menlo,monospace';
+  x.fillText(shortD(series[0].d),0,H-6);
+  const lbl=shortD(series[n-1].d);
+  x.fillText(lbl, W-x.measureText(lbl).width, H-6);
+  x.fillStyle=hexA(acc,.85);
+  x.fillText(fmtN(max)+(unit==='distance'?' MI':unit==='time'?' MIN':''),0,11);
+}
+const fmtN=v=>v>=1000?(Math.round(v/100)/10)+'k':Math.round(v);
+function hexA(h,a){h=h.replace('#','');if(h.length===3)h=[...h].map(c=>c+c).join('');
+  return `rgba(${parseInt(h.slice(0,2),16)},${parseInt(h.slice(2,4),16)},${parseInt(h.slice(4,6),16)},${a})`;}
+function rr(x,px,py,w,h,r){
+  if(x.roundRect){x.beginPath();x.roundRect(px,py,w,h,[r,r,Math.min(r,2),Math.min(r,2)]);return;}
+  x.beginPath();x.moveTo(px,py+h);x.lineTo(px,py+r);x.quadraticCurveTo(px,py,px+r,py);
+  x.lineTo(px+w-r,py);x.quadraticCurveTo(px+w,py,px+w,py+r);x.lineTo(px+w,py+h);x.closePath();
+}
+
+/* ───────── rep counter ───────── */
+function rcTotals(){
+  const per=Math.max(1,+$('#rcReps').value||1), sets=Math.max(1,+$('#rcSets').value||1);
+  return {per, sets};
+}
+function rcPaint(){
+  const {per,sets}=rcTotals();
+  const done=Math.min(RC.done,sets);
+  const pct=Math.min(1,done/sets);
+  const C=2*Math.PI*52, arc=document.querySelector('.ring .arc');
+  arc.setAttribute('stroke-dasharray',C.toFixed(1));
+  arc.setAttribute('stroke-dashoffset',(C*(1-pct)).toFixed(1));
+  $('#ring').classList.toggle('done',pct>=1);
+  $('#rcDone').textContent=done;
+  $('#rcOf').textContent=`of ${sets} set${sets>1?'s':''}`;
+  $('#rcSetsOf').textContent = pct>=1
+    ? `all ${sets} done — ${done*per} reps. save it`
+    : done ? `${done*per} reps banked · next up set ${done+1}`
+           : `tap when a set is done`;
+}
+['rcReps','rcSets'].forEach(id=>$('#'+id).addEventListener('input',rcPaint));
+
+document.addEventListener('click',async e=>{
+  const b=e.target.closest('button');if(!b)return;
+
+  if(b.id==='unlock'){
+    const r=await fetch('/api/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({pass:$('#pass').value})});
+    if(!r.ok){$('#gateMsg').textContent='Wrong passphrase.';return;}
+    show('app');boot();return;
+  }
+  if(b.dataset.v)return go(b.dataset.v);
+  if(b.dataset.go)return go(b.dataset.go);
+  if(b.dataset.w){await post('water',{oz:+b.dataset.w});return refresh();}
+  if(b.id==='wUndo'){await post('water/undo');return refresh();}
+
+  if(b.id==='logFood'||b.id==='logTrain'){
+    const isF=b.id==='logFood', ta=isF?$('#sayF'):$('#sayT'), text=ta.value.trim();
+    if(!text)return toast(isF?'Say what you ate first.':'Say what you did first.');
+    b.disabled=true;toast('Reading that…');
+    try{const r=await post(isF?'food':'workout',{text});ta.value='';
+      toast(`Logged ${r.logged.length} ${isF?'item':'exercise'}${r.logged.length>1?'s':''}`);await refresh();}
+    catch(err){toast('That did not save.');}
+    b.disabled=false;return;
+  }
+  if(b.id==='undoFood'){await post('undo',{});toast('Removed.');return refresh();}
+  if(b.id==='undoTrain'){await post('undo',{type:'workout'});toast('Removed.');return refresh();}
+  if(b.dataset.quick){const ta=$('#sayT');ta.value=(ta.value?ta.value+', ':'')+b.dataset.quick;return;}
+
+  if(b.id==='eat'){
+    b.disabled=true;const s=await api('suggest');
+    $('#meal').innerHTML=s.suggestion?`<div class="card">
+      <div style="font-size:17px;line-height:1.35">${esc(s.suggestion.items.join(' + '))}</div>
+      <div class="line" style="margin-top:12px;border-top:1px solid var(--rule)"><span>${esc(s.suggestion.method)}</span><b>${s.suggestion.kcal} kcal · ${s.suggestion.protein}g</b></div>
+      ${s.suggestion.dessert?`<div class="line"><span>Room after</span><b style="font-size:13px;font-weight:500">${esc(s.suggestion.dessert)}</b></div>`:''}
+      </div><p class="tiny" style="margin-top:8px">Also fits: ${s.alternates.map(a=>esc(a.items.join(' + '))+` (${a.kcal})`).join(' · ')||'—'}</p>`
+      :`<p class="empty">${esc(s.note)}</p>`;
+    b.disabled=false;return;
+  }
+  if(b.dataset.inv){
+    const on=b.dataset.s==='1';
+    await post('inventory',{id:+b.dataset.inv,in_stock:!on});
+    b.dataset.s=on?'0':'1';b.classList.toggle('on',!on);return;
+  }
+  if(b.dataset.gadd){await post('todos',{kind:'grocery',text:b.dataset.gadd});return loadInv();}
+  if(b.id==='gBtn'){const v=$('#gAdd').value.trim();if(!v)return toast('Type an item first.');await post('todos',{kind:'grocery',text:v});$('#gAdd').value='';return loadInv();}
+  if(b.dataset.todo){await post('todos',{toggle:+b.dataset.todo});return VIEW==='days'?loadTodos():loadInv();}
+  if(b.dataset.del){await post('todos',{delete:+b.dataset.del});return VIEW==='days'?loadTodos():loadInv();}
+
+  if(b.id==='saveW'){
+    const lb=parseFloat($('#lb').value),wa=parseFloat($('#waist').value);
+    if(isNaN(lb)&&isNaN(wa))return toast('Enter a weight or a waist measurement.');
+    await post('weight',{lb:isNaN(lb)?null:lb,waist:isNaN(wa)?null:wa});
+    $('#lb').value='';$('#waist').value='';toast('Saved.');return refresh();
+  }
+  if(b.id==='run'){b.disabled=true;const c=await api('checkin');
+    $('#report').textContent=c.body;$('#report').classList.remove('hide');
+    $('#accept').classList.toggle('hide',c.decision.action==='hold'||c.decision.action==='activity');b.disabled=false;return;}
+  if(b.id==='accept'){const r=await post('accept');toast(r.ok?'Targets updated.':'Nothing to apply.');b.classList.add('hide');return refresh();}
+
+  if(b.dataset.disc){DISC=b.dataset.disc;MUSCLE=null;$('#exDetail').classList.add('hide');
+    document.querySelectorAll('#discSeg button').forEach(x=>x.classList.toggle('on',x===b));return loadTrain();}
+  if(b.dataset.muscle){MUSCLE=MUSCLE===b.dataset.muscle?null:b.dataset.muscle;$('#exDetail').classList.add('hide');return loadTrain();}
+  if(b.dataset.ex)return openExercise(+b.dataset.ex);
+  if(b.dataset.range){EXRANGE=b.dataset.range;return openExercise(EXID);}
+  if(b.dataset.cm){CHARTMODE=b.dataset.cm;
+    document.querySelectorAll('[data-cm]').forEach(x=>x.classList.toggle('on',x===b));
+    if(LASTSERIES)drawChart($('#exChart'),LASTSERIES.series,LASTSERIES.unit,CHARTMODE);return;}
+  if(b.id==='exClose'){$('#exDetail').classList.add('hide');return;}
+  if(b.dataset.name){$('#rcName').value=b.dataset.name;RC={done:0};rcPaint();
+    $('#rcName').scrollIntoView({behavior:'smooth',block:'center'});return toast('Loaded. Tap the ring as you go.');}
+
+  if(b.id==='ring'){const {sets}=rcTotals();RC.done=Math.min(sets,RC.done+1);rcPaint();
+    if(navigator.vibrate)navigator.vibrate(14);return;}
+  if(b.id==='rcMinus'){RC.done=Math.max(0,RC.done-1);return rcPaint();}
+  if(b.id==='rcReset'){RC.done=0;return rcPaint();}
+  if(b.id==='rcSave'){
+    const name=$('#rcName').value.trim();
+    if(!name)return toast('Name the exercise first.');
+    if(!RC.done)return toast('No sets banked yet.');
+    const {per}=rcTotals(), sets=RC.done, wt=+$('#rcWt').value||null;
+    b.disabled=true;
+    await post('set',{exercise:name,sets,reps:per,weight:wt,discipline:DISC,muscle:MUSCLE||undefined});
+    RC.done=0;rcPaint();b.disabled=false;
+    toast(`Logged ${sets} × ${per}${wt?` at ${wt} lb`:''}`);
+    refresh();loadTrain();return;
+  }
+
+  if(b.id==='shoot')return camOn();
+  if(b.id==='camOff')return camOff();
+  if(b.id==='flip'){FACING=FACING==='user'?'environment':'user';camOff();return camOn();}
+  if(b.id==='capture')return capture();
+  if(b.id==='more'){$('#tools').classList.toggle('hide');return;}
+  if(b.id==='play'){
+    if(PHOTOS.length<2)return toast('Need at least two photos.');
+    if(PLAYING){PLAYING=false;b.textContent='Play';return;}
+    PLAYING=true;b.textContent='Stop';
+    while(PLAYING){
+      for(let i=0;i<PHOTOS.length&&PLAYING;i++){PI=i;$('#scrub').value=i;paint();await sleep(110);}
+      if(PLAYING)await sleep(450);
+    }
+    b.textContent='Play';return;
+  }
+  if(b.id==='alignSave'){
+    const p=PHOTOS[PI];if(!p)return;
+    p.ox=+$('#ox').value;p.oy=+$('#oy').value;p.scale=+$('#sc').value/100;
+    await post('photo/align',{date:p.d,ox:p.ox,oy:p.oy,scale:p.scale});return toast('Alignment saved.');
+  }
+  if(b.id==='delPhoto'){
+    const p=PHOTOS[PI];if(!p)return;
+    await post('photo/delete',{date:p.d});await loadPhotos();refresh();return toast('Deleted.');
+  }
+  if(b.id==='export')return exportVideo();
+  if(b.id==='frames')return exportFrames();
+
+  if(b.id==='prevM'){CAL.setMonth(CAL.getMonth()-1);return drawCal();}
+  if(b.id==='nextM'){CAL.setMonth(CAL.getMonth()+1);return drawCal();}
+  if(b.dataset.day)return showDay(b.dataset.day);
+  if(b.id==='rAdd'){
+    const v=$('#rText').value.trim();if(!v)return toast('Name the reminder first.');
+    await post('todos',{kind:'reminder',text:v,at:$('#rAt').value,repeat:$('#rRep').value});
+    $('#rText').value='';loadTodos();return toast('Added. Your calendar picks it up on its next refresh.');
+  }
+  if(b.id==='tAdd'){const v=$('#tText').value.trim();if(!v)return toast('Type a task first.');await post('todos',{kind:'todo',text:v});$('#tText').value='';return loadTodos();}
+  if(b.id==='copyFeed'){navigator.clipboard.writeText($('#feed').value);return toast('Link copied.');}
+  if(b.id==='openFeed'){location.href=$('#feed').value.replace(/^https?:/,'webcal:');return;}
+});
+
+$('#scrub').addEventListener('input',e=>{PLAYING=false;$('#play').textContent='Play';PI=+e.target.value;paint();});
+['ox','oy','sc'].forEach(id=>$('#'+id).addEventListener('input',()=>{
+  if(!PHOTOS[PI])return;
+  $('#shot').style.transform=`translate(${$('#ox').value}%,${$('#oy').value}%) scale(${$('#sc').value/100})`;
+}));
+$('#pass').addEventListener('keydown',e=>{if(e.key==='Enter')$('#unlock').click();});
+$('#fileIn').addEventListener('change',async e=>{
+  const f=e.target.files[0];if(!f)return;
+  const img=await createImageBitmap(f);
+  await post('photo',{image:frameToJpeg(img,img.width,img.height,false),w:1080,h:1440});
+  camOff();await loadPhotos();refresh();toast('Photo saved.');
+});
+
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+if(SR){const rec=new SR();rec.continuous=false;rec.interimResults=true;rec.lang='en-US';let live=false;
+  $('#mic').addEventListener('click',()=>live?rec.stop():rec.start());
+  rec.onstart=()=>{live=true;$('#mic').classList.add('on');};
+  rec.onend=()=>{live=false;$('#mic').classList.remove('on');};
+  rec.onresult=e=>{$('#sayF').value=[...e.results].map(r=>r[0].transcript).join('');};
+}else $('#mic').classList.add('hide');
+
+async function boot(){
+  await refresh(); loadInv(); rcPaint();
+  $('#feed').value=location.origin+'/cal.ics?k=PASTE_YOUR_FIT_TOKEN';
+  setInterval(()=>{if(!$('#app').classList.contains('hide'))refresh().catch(()=>{});},180000);
+}
+document.body.dataset.sec='hub';
+api('status').then(()=>{show('app');boot();}).catch(()=>show('gate'));
+</script>
+</body>
+</html>
