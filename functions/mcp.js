@@ -94,14 +94,19 @@ const err = (id, code, message) => json({ jsonrpc: '2.0', id, error: { code, mes
 const out = (text) => ({ content: [{ type: 'text', text }] });
 
 export async function onRequest({ request, env }) {
-  if (request.method === 'GET')
-    return json({ name: 'fitness-hub', transport: 'streamable-http', hint: 'POST JSON-RPC here' });
-  if (request.method !== 'POST') return json({ error: 'method not allowed' }, 405);
-  if (!(await authed(request, env)))
-    return new Response(JSON.stringify({ error: 'unauthorized' }), {
-      status: 401,
-      headers: { 'content-type': 'application/json', 'www-authenticate': 'Bearer' }
+  // GET means the client is asking for a server-initiated SSE stream. This server
+  // doesn't offer one, and the spec says answer 405 rather than improvise. Returning
+  // 200 with a JSON body here makes clients wait for a stream that never arrives.
+  if (request.method !== 'POST')
+    return new Response(JSON.stringify({ error: 'method not allowed, POST JSON-RPC here' }), {
+      status: 405,
+      headers: { 'content-type': 'application/json', 'allow': 'POST' }
     });
+  // No www-authenticate header here on purpose. Sending one makes MCP clients
+  // think this server speaks OAuth and kick off a discovery flow that doesn't exist.
+  // This server takes a plain bearer token in an Authorization header, nothing else.
+  if (!(await authed(request, env)))
+    return json({ error: 'unauthorized' }, 401);
 
   const body = await request.json().catch(() => null);
   if (!body) return err(null, -32700, 'parse error');
