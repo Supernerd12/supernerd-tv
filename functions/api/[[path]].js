@@ -2,7 +2,8 @@ import {
   VERSION, dayStr, nowStr, json, txt, authed, newCookie,
   all, one, run, profile, currentTarget, trends, today, decide,
   suggestMeal, parseFood, parseWorkout, contextDoc, checkin,
-  dayRange, grocery, icsFeed, coachBrief, exerciseStats, trainingOverview, ensureExercise, matchExercise
+  dayRange, grocery, icsFeed, coachBrief, exerciseStats, trainingOverview, ensureExercise, matchExercise,
+  rangeStart
 } from '../_lib.js';
 
 export async function onRequest(ctx) {
@@ -103,14 +104,117 @@ export async function onRequest(ctx) {
       case 'GET exercises': {
         const disc = url.searchParams.get('discipline');
         const muscle = url.searchParams.get('muscle');
-        const where = ['archived=0'], bind = [];
-        if (disc) { where.push(`discipline=?${bind.length + 1}`); bind.push(disc); }
-        if (muscle) { where.push(`muscle=?${bind.length + 1}`); bind.push(muscle); }
+        const mode = url.searchParams.get('mode') || 'mine';   // mine | library
+        const where = ['e.archived=0'], bind = [];
+        if (disc) { where.push(`e.discipline=?${bind.length + 1}`); bind.push(disc); }
+        if (muscle) { where.push(`e.muscle=?${bind.length + 1}`); bind.push(muscle); }
+        if (mode === 'mine')
+          where.push('(e.active=1 OR EXISTS (SELECT 1 FROM workout_log w WHERE w.exercise_id=e.id))');
+        else
+          where.push('e.active=0');
         const list = await all(env,
           `SELECT e.*, (SELECT MAX(d) FROM workout_log w WHERE w.exercise_id=e.id) last,
                   (SELECT COUNT(DISTINCT d) FROM workout_log w WHERE w.exercise_id=e.id) days
-             FROM exercises e WHERE ${where.join(' AND ')} ORDER BY last DESC NULLS LAST, name`, bind);
+             FROM exercises e WHERE ${where.join(' AND ')} ORDER BY last DESC, name`, bind);
         return json(list);
+      }
+
+      case 'POST exercise/active': {
+        await run(env, 'UPDATE exercises SET active=?1 WHERE id=?2', [body.active ? 1 : 0, body.id]);
+        return json({ ok: true });
+      }
+
+      /* Walking and cardio read straight out of Apple Health. Nothing to log by hand. */
+      case 'GET cardio': {
+        const range = url.searchParams.get('range') || 'week';
+        const from = rangeStart(range);
+        const days = await all(env,
+          `SELECT d, COALESCE(steps,0) steps, COALESCE(walk_min,0) walk_min,
+                  COALESCE(distance,0) distance, COALESCE(active_kcal,0) active_kcal
+             FROM activity WHERE d>=?1 ORDER BY d`, [from]);
+        const logged = await all(env,
+          `SELECT d, SUM(COALESCE(minutes,0)) minutes, SUM(COALESCE(distance,0)) distance, GROUP_CONCAT(exercise) ex
+             FROM workout_log WHERE discipline='cardio' AND d>=?1 GROUP BY d`, [from]);
+        const t = await currentTarget(env);
+        const sum = (k) => days.reduce((a, r) => a + (r[k] || 0), 0);
+        const withSteps = days.filter((r) => r.steps > 0);
+        return json({
+          range, from, target_steps: t.steps,
+          today: days.find((r) => r.d === dayStr()) || null,
+          total_steps: sum('steps'),
+          avg_steps: withSteps.length ? Math.round(sum('steps') / withSteps.length) : null,
+          best_day: withSteps.length ? withSteps.reduce((a, b) => (b.steps > a.steps ? b : a)) : null,
+          days_at_target: withSteps.filter((r) => r.steps >= (t.steps || 8500)).length,
+          days_counted: withSteps.length,
+          total_distance: Math.round(sum('distance') * 10) / 10,
+          total_walk_min: Math.round(sum('walk_min')),
+          series: days, sessions: logged
+        });
+      }
+
+      /* In-app coach. Reads the same context the connectors get. */
+      case 'POST chat': {
+        const msg = String(body.message || '').slice(0, 2000);
+        if (!msg) return json({ error: 'no message' }, 400);
+        const ctx = await contextDoc(env);
+        const history = (body.history || []).slice(-8).map((m) => ({
+          role: m.role === 'user' ? 'user' : 'assistant', content: String(m.content).slice(0, 1500)
+        }));
+        const sys =
+          `You are Shaun's fitness coach inside his own tracking app. Everything below is his real, current data.\n\n${ctx}\n\n` +
+          `Answer from this data, not generic advice. Be direct and brief — a few sentences unless he asks for more. ` +
+          `No hype, no lecturing, no moralising about food. "Keep doing what you're doing" is a real answer when the numbers say so. ` +
+          `If he mentions Achilles, ankle, knee or shin pain, tell him to swap to step jacks and back off, every time. ` +
+          `If he describes something he ate, did, drank or weighed, end your reply with a line starting LOG: followed by ` +
+          `a JSON object like {"kind":"food","text":"..."} — kinds are food, workout, water (with "oz"), weight (with "lb" and/or "waist"). ` +
+          `Only add a LOG line when he is actually reporting something he did.`;
+
+        let reply = '';
+        try {
+          if (env.OPENAI_KEY) {
+            const r = await fetch('https://api.openai.com/v1/chat/completions', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json', authorization: `Bearer ${env.OPENAI_KEY}` },
+              body: JSON.stringify({ model: body.model || 'gpt-4o-mini', max_tokens: 600,
+                messages: [{ role: 'system', content: sys }, ...history, { role: 'user', content: msg }] })
+            });
+            reply = (await r.json()).choices?.[0]?.message?.content || '';
+          } else if (env.AI) {
+            const r = await env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
+              messages: [{ role: 'system', content: sys }, ...history, { role: 'user', content: msg }],
+              max_tokens: 600
+            });
+            reply = r.response || '';
+          }
+        } catch (e) { reply = ''; }
+        if (!reply) return json({ reply: 'The coach is not wired up yet — add a Workers AI binding named AI, or an OPENAI_KEY secret, in Cloudflare.' });
+
+        // Pull out an action if the model asked for one, run it, strip it from the text.
+        let action = null;
+        const m = reply.match(/LOG:\s*(\{[\s\S]*?\})/);
+        if (m) {
+          reply = reply.slice(0, m.index).trim();
+          try { action = JSON.parse(m[1]); } catch { action = null; }
+        }
+        if (action) {
+          const dd = dayStr();
+          if (action.kind === 'food' && action.text) {
+            const items = await parseFood(env, action.text);
+            for (const i of items)
+              await run(env, 'INSERT INTO food_log (d,ts,item,kcal,protein,carbs,fat,fiber,src) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)',
+                [dd, nowStr(), i.item, i.kcal, i.protein, i.carbs, i.fat, i.fiber, 'chat']);
+          } else if (action.kind === 'workout' && action.text) {
+            const items = await parseWorkout(env, action.text);
+            for (const i of items) await insertSet(env, dd, i, 'chat');
+          } else if (action.kind === 'water' && action.oz) {
+            await run(env, 'INSERT INTO water_log (d,ts,oz) VALUES (?1,?2,?3)', [dd, nowStr(), Number(action.oz)]);
+          } else if (action.kind === 'weight' && (action.lb || action.waist)) {
+            await run(env, `INSERT INTO weights (d,lb,waist) VALUES (?1,?2,?3)
+              ON CONFLICT(d) DO UPDATE SET lb=COALESCE(excluded.lb,lb), waist=COALESCE(excluded.waist,waist)`,
+              [dd, action.lb ?? null, action.waist ?? null]);
+          } else action = null;
+        }
+        return json({ reply, action });
       }
 
       case 'GET training':
@@ -175,15 +279,16 @@ export async function onRequest(ctx) {
         const bodyRows = normalizeBody(body);
         for (const r of rows)
           await run(env,
-            `INSERT INTO activity (d,steps,walk_min,active_kcal,resting_hr,exercise_hr,sleep_min,src)
-             VALUES (?1,?2,?3,?4,?5,?6,?7,?8)
+            `INSERT INTO activity (d,steps,walk_min,active_kcal,resting_hr,exercise_hr,sleep_min,distance,src)
+             VALUES (?1,?2,?3,?4,?5,?6,?7,?9,?8)
              ON CONFLICT(d) DO UPDATE SET
                steps=COALESCE(excluded.steps,steps), walk_min=COALESCE(excluded.walk_min,walk_min),
                active_kcal=COALESCE(excluded.active_kcal,active_kcal),
                resting_hr=COALESCE(excluded.resting_hr,resting_hr),
                exercise_hr=COALESCE(excluded.exercise_hr,exercise_hr),
-               sleep_min=COALESCE(excluded.sleep_min,sleep_min), src=excluded.src`,
-            [r.d, r.steps, r.walk_min, r.active_kcal, r.resting_hr, r.exercise_hr, r.sleep_min, r.src]);
+               sleep_min=COALESCE(excluded.sleep_min,sleep_min),
+               distance=COALESCE(excluded.distance,distance), src=excluded.src`,
+            [r.d, r.steps, r.walk_min, r.active_kcal, r.resting_hr, r.exercise_hr, r.sleep_min, r.src, r.distance]);
 
         for (const b of bodyRows)
           await run(env,
@@ -329,12 +434,13 @@ async function insertSet(env, d, i, note) {
 function normalizeHealth(body) {
   const map = {
     step_count: 'steps', apple_exercise_time: 'walk_min', active_energy: 'active_kcal',
-    resting_heart_rate: 'resting_hr', walking_heart_rate_average: 'exercise_hr', sleep_analysis: 'sleep_min'
+    resting_heart_rate: 'resting_hr', walking_heart_rate_average: 'exercise_hr', sleep_analysis: 'sleep_min',
+    walking_running_distance: 'distance', distance_walking_running: 'distance'
   };
   const byDay = {};
   const put = (d, k, v) => {
     if (v == null || isNaN(v)) return;
-    byDay[d] = byDay[d] || { d, steps: null, walk_min: null, active_kcal: null, resting_hr: null, exercise_hr: null, sleep_min: null, src: 'apple-health' };
+    byDay[d] = byDay[d] || { d, steps: null, walk_min: null, active_kcal: null, resting_hr: null, exercise_hr: null, sleep_min: null, distance: null, src: 'apple-health' };
     byDay[d][k] = k === 'steps' ? Math.round(v) : Math.round(v * 10) / 10;
   };
 
@@ -358,6 +464,7 @@ function normalizeHealth(body) {
     put(day, 'resting_hr', Number(body.resting_hr));
     put(day, 'exercise_hr', Number(body.exercise_hr));
     put(day, 'sleep_min', Number(body.sleep_min));
+    put(day, 'distance', Number(body.distance ?? body.walk_distance));
     if (byDay[day]) byDay[day].src = body.source || 'shortcut';
   }
   return Object.values(byDay);

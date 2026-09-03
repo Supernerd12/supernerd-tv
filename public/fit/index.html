@@ -162,6 +162,17 @@ h2{font:11px/1 var(--mono);text-transform:uppercase;letter-spacing:.16em;font-we
 .ring .mid .of{font:11px/1 var(--mono);color:var(--dim);text-transform:uppercase;letter-spacing:.16em}
 .ring .mid .hint{font-size:12.5px;color:var(--acc);margin-top:4px}
 .ring.done .arc{stroke:url(#ringDone)}
+.msg{padding:11px 14px;border-radius:16px;margin-bottom:8px;font-size:14.5px;line-height:1.5;max-width:88%}
+.msg.me{background:linear-gradient(120deg,var(--acc),var(--acc2));color:#0A0A0C;margin-left:auto;border-bottom-right-radius:5px}
+.msg.ai{background:rgba(255,255,255,.06);border:1px solid var(--rule);border-bottom-left-radius:5px}
+.msg.wait{color:var(--dim)}
+.guides b{transition:background .2s,opacity .2s,box-shadow .2s}
+.stage[data-g="bright"] .guides b{background:#FFFFFF;opacity:.95;box-shadow:0 0 8px rgba(0,0,0,.85)}
+.stage[data-g="dark"] .guides b{background:#000000;opacity:.9;box-shadow:0 0 8px rgba(255,255,255,.5)}
+.stage[data-g="mag"] .guides b{background:#FF2BD1;opacity:1;box-shadow:0 0 12px rgba(255,43,209,.9)}
+.stage[data-g="off"] .guides{display:none}
+.stage .guides .gv{width:3px;margin-left:-1px}
+.stage .guides .g1,.stage .guides .g2,.stage .guides .g3{height:3px}
 canvas.chart{width:100%;height:158px;display:block;border-radius:var(--r-sm)}
 
 .stage{position:relative;width:100%;aspect-ratio:3/4;background:#000;border-radius:22px;overflow:hidden;border:1px solid var(--rule);
@@ -263,6 +274,18 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
     <div class="line"><span>Photo</span><b id="hPhoto">—</b></div>
   </div>
 
+  <h2>Ask the coach</h2>
+  <div class="card">
+    <div id="chatLog" style="max-height:340px;overflow-y:auto"></div>
+    <div class="compose" style="margin-top:10px">
+      <textarea id="chatIn" placeholder="Did I hit protein today? What should I do tomorrow?" style="min-height:62px" enterkeyhint="send"></textarea>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button class="btn primary" id="chatSend">Send</button>
+      <button class="btn ghost" id="chatClear" style="flex:0 0 68px">Clear</button>
+    </div>
+  </div>
+
   <h2>Weekly check-in</h2>
   <button class="btn ghost" id="run" style="width:100%">Run the check-in</button>
   <pre id="report" class="hide" style="margin-top:9px"></pre>
@@ -325,30 +348,37 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
 
 <section class="view hide" id="v-train">
   <div class="seg" id="discSeg">
-    <button data-disc="resistance" class="on">Resistance</button>
-    <button data-disc="calisthenics">Calisthenics</button>
-    <button data-disc="running">Running</button>
+    <button data-disc="resistance" class="on">Weights</button>
+    <button data-disc="calisthenics">Bodyweight</button>
+    <button data-disc="cardio">Walking</button>
   </div>
 
-  <div id="muscles" style="margin-top:12px"></div>
+  <div id="cardioBox" class="hide" style="margin-top:14px"></div>
 
+  <div id="muscles" style="margin-top:12px"></div>
   <div id="exList" style="margin-top:6px"></div>
 
+  <div class="row" id="addRow" style="margin-top:12px">
+    <button class="btn ghost" id="browse">Browse the library</button>
+    <button class="btn ghost" id="newEx" style="flex:0 0 108px">New movement</button>
+  </div>
+
+  <div id="library" class="hide" style="margin-top:14px"></div>
   <div id="exDetail" class="hide" style="margin-top:16px"></div>
 
   <h2>Rep counter</h2>
   <div class="card">
-    <input id="rcName" placeholder="Exercise, e.g. Squats" style="width:100%">
+    <input id="rcName" placeholder="Exercise, e.g. Jumping jacks" style="width:100%">
     <div class="row" style="margin-top:10px">
-      <div><label class="tiny">Sets</label><input id="rcSets" type="number" inputmode="numeric" value="3" style="width:100%;margin-top:5px"></div>
-      <div><label class="tiny">Reps each</label><input id="rcReps" type="number" inputmode="numeric" value="12" style="width:100%;margin-top:5px"></div>
+      <div><label class="tiny">Sets</label><input id="rcSets" type="number" inputmode="numeric" value="2" style="width:100%;margin-top:5px"></div>
+      <div><label class="tiny">Reps each</label><input id="rcReps" type="number" inputmode="numeric" value="100" style="width:100%;margin-top:5px"></div>
       <div><label class="tiny">Weight lb</label><input id="rcWt" type="number" inputmode="decimal" placeholder="—" style="width:100%;margin-top:5px"></div>
     </div>
 
     <button class="ring" id="ring" aria-label="Bank one completed set">
       <svg viewBox="0 0 120 120"><circle class="trk" cx="60" cy="60" r="52"></circle>
       <circle class="arc" cx="60" cy="60" r="52" stroke-dasharray="326.7" stroke-dashoffset="326.7"></circle></svg>
-      <span class="mid"><b id="rcDone">0</b><span class="of" id="rcOf">of 3 sets</span><span class="hint" id="rcSetsOf">tap when a set is done</span></span>
+      <span class="mid"><b id="rcDone">0</b><span class="of" id="rcOf">of 2 sets</span><span class="hint" id="rcSetsOf">tap when a set is done</span></span>
     </button>
 
     <div class="row" style="margin-top:16px">
@@ -356,28 +386,20 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
       <button class="btn ghost" id="rcReset" style="flex:0 0 76px">Reset</button>
     </div>
     <button class="btn primary" id="rcSave" style="width:100%;margin-top:9px">Save this exercise</button>
-    <p class="tiny" style="margin-top:10px">One tap per finished set — not per rep. Set 3 × 12 and tap three times over the course of the exercise. Save whenever you stop; two and a half sets logs as two and a half.</p>
+    <p class="tiny" style="margin-top:10px">One tap per finished set — not per rep. Set 2 × 100 and tap twice.</p>
   </div>
 
   <h2>Or just say it</h2>
   <div class="compose">
-    <textarea id="sayT" placeholder="200 jumping jacks in 2 sets of 100, goblet squats 3x12 at 25 lb, walked 18 minutes" enterkeyhint="done"></textarea>
+    <textarea id="sayT" placeholder="200 jumping jacks in 2 sets of 100" enterkeyhint="done"></textarea>
   </div>
   <div class="row" style="margin-top:8px">
     <button class="btn primary" id="logTrain">Log training</button>
     <button class="btn ghost" id="undoTrain" style="flex:0 0 96px">Undo last</button>
   </div>
 
-  <h2>Today</h2>
+  <h2>Logged today</h2>
   <div id="tLog"></div>
-
-  <h2>This month</h2>
-  <div class="card">
-    <div class="line"><span>Sessions, last 14 days</span><b id="tSess">—</b></div>
-    <div class="line"><span>Steps, 7-day average</span><b id="tSteps" style="color:var(--sync)">—</b></div>
-    <div class="line"><span>Walking today</span><b id="tWalk">—</b></div>
-  </div>
-  <div id="tSplit" style="margin-top:10px"></div>
 
   <h2>Watch the Achilles</h2>
   <div class="card">
@@ -409,6 +431,12 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
       <button class="btn ghost" id="camOff" style="flex:0 0 82px">Cancel</button>
       <button class="btn primary" id="capture">Capture</button>
       <button class="btn ghost" id="flip" style="flex:0 0 60px">Flip</button>
+    </div>
+    <div class="seg sm" id="guideSeg" style="margin-top:9px">
+      <button data-guide="bright" class="on">Bright</button>
+      <button data-guide="dark">Dark</button>
+      <button data-guide="mag">Magenta</button>
+      <button data-guide="off">Off</button>
     </div>
   </div>
   <input type="file" id="fileIn" accept="image/*" capture="user" class="hide">
@@ -513,8 +541,9 @@ let CHARTMODE='bar', LASTSERIES=null;
 const MUSCLES={
   resistance:[['legs','Legs'],['glutes','Glutes'],['chest','Chest'],['back','Back'],['shoulders','Shoulders'],['arms','Arms'],['core','Core']],
   calisthenics:[['fullbody','Full body'],['core','Core'],['chest','Chest'],['back','Back'],['arms','Arms'],['legs','Legs']],
-  running:[]
+  cardio:[]
 };
+let CHAT=[], CARDIORANGE='week', GUIDE='bright';
 const TITLES={hub:'Today',food:'Food and water',train:'Training',photos:'Progress',days:'History'};
 
 function roll(el,to){const from=+el.dataset.v||0;el.dataset.v=to;
@@ -581,9 +610,6 @@ async function refresh(){
     ? t.food_items.map(i=>`<div class="item"><span>${esc(i.item)}</span><span class="m">${Math.round(i.kcal)} kcal · ${Math.round(i.protein)}g</span></div>`).join('')
     : '<p class="empty">Nothing logged yet today.</p>';
 
-  $('#tSess').textContent=tr.strength_sessions_14;
-  $('#tSteps').textContent=tr.steps_7day_avg?tr.steps_7day_avg.toLocaleString():'—';
-  $('#tWalk').textContent=t.walk_min?t.walk_min+' min':'—';
   $('#tLog').innerHTML=t.workouts.length
     ? t.workouts.map(w=>`<div class="item"><span>${esc(w.exercise)}</span><span class="m">${[w.sets&&`${w.sets}×${w.reps}`,w.minutes&&`${w.minutes} min`,w.resistance].filter(Boolean).join(' · ')||'logged'}</span></div>`).join('')
     : '<p class="empty">Nothing logged yet today.</p>';
@@ -674,6 +700,7 @@ async function camOn(){
     v.classList.remove('hide'); $('#shot').classList.add('hide');
     if(PHOTOS.length)$('#ghost').src='/api/img/'+PHOTOS[PHOTOS.length-1].d;
     $('#camCtl').classList.remove('hide'); $('#scrubWrap').classList.add('hide'); $('#tools').classList.add('hide');
+    document.querySelector('.stage').dataset.g=GUIDE;
     $('#stamp').textContent='line up with the guides';
   }catch(e){ toast('Camera unavailable — opening the picker.'); $('#fileIn').click(); }
 }
@@ -758,25 +785,91 @@ async function exportFrames(){
 
 function dl(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),4000);}
 
+function paintChat(waiting){
+  const el=$('#chatLog');
+  el.innerHTML = CHAT.length
+    ? CHAT.map(m=>`<div class="msg ${m.role==='user'?'me':'ai'}">${esc(m.content)}</div>`).join('')
+      + (waiting?'<div class="msg ai wait">thinking…</div>':'')
+    : '<p class="tiny" style="margin:0">Ask about today, this week, what to eat, or what to train. It reads the same numbers the app does.</p>';
+  el.scrollTop=el.scrollHeight;
+}
+
 /* ───────── training ───────── */
 async function loadTrain(){
-  $('#muscles').innerHTML = MUSCLES[DISC].length
-    ? '<div class="seg sm">'+MUSCLES[DISC].map(([k,l])=>
-        `<button data-muscle="${k}" class="${MUSCLE===k?'on':''}">${l}</button>`).join('')+'</div>'
-    : '';
-  const q = 'exercises?discipline='+DISC + (MUSCLE&&MUSCLES[DISC].length?'&muscle='+MUSCLE:'');
-  const list = await api(q);
+  const cardio = DISC==='cardio';
+  $('#cardioBox').classList.toggle('hide',!cardio);
+  $('#muscles').classList.toggle('hide',cardio);
+  $('#addRow').classList.toggle('hide',cardio);
+  if(cardio){ $('#exList').innerHTML=''; return loadCardio(); }
+
+  $('#muscles').innerHTML='<div class="seg sm">'+MUSCLES[DISC].map(([k,l])=>
+    `<button data-muscle="${k}" class="${MUSCLE===k?'on':''}">${l}</button>`).join('')+'</div>';
+
+  const list = await api('exercises?mode=mine&discipline='+DISC+(MUSCLE?'&muscle='+MUSCLE:''));
   $('#exList').innerHTML = list.length ? list.map(e=>`
     <button class="ex ${e.last===S?.today.date?'act':''}" data-ex="${e.id}">
       <span>${esc(e.name)}</span>
-      <span class="sub">${e.days?`${e.days} day${e.days>1?'s':''}${e.last?' · '+shortD(e.last):''}`:'not logged yet'}</span>
+      <span class="sub">${e.days?`${e.days} day${e.days>1?'s':''}${e.last?' · '+shortD(e.last):''}`:'ready to log'}</span>
       <span class="chev">›</span></button>`).join('')
-    : '<p class="empty">Nothing here yet. Log anything and it files itself into the right group.</p>';
-
-  const ov = await api('training?range=month');
-  $('#tSplit').innerHTML = ov.by_discipline.length ? '<div class="card">'+ov.by_discipline.map(r=>
-    `<div class="line"><span>${esc(cap(r.discipline))}</span><b style="font-size:15px">${r.days} day${r.days>1?'s':''}${r.reps?` · ${Math.round(r.reps)} reps`:''}${r.distance?` · ${Math.round(r.distance*10)/10} mi`:''}</b></div>`).join('')+'</div>' : '';
+    : `<p class="empty">Nothing here yet. Browse the library below, or add your own — whatever you actually do.</p>`;
 }
+
+async function loadCardio(){
+  const c = await api('cardio?range='+CARDIORANGE);
+  const t = c.today||{};
+  const pct = c.target_steps ? Math.min(100,(t.steps||0)/c.target_steps*100) : 0;
+  $('#cardioBox').innerHTML=`
+    <div class="card acc">
+      <div style="display:flex;align-items:baseline;gap:9px">
+        <span class="big" id="cSteps">${(t.steps||0).toLocaleString()}</span><span class="tiny">steps today</span>
+        <span class="tiny" style="margin-left:auto;text-align:right">target<br>${(c.target_steps||0).toLocaleString()}</span>
+      </div>
+      <div class="bar"><i style="width:${pct}%"></i></div>
+      <div class="line"><span>Distance</span><b>${t.distance?t.distance+' mi':'—'}</b></div>
+      <div class="line"><span>Walking time</span><b>${t.walk_min?Math.round(t.walk_min)+' min':'—'}</b></div>
+      <div class="line"><span>Active calories</span><b>${t.active_kcal?Math.round(t.active_kcal):'—'}</b></div>
+      <p class="tiny" style="margin:12px 0 0">Straight from Apple Health. Nothing to log by hand.</p>
+    </div>
+    <div class="seg sm" style="margin-top:12px">
+      ${['day','week','month','ytd','all'].map(r=>`<button data-crange="${r}" class="${r===CARDIORANGE?'on':''}">${r==='ytd'?'YTD':cap(r)}</button>`).join('')}
+    </div>
+    <div class="card" style="margin-top:10px">
+      <div style="display:flex;gap:7px;justify-content:flex-end;margin-bottom:6px">
+        <button class="pill ${CHARTMODE==='bar'?'on':''}" data-cm2="bar" style="margin:0">Bars</button>
+        <button class="pill ${CHARTMODE==='line'?'on':''}" data-cm2="line" style="margin:0">Line</button>
+      </div>
+      <canvas class="chart" id="cChart"></canvas>
+      <div class="line" style="margin-top:10px"><span>Daily average</span><b>${c.avg_steps?c.avg_steps.toLocaleString():'—'}</b></div>
+      <div class="line"><span>Best day</span><b>${c.best_day?c.best_day.steps.toLocaleString()+' · '+shortD(c.best_day.d):'—'}</b></div>
+      <div class="line"><span>Days at target</span><b>${c.days_counted?`${c.days_at_target} of ${c.days_counted}`:'—'}</b></div>
+      <div class="line"><span>Total distance</span><b>${c.total_distance||0} mi</b></div>
+      <div class="line"><span>Total walking time</span><b>${c.total_walk_min||0} min</b></div>
+    </div>
+    ${c.sessions.length?`<h2>Walks you logged</h2>`+c.sessions.map(x=>
+      `<div class="item"><span>${esc(x.ex||'walk')}</span><span class="m">${shortD(x.d)}${x.minutes?' · '+Math.round(x.minutes)+' min':''}</span></div>`).join(''):''}`;
+  const series=c.series.map(r=>({d:r.d,value:r.steps}));
+  LASTSERIES={series,unit:'steps'};
+  drawChart($('#cChart'),series,'steps',CHARTMODE);
+}
+
+async function loadLibrary(){
+  const list = await api('exercises?mode=library&discipline='+DISC+(MUSCLE?'&muscle='+MUSCLE:''));
+  $('#library').classList.remove('hide');
+  $('#library').innerHTML = `<div class="card">
+    <div style="display:flex;align-items:baseline"><b style="font-family:var(--display);font-size:20px;text-transform:uppercase">The library</b>
+    <button class="tiny" id="libClose" style="margin-left:auto;color:var(--dim)">close</button></div>
+    <p class="tiny" style="margin:8px 0 4px">Tap any of these to read what it actually is. Add only what you plan to do.</p>
+    ${list.length?list.map(e=>`
+      <div style="border-top:1px solid var(--rule);padding:13px 0">
+        <div style="display:flex;align-items:baseline;gap:10px">
+          <b style="font-size:15px;font-weight:600">${esc(e.name)}</b>
+          <button class="pill" data-add="${e.id}" style="margin:0 0 0 auto;padding:5px 13px">Add</button>
+        </div>
+        ${e.info?`<p class="tiny" style="margin:6px 0 0">${esc(e.info)}</p>`:''}
+      </div>`).join(''):'<p class="empty">Everything here is already on your list.</p>'}
+  </div>`;
+}
+
 const cap=x=>x?x[0].toUpperCase()+x.slice(1):'';
 const shortD=d=>new Date(d+'T12:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
 
@@ -954,6 +1047,36 @@ document.addEventListener('click',async e=>{
     document.querySelectorAll('#discSeg button').forEach(x=>x.classList.toggle('on',x===b));return loadTrain();}
   if(b.dataset.muscle){MUSCLE=MUSCLE===b.dataset.muscle?null:b.dataset.muscle;$('#exDetail').classList.add('hide');return loadTrain();}
   if(b.dataset.ex)return openExercise(+b.dataset.ex);
+  if(b.dataset.crange){CARDIORANGE=b.dataset.crange;return loadCardio();}
+  if(b.dataset.cm2){CHARTMODE=b.dataset.cm2;return loadCardio();}
+  if(b.id==='browse')return loadLibrary();
+  if(b.id==='libClose'){$('#library').classList.add('hide');return;}
+  if(b.dataset.add){await post('exercise/active',{id:+b.dataset.add,active:1});
+    toast('Added to your list.');loadLibrary();return loadTrain();}
+  if(b.id==='newEx'){
+    const name=prompt('What do you call it?');
+    if(!name||!name.trim())return;
+    const r=await post('exercise',{name:name.trim(),discipline:DISC,muscle:MUSCLE||undefined});
+    if(r.exercise)await post('exercise/active',{id:r.exercise.id,active:1});
+    $('#rcName').value=name.trim();
+    toast('Added. It\u2019s in the counter.');return loadTrain();}
+  if(b.dataset.guide){GUIDE=b.dataset.guide;
+    document.querySelector('.stage').dataset.g=GUIDE;
+    document.querySelectorAll('[data-guide]').forEach(x=>x.classList.toggle('on',x===b));return;}
+
+  if(b.id==='chatSend'){
+    const inp=$('#chatIn'), text=inp.value.trim();
+    if(!text)return toast('Ask something first.');
+    CHAT.push({role:'user',content:text}); inp.value=''; paintChat(true);
+    b.disabled=true;
+    try{
+      const r=await post('chat',{message:text,history:CHAT.slice(0,-1)});
+      CHAT.push({role:'assistant',content:r.reply});
+      if(r.action){toast('Logged that too.');refresh();}
+    }catch(err){CHAT.push({role:'assistant',content:'That didn\u2019t go through. Try again.'});}
+    b.disabled=false; paintChat();return;
+  }
+  if(b.id==='chatClear'){CHAT=[];paintChat();return;}
   if(b.dataset.range){EXRANGE=b.dataset.range;return openExercise(EXID);}
   if(b.dataset.cm){CHARTMODE=b.dataset.cm;
     document.querySelectorAll('[data-cm]').forEach(x=>x.classList.toggle('on',x===b));
@@ -1040,7 +1163,8 @@ if(SR){const rec=new SR();rec.continuous=false;rec.interimResults=true;rec.lang=
 }else $('#mic').classList.add('hide');
 
 async function boot(){
-  await refresh(); loadInv(); rcPaint();
+  await refresh(); loadInv(); rcPaint(); paintChat();
+  document.querySelector('.stage').dataset.g=GUIDE;
   $('#feed').value=location.origin+'/cal.ics?k=PASTE_YOUR_FIT_TOKEN';
   setInterval(()=>{if(!$('#app').classList.contains('hide'))refresh().catch(()=>{});},180000);
 }
