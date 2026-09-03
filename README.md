@@ -23,3 +23,4 @@ npm run build    # outputs to dist/
 ## Deploy (Cloudflare Pages)
 Framework preset: **Astro** · Build command: `npm run build` · Output dir: `dist`
 Pushing to GitHub auto-redeploys. 
+
