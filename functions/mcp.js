@@ -102,10 +102,19 @@ export async function onRequest({ request, env }) {
       status: 405,
       headers: { 'content-type': 'application/json', 'allow': 'POST' }
     });
-  // No www-authenticate header here on purpose. Sending one makes MCP clients
-  // think this server speaks OAuth and kick off a discovery flow that doesn't exist.
-  // This server takes a plain bearer token in an Authorization header, nothing else.
-  if (!(await authed(request, env)))
+  // Two ways in. An Authorization: Bearer header is the clean one, and Claude uses it.
+  // ChatGPT's connector form only offers OAuth or nothing, so the token can also ride
+  // in the query string: /mcp?k=TOKEN with authentication set to none. Same token,
+  // same access — it just travels in the URL instead of a header.
+  //
+  // No www-authenticate header on rejection: sending one makes MCP clients believe
+  // this server speaks OAuth and start a discovery flow that doesn't exist.
+  const key = new URL(request.url).searchParams.get('k');
+  const keyOK = !!env.FIT_TOKEN && typeof key === 'string' &&
+    key.length === env.FIT_TOKEN.length &&
+    !key.split('').some((c, i) => c !== env.FIT_TOKEN[i]);
+
+  if (!keyOK && !(await authed(request, env)))
     return json({ error: 'unauthorized' }, 401);
 
   const body = await request.json().catch(() => null);
