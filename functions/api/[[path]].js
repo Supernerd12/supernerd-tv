@@ -172,6 +172,7 @@ export async function onRequest(ctx) {
       case 'POST health': {
         // Accepts Health Auto Export (REST API) payloads and simple {steps, walk_min, ...} from Shortcuts.
         const rows = normalizeHealth(body);
+        const bodyRows = normalizeBody(body);
         for (const r of rows)
           await run(env,
             `INSERT INTO activity (d,steps,walk_min,active_kcal,resting_hr,exercise_hr,sleep_min,src)
@@ -184,13 +185,15 @@ export async function onRequest(ctx) {
                sleep_min=COALESCE(excluded.sleep_min,sleep_min), src=excluded.src`,
             [r.d, r.steps, r.walk_min, r.active_kcal, r.resting_hr, r.exercise_hr, r.sleep_min, r.src]);
 
-        if (body.weight_lb || body.body_fat)
+        for (const b of bodyRows)
           await run(env,
-            `INSERT INTO weights (d,lb,bodyfat) VALUES (?1,?2,?3)
-             ON CONFLICT(d) DO UPDATE SET lb=COALESCE(excluded.lb,lb), bodyfat=COALESCE(excluded.bodyfat,bodyfat)`,
-            [dayStr(), body.weight_lb ?? null, body.body_fat ?? null]);
+            `INSERT INTO weights (d,lb,bodyfat,muscle,visceral) VALUES (?1,?2,?3,?4,?5)
+             ON CONFLICT(d) DO UPDATE SET
+               lb=COALESCE(excluded.lb,lb), bodyfat=COALESCE(excluded.bodyfat,bodyfat),
+               muscle=COALESCE(excluded.muscle,muscle), visceral=COALESCE(excluded.visceral,visceral)`,
+            [b.d, b.lb, b.bodyfat, b.muscle, b.visceral]);
 
-        return json({ ok: true, days: rows.length });
+        return json({ ok: true, days: rows.length, body_days: bodyRows.length });
       }
 
       case 'DELETE food':
@@ -358,6 +361,47 @@ function normalizeHealth(body) {
     if (byDay[day]) byDay[day].src = body.source || 'shortcut';
   }
   return Object.values(byDay);
+}
+
+/* Body composition, from a smart scale that syncs into Apple Health.
+   Handles Health Auto Export's metrics array and a flat Shortcuts payload.
+   Weight arrives in kg or lb depending on the exporter's units — we convert when told. */
+function normalizeBody(body) {
+  const out = {};
+  const put = (d, k, v) => {
+    if (v == null || isNaN(v)) return;
+    out[d] = out[d] || { d, lb: null, bodyfat: null, muscle: null, visceral: null };
+    out[d][k] = Math.round(v * 10) / 10;
+  };
+  const map = {
+    weight_body_mass: 'lb', body_mass: 'lb', weight: 'lb',
+    body_fat_percentage: 'bodyfat', body_fat: 'bodyfat',
+    lean_body_mass: 'muscle'
+  };
+
+  const metrics = body?.data?.metrics || body?.metrics;
+  if (Array.isArray(metrics)) {
+    for (const m of metrics) {
+      const key = map[m.name];
+      if (!key) continue;
+      const kg = /kg/i.test(m.units || '');
+      for (const pt of m.data || []) {
+        let v = Number(pt.qty ?? pt.value);
+        if ((key === 'lb' || key === 'muscle') && kg) v *= 2.20462;
+        if (key === 'bodyfat' && v > 0 && v < 1) v *= 100; // some exporters send a fraction
+        put(String(pt.date || '').slice(0, 10), key, v);
+      }
+    }
+  }
+
+  const d = String(body.date || dayStr()).slice(0, 10);
+  if (body.weight_kg) put(d, 'lb', Number(body.weight_kg) * 2.20462);
+  if (body.weight_lb) put(d, 'lb', Number(body.weight_lb));
+  if (body.body_fat) put(d, 'bodyfat', Number(body.body_fat));
+  if (body.muscle_pct || body.muscle) put(d, 'muscle', Number(body.muscle_pct ?? body.muscle));
+  if (body.visceral) put(d, 'visceral', Number(body.visceral));
+
+  return Object.values(out);
 }
 
 function openapi(origin) {
