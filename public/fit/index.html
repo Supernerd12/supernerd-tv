@@ -248,7 +248,7 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
 <div id="app" class="hide">
 <header>
   <h1 id="vtitle">Today</h1>
-  <button id="ver" title="Tap to force a fresh copy">v8</button>
+  <button id="ver" title="Tap to force a fresh copy">v9</button>
   <span class="date" id="vdate"></span>
 </header>
 
@@ -561,7 +561,7 @@ const MUSCLES={
   cardio:[]
 };
 let CHAT=[], CARDIORANGE='day', GUIDE='bright';
-let FOODITEMS=[], INVMANAGE=false;
+let FOODITEMS=[], INVMANAGE=false, INVSEL=new Set(), INVCACHE=[];
 const TITLES={hub:'Today',food:'Food and water',train:'Training',photos:'Progress',days:'History'};
 
 function roll(el,to){const from=+el.dataset.v||0;el.dataset.v=to;
@@ -646,11 +646,26 @@ async function refresh(){
 
 async function loadInv(){
   const [inv,gr]=await Promise.all([api('inventory'),api('todos')]);
-  $('#inv').innerHTML = INVMANAGE
-    ? inv.map(f=>`<div class="item"><span>${esc(f.name)}</span>
-        <span class="m">${Math.round(f.kcal)} kcal · ${Math.round(f.protein)}g</span>
-        <button class="m" data-invdel="${f.id}" style="color:var(--over);margin-left:10px">remove</button></div>`).join('')
-    : inv.map(f=>`<button class="pill ${f.in_stock?'on':''}" data-inv="${f.id}" data-s="${f.in_stock}">${esc(f.name.split(' + ')[0].slice(0,32))}</button>`).join('');
+  if(INVMANAGE){
+    $('#inv').innerHTML =
+      `<div class="row" style="margin-bottom:10px">
+         <button class="btn ghost" id="invAll">${INVSEL.size===inv.length?'Clear all':'Select all'}</button>
+         <button class="btn ${INVSEL.size?'':'ghost'}" id="invWipe"
+           style="${INVSEL.size?'background:linear-gradient(120deg,var(--over),#FF9F7A);color:#0A0A0C;border-color:transparent':''}"
+           ${INVSEL.size?'':'disabled'}>Remove ${INVSEL.size||''}</button>
+       </div>` +
+      inv.map(f=>{const on=INVSEL.has(f.id);return `<button class="item" data-invsel="${f.id}" style="width:100%;text-align:left">
+        <span style="flex:0 0 20px;height:20px;border-radius:6px;display:inline-block;
+          border:1.5px solid ${on?'transparent':'var(--rule2)'};
+          background:${on?'linear-gradient(120deg,var(--acc),var(--acc2))':'transparent'};
+          color:#0A0A0C;font-size:13px;line-height:18px;text-align:center;font-weight:700">${on?'✓':''}</span>
+        <span style="${on?'':'opacity:.85'}">${esc(f.name)}</span>
+        <span class="m">${Math.round(f.kcal)} kcal · ${Math.round(f.protein)}g</span></button>`;}).join('');
+  } else {
+    INVSEL.clear();
+    $('#inv').innerHTML = inv.map(f=>`<button class="pill ${f.in_stock?'on':''}" data-inv="${f.id}" data-s="${f.in_stock}">${esc(f.name.split(' + ')[0].slice(0,32))}</button>`).join('');
+  }
+  INVCACHE=inv;
   $('#grocery').innerHTML=(gr.list.length?gr.list.map(g=>
     `<div class="item"><button data-todo="${g.id}" style="text-align:left;text-decoration:${g.done?'line-through':'none'};opacity:${g.done?.5:1}">${esc(g.text)}</button><button class="m" data-del="${g.id}">remove</button></div>`).join('')
     :'<p class="empty">List is empty.</p>')
@@ -1106,7 +1121,7 @@ document.addEventListener('click',async e=>{
     $('#fEdit').classList.add('hide');toast('Deleted.');return refresh();}
   if(b.dataset.wdel){await post('workout/delete',{id:+b.dataset.wdel});toast('Deleted.');return refresh();}
 
-  if(b.id==='invManage'){INVMANAGE=!INVMANAGE;b.textContent=INVMANAGE?'Done editing':'Edit the list';return loadInv();}
+  if(b.id==='invManage'){INVMANAGE=!INVMANAGE;INVSEL.clear();b.textContent=INVMANAGE?'Done editing':'Edit the list';return loadInv();}
   if(b.id==='invAdd'){
     $('#invForm').classList.remove('hide');
     $('#invForm').innerHTML=`<div class="card">
@@ -1136,9 +1151,19 @@ document.addEventListener('click',async e=>{
       kcal:+$('#ivKcal').value||0,protein:+$('#ivProt').value||0,fiber:+$('#ivFib').value||0,kind:$('#ivKind').value});
     $('#invForm').classList.add('hide');toast('Added.');return loadInv();
   }
-  if(b.dataset.invdel){
-    if(!confirm('Remove this from your food list entirely?'))return;
-    await post('inventory',{delete:+b.dataset.invdel});toast('Removed.');return loadInv();}
+  if(b.dataset.invsel){
+    const id=+b.dataset.invsel;
+    INVSEL.has(id)?INVSEL.delete(id):INVSEL.add(id);
+    return loadInv();}
+  if(b.id==='invAll'){
+    if(INVSEL.size===INVCACHE.length)INVSEL.clear();
+    else INVCACHE.forEach(f=>INVSEL.add(f.id));
+    return loadInv();}
+  if(b.id==='invWipe'){
+    const n=INVSEL.size; if(!n)return;
+    if(!confirm(`Remove ${n} item${n>1?'s':''} from your food list?`))return;
+    await post('inventory',{delete_ids:[...INVSEL]});
+    INVSEL.clear();toast(`Removed ${n}.`);return loadInv();}
 
   if(b.dataset.inv){
     const on=b.dataset.s==='1';

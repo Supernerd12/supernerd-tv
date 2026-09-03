@@ -353,9 +353,15 @@ export async function onRequest(ctx) {
         return json(await all(env, 'SELECT id,name,kcal,protein,fiber,serving,kind,in_stock FROM foods ORDER BY kind,name'));
 
       case 'POST inventory': {
+        if (Array.isArray(body.delete_ids) && body.delete_ids.length) {
+          const ids = body.delete_ids.map(Number).filter(Number.isFinite).slice(0, 200);
+          if (ids.length)
+            await run(env, `DELETE FROM foods WHERE id IN (${ids.map((_, i) => `?${i + 1}`).join(',')})`, ids);
+          return json({ ok: true, removed: ids.length });
+        }
         if (body.delete != null) {
           await run(env, 'DELETE FROM foods WHERE id=?1', [body.delete]);
-          return json({ ok: true });
+          return json({ ok: true, removed: 1 });
         }
         if (body.id != null && body.edit) {
           const f = ['name','kcal','protein','carbs','fat','fiber','serving','kind'].filter(k => body[k] !== undefined);
