@@ -3,7 +3,7 @@ import {
   all, one, run, profile, currentTarget, trends, today, decide,
   suggestMeal, parseFood, parseWorkout, contextDoc, checkin,
   dayRange, grocery, icsFeed, coachBrief, exerciseStats, trainingOverview, ensureExercise, matchExercise,
-  rangeStart, parseTrace, estimateBurn, bodyWeightLb
+  rangeStart, parseTrace, estimateBurn, bodyWeightLb, TZ
 } from '../_lib.js';
 
 export async function onRequest(ctx) {

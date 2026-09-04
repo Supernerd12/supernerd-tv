@@ -1,7 +1,7 @@
 // Fitness Hub — shared library (Cloudflare Pages Functions)
 // Underscore prefix = not routed, importable only.
 
-export const VERSION = 'v15';
+export const VERSION = 'v16';
 export const TZ = 'America/New_York';
 
 export const dayStr = (offset = 0) =>
@@ -494,14 +494,16 @@ Return: {"meal":string,"items":[ ... ]}
 
 RULES
 1. One element in "items" per component food, so the maths is visible. They are parts of one meal, not separate meals.
+1b. A number written next to a food is THAT FOOD's figure, never the meal's total. "plain Greek yogurt 150 calories, added 4 strawberries" means the yogurt alone is 150 and the strawberries are on top of it. The meal total is the sum of the components. Only treat a number as a meal total if the text plainly says so, e.g. "the whole bowl was 400 calories".
 2. If a per-unit figure is given, scale it to the amount eaten. "210 per 2 tbsp" and "2 teaspoons" means 2 tsp = 0.667 tbsp, so 210 x (0.667/2) = 70 kcal.
 3. If a total calorie or macro figure is stated for an item, use it exactly. Do not re-estimate it.
 4. Anything not given a number, estimate from standard nutrition data for the amount described.
 5. Name each item for the food itself, not the whole sentence.
 
 EXAMPLE
-Input: 1 serving of plain Greek yogurt, added 4 strawberries, 2 teaspoons of hazelnut spread with cocoa at 210 per 2tbspn
-Output: {"meal":"Greek yogurt bowl","items":[{"item":"Plain Greek yogurt, 1 serving","kcal":100,"protein":18,"carbs":6,"fat":0,"fiber":0},{"item":"Strawberries, 4","kcal":16,"protein":0,"carbs":4,"fat":0,"fiber":1},{"item":"Hazelnut cocoa spread, 2 tsp","kcal":70,"protein":1,"carbs":8,"fat":4,"fiber":0}]}
+Input: 1 serving of plain Greek yogurt 150 calories, added 4 strawberries, 2 teaspoons of hazelnut spread with cocoa at 210 per 2tbspn, 1 tspn of chopped pistachios
+Output: {"meal":"Greek yogurt bowl","items":[{"item":"Plain Greek yogurt, 1 serving","kcal":150,"protein":18,"carbs":8,"fat":0,"fiber":0},{"item":"Strawberries, 4","kcal":16,"protein":0,"carbs":4,"fat":0,"fiber":1},{"item":"Hazelnut cocoa spread, 2 tsp","kcal":70,"protein":1,"carbs":8,"fat":4,"fiber":0},{"item":"Chopped pistachios, 1 tsp","kcal":23,"protein":1,"carbs":1,"fat":2,"fiber":0}]}
+The 150 belongs to the yogurt. The meal comes to 259, not 150.
 
 If only one food is described, still use the same shape with a single item.
 
@@ -521,14 +523,8 @@ ${known.map((f) => `${f.name} | ${f.serving} | ${f.kcal}kcal ${f.protein}p ${f.c
       carbs: Math.round(+p.carbs || 0), fat: Math.round(+p.fat || 0), fiber: Math.round(+p.fiber || 0)
     })).filter((r) => r.item);
 
-    // He stated a total: that wins, and the components scale to agree with it.
-    if (stated.kcal != null && parts.length > 1) {
-      const sum = parts.reduce((a, r) => a + r.kcal, 0);
-      if (sum && Math.abs(sum - stated.kcal) / stated.kcal > 0.4) {
-        const k = stated.kcal / sum;
-        parts.forEach((r) => { r.kcal = Math.round(r.kcal * k); });
-      }
-    }
+    // A stated number in a multi-part meal belongs to one component, not the whole
+    // plate. Rescaling everything to hit it was wrong — the total is just the sum.
 
     const add = (k) => parts.reduce((a, r) => a + (r[k] || 0), 0);
     const name = String(raw?.meal || '').trim().slice(0, 90)
@@ -538,8 +534,10 @@ ${known.map((f) => `${f.name} | ${f.serving} | ${f.kcal}kcal ${f.protein}p ${f.c
     return [{
       item: name,
       kcal: stated.kcal != null && parts.length === 1 ? stated.kcal : add('kcal'),
-      protein: stated.protein ?? add('protein'), carbs: stated.carbs ?? add('carbs'),
-      fat: stated.fat ?? add('fat'), fiber: stated.fiber ?? add('fiber'),
+      protein: parts.length === 1 ? (stated.protein ?? add('protein')) : add('protein'),
+      carbs: parts.length === 1 ? (stated.carbs ?? add('carbs')) : add('carbs'),
+      fat: parts.length === 1 ? (stated.fat ?? add('fat')) : add('fat'),
+      fiber: parts.length === 1 ? (stated.fiber ?? add('fiber')) : add('fiber'),
       parts: parts.length > 1 ? parts : null,
       src: 'ai'
     }];
