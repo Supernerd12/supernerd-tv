@@ -1,7 +1,7 @@
 // Fitness Hub — shared library (Cloudflare Pages Functions)
 // Underscore prefix = not routed, importable only.
 
-export const VERSION = 'v10';
+export const VERSION = 'v15';
 export const TZ = 'America/New_York';
 
 export const dayStr = (offset = 0) =>
@@ -143,8 +143,10 @@ export async function today(env, d = dayStr()) {
     'SELECT COALESCE(SUM(kcal),0) kcal, COALESCE(SUM(protein),0) protein, COALESCE(SUM(carbs),0) carbs, COALESCE(SUM(fat),0) fat, COALESCE(SUM(fiber),0) fiber, COUNT(*) n FROM food_log WHERE d=?1',
     [d]
   );
-  const items = await all(env, 'SELECT id,ts,item,kcal,protein,carbs,fat,fiber,src FROM food_log WHERE d=?1 ORDER BY id', [d]);
+  const items = (await all(env, 'SELECT id,ts,item,kcal,protein,carbs,fat,fiber,src,parts FROM food_log WHERE d=?1 ORDER BY id', [d]))
+    .map((r) => ({ ...r, parts: r.parts ? JSON.parse(r.parts) : null }));
   const w = await all(env, 'SELECT * FROM workout_log WHERE d=?1 ORDER BY id', [d]);
+  const burn = w.reduce((a, r) => a + (r.kcal || 0), 0);
   const a = await one(env, 'SELECT * FROM activity WHERE d=?1', [d]);
   const wt = await one(env, 'SELECT * FROM weights WHERE d=?1', [d]);
   const wa = await one(env, 'SELECT COALESCE(SUM(oz),0) oz FROM water_log WHERE d=?1', [d]);
@@ -164,6 +166,7 @@ export async function today(env, d = dayStr()) {
     weight_lb: wt?.lb ?? null, waist_in: wt?.waist ?? null,
     water_oz: Math.round(wa.oz), water_target: waterTarget,
     has_photo: !!ph,
+    burn_kcal: Math.round(burn),
     target: t, food_items: items, workouts: w,
     alerts: buildAlerts({ d, wt, ph, wa, a, t, kcal: f.kcal, protein: f.protein, waterTarget })
   };
@@ -331,8 +334,14 @@ const CF_MODELS = [
   '@cf/meta/llama-3.1-8b-instruct'
 ];
 
+// Last call's trace, so /api/parse-test can report why a parse went the way it did.
+export let AI_TRACE = [];
+
 async function callAI(env, system, user) {
   const msgs = [{ role: 'system', content: system }, { role: 'user', content: user }];
+  AI_TRACE = [];
+  const note = (m) => { AI_TRACE.push(m); };
+  if (!env.AI && !env.OPENAI_KEY && !env.GROQ_KEY) note('no AI binding and no API key');
 
   if (env.OPENAI_KEY) {
     try {
@@ -342,16 +351,18 @@ async function callAI(env, system, user) {
         body: JSON.stringify({ model: 'gpt-4o-mini', temperature: 0, max_tokens: 900, messages: msgs })
       });
       const t = (await r.json())?.choices?.[0]?.message?.content;
-      if (t) return t;
-    } catch (e) { /* fall through */ }
+      if (t) { note('openai gpt-4o-mini ok'); return t; }
+      note('openai returned nothing');
+    } catch (e) { note('openai failed: ' + (e.message || e)); }
   }
 
   if (env.AI) {
     for (const model of CF_MODELS) {
       try {
         const r = await env.AI.run(model, { messages: msgs, max_tokens: 900, temperature: 0 });
-        if (r?.response) return r.response;
-      } catch (e) { /* try the next model */ }
+        if (r?.response) { note(model + ' ok'); return r.response; }
+        note(model + ' returned no text: ' + JSON.stringify(r).slice(0, 160));
+      } catch (e) { note(model + ' failed: ' + String(e.message || e).slice(0, 200)); }
     }
   }
 
@@ -363,11 +374,30 @@ async function callAI(env, system, user) {
         body: JSON.stringify({ model: 'llama-3.3-70b-versatile', temperature: 0, max_tokens: 900, messages: msgs })
       });
       const t = (await r.json())?.choices?.[0]?.message?.content;
-      if (t) return t;
-    } catch (e) { /* fall through */ }
+      if (t) { note('groq ok'); return t; }
+      note('groq returned nothing');
+    } catch (e) { note('groq failed: ' + (e.message || e)); }
   }
 
   return '';
+}
+
+// Runs a parse and reports every step, without writing anything to the log.
+export async function parseTrace(env, input) {
+  const known = await all(env, 'SELECT name,serving,kcal FROM foods LIMIT 5');
+  const raw = await callAI(env, 'Reply with the single word: ready', 'ping');
+  const trace = [...AI_TRACE];
+  const result = await parseFood(env, input);
+  return {
+    input,
+    ai_reachable: !!raw,
+    ai_ping_reply: String(raw || '').slice(0, 120),
+    ai_trace_ping: trace,
+    ai_trace_parse: [...AI_TRACE],
+    stated: statedMacros(input),
+    result,
+    library_sample: known
+  };
 }
 
 const grabJSON = (s) => {
@@ -441,8 +471,11 @@ export async function parseFood(env, input) {
 
 Each element: {"item":string,"kcal":number,"protein":number,"carbs":number,"fat":number,"fiber":number}
 
+Return: {"meal":string,"items":[ ... ]}
+"meal" is a short natural name for what he ate as a whole, e.g. "Greek yogurt bowl" or "Short rib plate".
+
 RULES
-1. ONE ELEMENT PER FOOD. If several foods are described, return several elements. Never merge them into one row.
+1. One element in "items" per component food, so the maths is visible. They are parts of one meal, not separate meals.
 2. If a per-unit figure is given, scale it to the amount eaten. "210 per 2 tbsp" and "2 teaspoons" means 2 tsp = 0.667 tbsp, so 210 x (0.667/2) = 70 kcal.
 3. If a total calorie or macro figure is stated for an item, use it exactly. Do not re-estimate it.
 4. Anything not given a number, estimate from standard nutrition data for the amount described.
@@ -450,34 +483,46 @@ RULES
 
 EXAMPLE
 Input: 1 serving of plain Greek yogurt, added 4 strawberries, 2 teaspoons of hazelnut spread with cocoa at 210 per 2tbspn
-Output: [{"item":"Plain Greek yogurt, 1 serving","kcal":100,"protein":18,"carbs":6,"fat":0,"fiber":0},{"item":"Strawberries, 4","kcal":16,"protein":0,"carbs":4,"fat":0,"fiber":1},{"item":"Hazelnut cocoa spread, 2 tsp","kcal":70,"protein":1,"carbs":8,"fat":4,"fiber":0}]
+Output: {"meal":"Greek yogurt bowl","items":[{"item":"Plain Greek yogurt, 1 serving","kcal":100,"protein":18,"carbs":6,"fat":0,"fiber":0},{"item":"Strawberries, 4","kcal":16,"protein":0,"carbs":4,"fat":0,"fiber":1},{"item":"Hazelnut cocoa spread, 2 tsp","kcal":70,"protein":1,"carbs":8,"fat":4,"fiber":0}]}
+
+If only one food is described, still use the same shape with a single item.
 
 KNOWN FOODS (use these figures when the text matches one)
 ${known.map((f) => `${f.name} | ${f.serving} | ${f.kcal}kcal ${f.protein}p ${f.carbs}c ${f.fat}f ${f.fiber}fib`).join('\n')}`;
 
-  let parsed = grabJSON(await callAI(env, sys, input));
-  if (Array.isArray(parsed) && parsed.length === 1 && multi) {
-    const retry = grabJSON(await callAI(env,
-      sys + '\n\nThe previous answer wrongly returned a single row. This input describes SEVERAL foods. Split it.',
-      input));
-    if (Array.isArray(retry) && retry.length > 1) parsed = retry;
-  }
-  if (Array.isArray(parsed) && parsed.length) {
-    const rows = parsed.map((p) => ({
-      item: String(p.item || input).slice(0, 120),
-      kcal: +p.kcal || 0, protein: +p.protein || 0, carbs: +p.carbs || 0,
-      fat: +p.fat || 0, fiber: +p.fiber || 0, src: 'ai'
+  const raw = grabJSON(await callAI(env, sys, input));
+  const listOf = (x) => Array.isArray(x) ? x : Array.isArray(x?.items) ? x.items : null;
+  let list = listOf(raw);
+
+  if (list && list.length) {
+    let parts = list.map((p) => ({
+      item: String(p.item || 'item').slice(0, 90),
+      kcal: Math.round(+p.kcal || 0), protein: Math.round(+p.protein || 0),
+      carbs: Math.round(+p.carbs || 0), fat: Math.round(+p.fat || 0), fiber: Math.round(+p.fiber || 0)
     })).filter((r) => r.item);
-    // If he stated a total and the model's sum is way off, trust him over the model.
-    if (stated.kcal != null) {
-      const sum = rows.reduce((a, r) => a + r.kcal, 0);
-      if (rows.length === 1) rows[0].kcal = stated.kcal;
-      else if (sum && Math.abs(sum - stated.kcal) / stated.kcal > 0.5) {
+
+    // He stated a total: that wins, and the components scale to agree with it.
+    if (stated.kcal != null && parts.length > 1) {
+      const sum = parts.reduce((a, r) => a + r.kcal, 0);
+      if (sum && Math.abs(sum - stated.kcal) / stated.kcal > 0.4) {
         const k = stated.kcal / sum;
-        rows.forEach((r) => { r.kcal = Math.round(r.kcal * k); });
+        parts.forEach((r) => { r.kcal = Math.round(r.kcal * k); });
       }
     }
-    if (rows.length) return rows;
+
+    const add = (k) => parts.reduce((a, r) => a + (r[k] || 0), 0);
+    const name = String(raw?.meal || '').trim().slice(0, 90)
+      || (parts.length === 1 ? parts[0].item : parts.map((p) => p.item.split(',')[0]).slice(0, 3).join(' + '));
+
+    // One meal, one row. The breakdown rides along so it stays inspectable.
+    return [{
+      item: name,
+      kcal: stated.kcal != null && parts.length === 1 ? stated.kcal : add('kcal'),
+      protein: stated.protein ?? add('protein'), carbs: stated.carbs ?? add('carbs'),
+      fat: stated.fat ?? add('fat'), fiber: stated.fiber ?? add('fiber'),
+      parts: parts.length > 1 ? parts : null,
+      src: 'ai'
+    }];
   }
 
   // No AI available: match against the food table, conservatively.
@@ -497,7 +542,17 @@ ${known.map((f) => `${f.name} | ${f.serving} | ${f.kcal}kcal ${f.protein}p ${f.c
       fat: r(hit.fat), fiber: r(hit.fiber), src: 'match'
     });
   }
-  if (out.length) return out;
+  if (out.length === 1) return out;
+  if (out.length > 1) {
+    const add = (k) => out.reduce((a, r) => a + (r[k] || 0), 0);
+    return [{
+      item: out.map((p) => p.item.split(/[,+]/)[0]).slice(0, 3).join(' + '),
+      kcal: add('kcal'), protein: add('protein'), carbs: add('carbs'),
+      fat: add('fat'), fiber: add('fiber'),
+      parts: out.map(({ item, kcal, protein, carbs, fat, fiber }) => ({ item, kcal, protein, carbs, fat, fiber })),
+      src: 'match'
+    }];
+  }
 
   // Nothing recognised. Log it at zero and flag it rather than inventing a number.
   return [{ item: input.slice(0, 120), kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, src: 'unparsed' }];
@@ -741,6 +796,29 @@ export async function icsFeed(env) {
 
   L.push('END:VCALENDAR');
   return L.join('\r\n');
+}
+
+/* ---------------- calories burned ---------------- */
+// MET-based: kcal = MET x bodyweight(kg) x hours. Rep work has no clock on it, so
+// duration is inferred at roughly 3 seconds a rep plus 45 seconds rest between sets.
+// This is an estimate and it is never subtracted from the day's calorie target —
+// eating back exercise calories is the most common way a deficit quietly disappears.
+
+export function estimateBurn({ met, minutes, sets, reps, unit, weightLb }) {
+  const kg = (weightLb || 154) / 2.20462;
+  let mins = Number(minutes) || 0;
+  if (!mins && (sets || reps)) {
+    const s = Number(sets) || 1, r = Number(reps) || 0;
+    mins = unit === 'time' ? (s * r) / 60 : (s * r * 3 + Math.max(0, s - 1) * 45) / 60;
+  }
+  if (!mins) return null;
+  const m = Number(met) || 4.5;
+  return Math.round(m * kg * (mins / 60));
+}
+
+export async function bodyWeightLb(env) {
+  const w = await one(env, 'SELECT lb FROM weights WHERE lb IS NOT NULL ORDER BY d DESC LIMIT 1');
+  return w?.lb || Number((await profile(env)).start_weight_lb) || 154;
 }
 
 /* ---------------- v3: the coach line on the hub ---------------- */

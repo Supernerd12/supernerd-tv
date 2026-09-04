@@ -5,13 +5,18 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="robots" content="noindex,nofollow">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Board">
+<meta name="apple-mobile-web-app-title" content="Supernerd Fit">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="shortcut icon" href="/favicon.ico">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#08090A">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">
-<title>Board</title>
+<title>Supernerd Fit</title>
 <style>
 :root{
   --bg:#07070A; --ink:#EDEBE8; --dim:#8A8F98; --faint:#5A606A;
@@ -52,13 +57,16 @@ input::placeholder,textarea::placeholder{color:var(--faint)}
 :focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 .hide{display:none!important}
 
-header{display:flex;align-items:center;justify-content:space-between;gap:10px;position:relative;padding:max(16px,env(safe-area-inset-top)) 0 16px;position:sticky;top:0;z-index:5;
-  background:linear-gradient(180deg,var(--bg) 62%,transparent)}
-header h1{font-family:var(--display);font-size:30px;font-weight:600;margin:0;letter-spacing:.005em;line-height:1;text-transform:uppercase}
-header .date{font:11px/1 var(--mono);color:var(--dim);text-transform:uppercase;letter-spacing:.14em;
+header{display:flex;align-items:center;justify-content:space-between;gap:10px;position:sticky;top:0;z-index:5;
+  padding:calc(env(safe-area-inset-top) + 22px) 0 16px;min-height:74px;
+  background:linear-gradient(180deg,var(--bg) 70%,transparent)}
+header h1{font-family:var(--display);font-size:27px;font-weight:600;margin:0;letter-spacing:.005em;line-height:1;text-transform:uppercase}
+header .date{font:10px/1.3 var(--mono);color:var(--dim);text-transform:uppercase;letter-spacing:.14em;
   min-width:74px;text-align:right}
-#ver{position:absolute;left:50%;transform:translateX(-50%);font:10px/1 var(--mono);letter-spacing:.14em;
-  color:var(--dim);background:rgba(255,255,255,.06);border:1px solid var(--rule);border-radius:99px;padding:6px 12px}
+#ver{position:absolute;left:50%;top:calc(env(safe-area-inset-top) + 18px);transform:translateX(-50%);
+  font:10px/1 var(--mono);letter-spacing:.14em;color:var(--dim);
+  background:rgba(255,255,255,.06);border:1px solid var(--rule);border-radius:99px;
+  padding:11px 18px;min-height:36px}
 #ver.ok{color:var(--acc);border-color:var(--acc)}
 #ver.bad{color:var(--over);border-color:var(--over);background:rgba(229,107,91,.12)}
 header{position:sticky}
@@ -248,7 +256,7 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
 <div id="app" class="hide">
 <header>
   <h1 id="vtitle">Today</h1>
-  <button id="ver" title="Tap to force a fresh copy">v10</button>
+  <button id="ver" title="Tap to force a fresh copy">v15</button>
   <span class="date" id="vdate"></span>
 </header>
 
@@ -383,6 +391,7 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
   <div id="library" class="hide" style="margin-top:14px"></div>
   <div id="exDetail" class="hide" style="margin-top:16px"></div>
 
+  <div id="strengthOnly">
   <h2>Rep counter</h2>
   <div class="card">
     <input id="rcName" placeholder="Exercise, e.g. Jumping jacks" style="width:100%">
@@ -417,10 +426,12 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
 
   <h2>Logged today</h2>
   <div id="tLog"></div>
+  <p class="tiny" id="tBurn" style="margin-top:8px"></p>
 
   <h2>Watch the Achilles</h2>
   <div class="card">
     <p class="tiny" style="margin:0">Jumping jacks stay at 200 for the first several sessions. 200 → 250 → 300 only when recovery is clean. The moment the Achilles, ankle, knee or shin talks back, switch to step jacks. Don't push through it — that tendon has already told you once.</p>
+  </div>
   </div>
 </section>
 
@@ -612,7 +623,8 @@ async function refresh(){
   $('#hKcal').textContent=`${t.kcal} / ${g.kcal_high}`;
   $('#hProt').textContent=`${t.protein} / ${g.protein} g`;
   $('#hWater').textContent=`${t.water_oz} / ${t.water_target} oz`;
-  $('#hTrain').textContent=t.workouts.length?`${t.workouts.length} logged`:'nothing yet';
+  $('#hTrain').textContent=t.workouts.length
+    ? `${t.workouts.length} logged${t.burn_kcal?` · ≈${t.burn_kcal} kcal`:''}` : 'nothing yet';
   $('#hPhoto').textContent=t.has_photo?'taken':'not taken';
 
   const left=t.kcal_remaining, fl=$('#fLeft');
@@ -630,8 +642,11 @@ async function refresh(){
   $('#fLog').innerHTML=t.food_items.length
     ? t.food_items.map(i=>{
         const bad = !i.kcal || i.src==='unparsed';
-        return `<button class="item" data-fedit="${i.id}" style="width:100%;text-align:left">
-          <span style="${bad?'color:var(--over)':''}">${esc(i.item)}</span>
+        const n = i.parts?.length||0;
+        return `<button class="item" data-fedit="${i.id}" style="width:100%;text-align:left;align-items:flex-start">
+          <span style="${bad?'color:var(--over)':''}">${esc(i.item)}
+            ${n?`<span style="display:block;font:10px/1.5 var(--mono);color:var(--faint);letter-spacing:.06em;margin-top:3px">${
+              i.parts.map(p=>esc(p.item.split(',')[0])+' '+Math.round(p.kcal)).join('  ·  ')}</span>`:''}</span>
           <span class="m" style="${bad?'color:var(--over)':''}">${bad?'no macros · tap to fix':`${Math.round(i.kcal)} kcal · ${Math.round(i.protein)}g`}</span>
           <span style="color:var(--faint);margin-left:6px">›</span></button>`;}).join('')
     : '<p class="empty">Nothing logged yet today.</p>';
@@ -639,9 +654,12 @@ async function refresh(){
 
   $('#tLog').innerHTML=t.workouts.length
     ? t.workouts.map(w=>`<button class="item" data-wdel="${w.id}" style="width:100%;text-align:left"><span>${esc(w.exercise)}</span>
-       <span class="m">${[w.sets&&`${w.sets}×${w.reps}`,w.weight&&`${w.weight} lb`,w.minutes&&`${w.minutes} min`].filter(Boolean).join(' · ')||'logged'}</span>
+       <span class="m">${[w.sets&&`${w.sets}×${w.reps}`,w.weight&&`${w.weight} lb`,w.minutes&&`${w.minutes} min`,w.kcal&&`≈${Math.round(w.kcal)} kcal`].filter(Boolean).join(' · ')||'logged'}</span>
        <span style="color:var(--faint);margin-left:6px">×</span></button>`).join('')
     : '<p class="empty">Nothing logged yet today.</p>';
+  $('#tBurn').textContent = t.burn_kcal
+    ? `Roughly ${t.burn_kcal} kcal burned. An estimate from effort and bodyweight — it is deliberately not added back to your food target.`
+    : '';
 }
 
 async function loadInv(){
@@ -848,6 +866,7 @@ async function loadTrain(){
   $('#cardioBox').classList.toggle('hide',!cardio);
   $('#muscles').classList.toggle('hide',cardio);
   $('#addRow').classList.toggle('hide',cardio);
+  $('#strengthOnly').classList.toggle('hide',cardio);
   if(cardio){ $('#exList').innerHTML=''; return loadCardio(); }
 
   $('#muscles').innerHTML='<div class="seg sm">'+MUSCLES[DISC].map(([k,l])=>
@@ -866,49 +885,64 @@ async function loadCardio(){
   const c = await api('cardio?range='+CARDIORANGE);
   const t = c.today||{};
   const roll = !!c.rolling;
-  const pct = c.target_steps ? Math.min(100,(t.steps||0)/c.target_steps*100) : 0;
+  const s2 = c.series||[];
+  const nums = s2.map(r=>r.value!=null?r.value:r.steps).filter(v=>v>0);
+  const headline = roll ? (t.steps||0) : (c.avg_steps||0);
+  const span = s2.length
+    ? (roll ? 'Last 24 hours'
+            : `${shortD(s2[0].d)} – ${shortD(s2[s2.length-1].d)}`)
+    : '';
+  const pct = c.target_steps ? Math.min(100,headline/c.target_steps*100) : 0;
+
   $('#cardioBox').innerHTML=`
-    <div class="card acc">
-      <div style="display:flex;align-items:baseline;gap:9px">
-        <span class="big" id="cSteps">${(t.steps||0).toLocaleString()}</span>
-        <span class="tiny">steps<br>${roll?'last 24 hours':'today'}</span>
-        <span class="tiny" style="margin-left:auto;text-align:right">target<br>${(c.target_steps||0).toLocaleString()}</span>
-      </div>
-      <div class="bar"><i style="width:${pct}%"></i></div>
-      <div class="line"><span>Distance</span><b>${t.distance?t.distance+' mi':'—'}</b></div>
-      ${roll?`<div class="line"><span>Busiest hour</span><b>${c.busiest_hour||'—'}</b></div>`
-            :`<div class="line"><span>Walking time</span><b>${t.walk_min?Math.round(t.walk_min)+' min':'—'}</b></div>
-              <div class="line"><span>Active calories</span><b>${t.active_kcal?Math.round(t.active_kcal):'—'}</b></div>`}
-      <p class="tiny" style="margin:12px 0 0">${roll
-        ? (c.hours_with_data ? 'Rolling 24 hours, hour by hour. Straight from Apple Health.'
-                             : 'No hourly data yet — run the shortcut once and this fills in.')
-        : 'Straight from Apple Health. Nothing to log by hand.'}</p>
-    </div>
-    <div class="seg sm" style="margin-top:12px">
+    <div class="seg sm">
       ${['day','week','month','ytd','all'].map(r=>`<button data-crange="${r}" class="${r===CARDIORANGE?'on':''}">${r==='ytd'?'YTD':cap(r)}</button>`).join('')}
     </div>
-    <div class="card" style="margin-top:10px">
-      <div style="display:flex;gap:7px;justify-content:flex-end;margin-bottom:6px">
-        <button class="pill ${CHARTMODE==='bar'?'on':''}" data-cm2="bar" style="margin:0">Bars</button>
-        <button class="pill ${CHARTMODE==='line'?'on':''}" data-cm2="line" style="margin:0">Line</button>
+
+    <div class="card acc" style="margin-top:12px">
+      <p class="tiny" style="margin:0 0 2px">${roll?'Total':'Daily average'}</p>
+      <div style="display:flex;align-items:baseline;gap:9px">
+        <span class="big">${headline.toLocaleString()}</span><span class="tiny">steps</span>
       </div>
-      <canvas class="chart" id="cChart"></canvas>
-      ${roll?`
-      <div class="line" style="margin-top:10px"><span>Steps in 24 hours</span><b>${(c.total_steps||0).toLocaleString()}</b></div>
-      <div class="line"><span>Hours with movement</span><b>${c.hours_with_data} of 24</b></div>
-      <div class="line"><span>Distance</span><b>${c.total_distance||0} mi</b></div>
-      `:`
-      <div class="line" style="margin-top:10px"><span>Daily average</span><b>${c.avg_steps?c.avg_steps.toLocaleString():'—'}</b></div>
-      <div class="line"><span>Best day</span><b>${c.best_day?c.best_day.steps.toLocaleString()+' · '+shortD(c.best_day.d):'—'}</b></div>
-      <div class="line"><span>Days at target</span><b>${c.days_counted?`${c.days_at_target} of ${c.days_counted}`:'—'}</b></div>
-      <div class="line"><span>Total distance</span><b>${c.total_distance||0} mi</b></div>
-      <div class="line"><span>Total walking time</span><b>${c.total_walk_min||0} min</b></div>`}
+      <p class="tiny" style="margin:4px 0 0">${span}</p>
+      <div class="bar"><i style="width:${pct}%"></i></div>
+      <p class="tiny" style="margin:0">${headline>=(c.target_steps||0)?'At or above':'Under'} the ${(c.target_steps||0).toLocaleString()} target</p>
+      <div style="margin-top:14px">
+        <div style="display:flex;gap:7px;justify-content:flex-end;margin-bottom:8px">
+          <button class="pill ${CHARTMODE==='bar'?'on':''}" data-cm2="bar" style="margin:0">Bars</button>
+          <button class="pill ${CHARTMODE==='line'?'on':''}" data-cm2="line" style="margin:0">Line</button>
+        </div>
+        <canvas class="chart" id="cChart" style="height:186px"></canvas>
+      </div>
     </div>
-    ${c.sessions.length?`<h2>Walks you logged</h2>`+c.sessions.map(x=>
+
+    <div class="card" style="margin-top:10px">
+      ${roll?`
+        <div class="line"><span>Distance</span><b>${t.distance?t.distance+' mi':'—'}</b></div>
+        <div class="line"><span>Walking time</span><b>${t.walk_min?Math.round(t.walk_min)+' min':'—'}</b></div>
+        <div class="line"><span>Active calories</span><b>${t.active_kcal?Math.round(t.active_kcal):'—'}</b></div>
+        <div class="line"><span>Busiest hour</span><b>${c.busiest_hour||'—'}</b></div>
+      `:`
+        <div class="line"><span>Total steps</span><b>${(c.total_steps||0).toLocaleString()}</b></div>
+        <div class="line"><span>Best day</span><b>${c.best_day?c.best_day.steps.toLocaleString()+' · '+shortD(c.best_day.d):'—'}</b></div>
+        <div class="line"><span>Days at target</span><b>${c.days_counted?`${c.days_at_target} of ${c.days_counted}`:'—'}</b></div>
+        <div class="line"><span>Range</span><b>${nums.length?`${Math.min(...nums).toLocaleString()} – ${Math.max(...nums).toLocaleString()}`:'—'}</b></div>
+        <div class="line"><span>Total distance</span><b>${c.total_distance||0} mi</b></div>
+        <div class="line"><span>Walking time</span><b>${c.total_walk_min||0} min</b></div>
+      `}
+      <p class="tiny" style="margin:12px 0 0">${roll
+        ? (c.hourly_available ? 'Hour by hour from Apple Health.'
+            : (t.steps ? 'Showing today\u2019s total. Add the hourly actions to your shortcut for a true rolling 24 hours.'
+                       : 'Nothing synced yet today. Run your shortcut.'))
+        : 'Straight from Apple Health. Nothing to log by hand.'}</p>
+    </div>
+
+    ${c.sessions?.length?`<h2>Walks you logged</h2>`+c.sessions.map(x=>
       `<div class="item"><span>${esc(x.ex||'walk')}</span><span class="m">${shortD(x.d)}${x.minutes?' · '+Math.round(x.minutes)+' min':''}</span></div>`).join(''):''}`;
-  const series=c.series.map(r=>({d:r.d,value:r.value!=null?r.value:r.steps,label:r.label}));
+
+  const series=s2.map(r=>({d:r.d,value:r.value!=null?r.value:r.steps,label:r.label}));
   LASTSERIES={series,unit:'steps'};
-  drawChart($('#cChart'),series,'steps',CHARTMODE);
+  drawChart($('#cChart'),series,'steps',CHARTMODE,c.target_steps);
 }
 
 async function loadLibrary(){
@@ -967,8 +1001,8 @@ async function openExercise(id){
 
 const cssVar=n=>getComputedStyle(document.body).getPropertyValue(n).trim();
 
-function drawChart(c, series, unit, mode='bar'){
-  const dpr=devicePixelRatio||1, W=c.clientWidth||300, H=158;
+function drawChart(c, series, unit, mode='bar', target){
+  const dpr=devicePixelRatio||1, W=c.clientWidth||300, H=c.clientHeight||158;
   c.width=W*dpr; c.height=H*dpr;
   const x=c.getContext('2d'); x.scale(dpr,dpr); x.clearRect(0,0,W,H);
   const acc=cssVar('--acc')||'#FFB627', acc2=cssVar('--acc2')||'#FF6B35';
@@ -984,6 +1018,12 @@ function drawChart(c, series, unit, mode='bar'){
   [0,.5,1].forEach(f=>{const y=top+plot*f;x.beginPath();x.moveTo(0,y+.5);x.lineTo(W,y+.5);x.stroke();});
 
   const g=x.createLinearGradient(0,top,W,bot); g.addColorStop(0,acc); g.addColorStop(1,acc2);
+
+  if(target&&target<max*1.6){
+    const ty=bot-(target/max)*plot;
+    x.save();x.setLineDash([3,4]);x.strokeStyle=hexA(acc,.5);x.beginPath();
+    x.moveTo(0,ty);x.lineTo(W,ty);x.stroke();x.restore();
+  }
 
   if(mode==='line'){
     const px=i=>n===1?W/2:(i/(n-1))*(W-8)+4, py=v=>bot-(v/max)*plot;
@@ -1009,11 +1049,21 @@ function drawChart(c, series, unit, mode='bar'){
 
   x.fillStyle=dim; x.font='10px ui-monospace,Menlo,monospace';
   const lab=r=>r.label||shortD(r.d);
-  x.fillText(lab(series[0]),0,H-6);
-  if(n>6){const mid=series[Math.floor(n/2)],ml=lab(mid);
-    x.fillText(ml,(W-x.measureText(ml).width)/2,H-6);}
-  const lbl=lab(series[n-1]);
-  x.fillText(lbl, W-x.measureText(lbl).width, H-6);
+  // Few enough bars? Label every one, the way Health does.
+  if(n<=8&&mode==='bar'){
+    const gap=4,bw=(W-gap*(n-1))/n;
+    series.forEach((r,i)=>{
+      const d=r.label||new Date(r.d+'T12:00').toLocaleDateString('en-US',{weekday:'short'});
+      const w=x.measureText(d).width;
+      x.fillText(d, i*(bw+gap)+bw/2-w/2, H-6);
+    });
+  }else{
+    x.fillText(lab(series[0]),0,H-6);
+    if(n>6){const mid=series[Math.floor(n/2)],ml=lab(mid);
+      x.fillText(ml,(W-x.measureText(ml).width)/2,H-6);}
+    const lbl=lab(series[n-1]);
+    x.fillText(lbl, W-x.measureText(lbl).width, H-6);
+  }
   x.fillStyle=hexA(acc,.85);
   x.fillText(fmtN(max)+(unit==='distance'?' MI':unit==='time'?' MIN':''),0,11);
 }
@@ -1098,6 +1148,11 @@ document.addEventListener('click',async e=>{
       <div style="display:flex;align-items:baseline"><b style="font-family:var(--display);font-size:19px;text-transform:uppercase">Fix this entry</b>
       <button class="tiny" id="feClose" style="margin-left:auto;color:var(--dim)">close</button></div>
       <input id="feItem" value="${esc(i.item)}" style="width:100%;margin-top:10px">
+      ${i.parts?.length?`<div style="margin-top:10px">
+        <p class="tiny" style="margin:0 0 4px">What went into it</p>
+        ${i.parts.map(p=>`<div class="line" style="padding:7px 0"><span>${esc(p.item)}</span>
+          <b style="font-size:15px">${Math.round(p.kcal)} kcal · ${Math.round(p.protein||0)}g</b></div>`).join('')}
+        <p class="tiny" style="margin:8px 0 0">Editing the totals below overrides this breakdown.</p></div>`:''}
       <div class="row" style="margin-top:8px">
         <div><label class="tiny">Calories</label><input id="feKcal" type="number" inputmode="decimal" value="${Math.round(i.kcal)}" style="width:100%;margin-top:4px"></div>
         <div><label class="tiny">Protein g</label><input id="feProt" type="number" inputmode="decimal" value="${Math.round(i.protein)}" style="width:100%;margin-top:4px"></div>
@@ -1229,6 +1284,7 @@ document.addEventListener('click',async e=>{
   if(b.dataset.range){EXRANGE=b.dataset.range;return openExercise(EXID);}
   if(b.dataset.cm){CHARTMODE=b.dataset.cm;
     document.querySelectorAll('[data-cm]').forEach(x=>x.classList.toggle('on',x===b));
+    if($('#cChart'))return loadCardio();
     if(LASTSERIES)drawChart($('#exChart'),LASTSERIES.series,LASTSERIES.unit,CHARTMODE);return;}
   if(b.id==='exClose'){$('#exDetail').classList.add('hide');return;}
   if(b.dataset.name){$('#rcName').value=b.dataset.name;RC={done:0};rcPaint();

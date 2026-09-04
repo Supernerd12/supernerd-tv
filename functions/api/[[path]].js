@@ -3,7 +3,7 @@ import {
   all, one, run, profile, currentTarget, trends, today, decide,
   suggestMeal, parseFood, parseWorkout, contextDoc, checkin,
   dayRange, grocery, icsFeed, coachBrief, exerciseStats, trainingOverview, ensureExercise, matchExercise,
-  rangeStart
+  rangeStart, parseTrace, estimateBurn, bodyWeightLb
 } from '../_lib.js';
 
 export async function onRequest(ctx) {
@@ -74,8 +74,9 @@ export async function onRequest(ctx) {
         const items = await parseFood(env, String(body.text || ''));
         for (const i of items)
           await run(env,
-            'INSERT INTO food_log (d,ts,item,kcal,protein,carbs,fat,fiber,src) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)',
-            [d, nowStr(), i.item, i.kcal, i.protein, i.carbs, i.fat, i.fiber, i.src]);
+            'INSERT INTO food_log (d,ts,item,kcal,protein,carbs,fat,fiber,src,parts) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)',
+            [d, nowStr(), i.item, i.kcal, i.protein, i.carbs, i.fat, i.fiber, i.src,
+             i.parts ? JSON.stringify(i.parts) : null]);
         return json({ logged: items, today: await today(env, d) });
       }
 
@@ -148,12 +149,22 @@ export async function onRequest(ctx) {
             distance: byT[k.t]?.distance || 0
           }));
           const t2 = await currentTarget(env);
-          const totalSteps = series.reduce((a, r) => a + r.value, 0);
-          const totalDist = series.reduce((a, r) => a + (r.distance || 0), 0);
+          let totalSteps = series.reduce((a, r) => a + r.value, 0);
+          let totalDist = series.reduce((a, r) => a + (r.distance || 0), 0);
+
+          // No hourly data yet? Show today's daily total rather than a misleading zero.
+          const dayRow = await one(env, 'SELECT steps, distance, walk_min, active_kcal FROM activity WHERE d=?1', [dayStr()]);
+          const hourly = series.some((r) => r.value > 0);
+          if (!hourly && dayRow?.steps) {
+            totalSteps = dayRow.steps;
+            totalDist = dayRow.distance || 0;
+          }
           const busiest = series.reduce((a, b) => (b.value > a.value ? b : a), series[0]);
           return json({
             range, rolling: true, target_steps: t2.steps,
-            today: { steps: Math.round(totalSteps), distance: Math.round(totalDist * 100) / 100 },
+            today: { steps: Math.round(totalSteps), distance: Math.round(totalDist * 100) / 100,
+                     walk_min: dayRow?.walk_min ?? null, active_kcal: dayRow?.active_kcal ?? null },
+            hourly_available: hourly,
             total_steps: Math.round(totalSteps),
             total_distance: Math.round(totalDist * 100) / 100,
             busiest_hour: busiest && busiest.value ? busiest.label : null,
@@ -236,8 +247,9 @@ export async function onRequest(ctx) {
           if (action.kind === 'food' && action.text) {
             const items = await parseFood(env, action.text);
             for (const i of items)
-              await run(env, 'INSERT INTO food_log (d,ts,item,kcal,protein,carbs,fat,fiber,src) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)',
-                [dd, nowStr(), i.item, i.kcal, i.protein, i.carbs, i.fat, i.fiber, 'chat']);
+              await run(env, 'INSERT INTO food_log (d,ts,item,kcal,protein,carbs,fat,fiber,src,parts) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)',
+                [dd, nowStr(), i.item, i.kcal, i.protein, i.carbs, i.fat, i.fiber, 'chat',
+                 i.parts ? JSON.stringify(i.parts) : null]);
           } else if (action.kind === 'workout' && action.text) {
             const items = await parseWorkout(env, action.text);
             for (const i of items) await insertSet(env, dd, i, 'chat');
@@ -335,6 +347,9 @@ export async function onRequest(ctx) {
       }
 
       /* Tells the app which optional bindings are actually wired up. */
+      case 'POST parse-test':
+        return json(await parseTrace(env, String(body.text || 'two eggs and a banana')));
+
       case 'GET diagnostics': {
         const counts = await one(env,
           `SELECT (SELECT COUNT(*) FROM foods) foods, (SELECT COUNT(*) FROM exercises) exercises,
@@ -428,7 +443,16 @@ export async function onRequest(ctx) {
             [b.d, b.lb, b.bodyfat, b.muscle, b.visceral]);
 
         const hourCount = await one(env, 'SELECT COUNT(*) n FROM activity_hours');
-        return json({ ok: true, days: rows.length, body_days: bodyRows.length, hours_stored: hourCount?.n ?? 0 });
+        const got = Object.fromEntries(Object.entries(body)
+          .filter(([k]) => !['metrics','data'].includes(k))
+          .map(([k, v]) => [k, Array.isArray(v) ? `array(${v.length})` : v]));
+        return json({
+          ok: true, days: rows.length, body_days: bodyRows.length, hours_stored: hourCount?.n ?? 0,
+          received: got,
+          warning: rows.length === 0 && bodyRows.length === 0
+            ? 'Nothing usable arrived. Every value was empty, zero or not a number — check the Get Value actions in your shortcut.'
+            : undefined
+        });
       }
 
       case 'DELETE food':
@@ -551,12 +575,20 @@ export async function onRequest(ctx) {
 }
 
 async function insertSet(env, d, i, note) {
-  return run(env,
-    `INSERT INTO workout_log (d,ts,exercise_id,exercise,discipline,muscle,sets,reps,weight,minutes,distance,rpe,note)
-     VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13)`,
+  const ex = i.exercise_id
+    ? await one(env, 'SELECT met, unit FROM exercises WHERE id=?1', [i.exercise_id]) : null;
+  const kcal = estimateBurn({
+    met: ex?.met, unit: ex?.unit, minutes: i.minutes, sets: i.sets, reps: i.reps,
+    weightLb: await bodyWeightLb(env)
+  });
+  await run(env,
+    `INSERT INTO workout_log (d,ts,exercise_id,exercise,discipline,muscle,sets,reps,weight,minutes,distance,rpe,note,kcal)
+     VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14)`,
     [d, nowStr(), i.exercise_id ?? null, i.exercise, i.discipline ?? null, i.muscle ?? null,
      i.sets ?? null, i.reps ?? null, i.weight ?? null, i.minutes ?? null, i.distance ?? null,
-     i.rpe ?? null, note || null]);
+     i.rpe ?? null, note || null, kcal]);
+  i.kcal = kcal;
+  return kcal;
 }
 
 /* Health Auto Export sends {data:{metrics:[{name,units,data:[{date,qty}]}]}}.
@@ -568,8 +600,11 @@ function normalizeHealth(body) {
     walking_running_distance: 'distance', distance_walking_running: 'distance'
   };
   const byDay = {};
+  // A zero from a misconfigured shortcut must never overwrite a real reading.
+  // Genuine rest days are indistinguishable from a broken automation here, and
+  // silently wiping a good number is far worse than missing one.
   const put = (d, k, v) => {
-    if (v == null || isNaN(v)) return;
+    if (v == null || isNaN(v) || v === 0) return;
     byDay[d] = byDay[d] || { d, steps: null, walk_min: null, active_kcal: null, resting_hr: null, exercise_hr: null, sleep_min: null, distance: null, src: 'apple-health' };
     byDay[d][k] = k === 'steps' ? Math.round(v) : Math.round(v * 10) / 10;
   };
