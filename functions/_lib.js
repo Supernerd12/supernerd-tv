@@ -143,8 +143,14 @@ export async function today(env, d = dayStr()) {
     'SELECT COALESCE(SUM(kcal),0) kcal, COALESCE(SUM(protein),0) protein, COALESCE(SUM(carbs),0) carbs, COALESCE(SUM(fat),0) fat, COALESCE(SUM(fiber),0) fiber, COUNT(*) n FROM food_log WHERE d=?1',
     [d]
   );
-  const items = (await all(env, 'SELECT id,ts,item,kcal,protein,carbs,fat,fiber,src,parts FROM food_log WHERE d=?1 ORDER BY id', [d]))
-    .map((r) => ({ ...r, parts: r.parts ? JSON.parse(r.parts) : null }));
+  let items;
+  try {
+    items = (await all(env, 'SELECT id,ts,item,kcal,protein,carbs,fat,fiber,src,parts FROM food_log WHERE d=?1 ORDER BY id', [d]))
+      .map((r) => ({ ...r, parts: r.parts ? JSON.parse(r.parts) : null }));
+  } catch (e) {
+    items = (await all(env, 'SELECT id,ts,item,kcal,protein,carbs,fat,fiber,src FROM food_log WHERE d=?1 ORDER BY id', [d]))
+      .map((r) => ({ ...r, parts: null }));
+  }
   const w = await all(env, 'SELECT * FROM workout_log WHERE d=?1 ORDER BY id', [d]);
   const burn = w.reduce((a, r) => a + (r.kcal || 0), 0);
   const a = await one(env, 'SELECT * FROM activity WHERE d=?1', [d]);
@@ -360,7 +366,9 @@ async function callAI(env, system, user) {
     for (const model of CF_MODELS) {
       try {
         const r = await env.AI.run(model, { messages: msgs, max_tokens: 900, temperature: 0 });
-        if (r?.response) { note(model + ' ok'); return r.response; }
+        const out = typeof r === 'string' ? r
+          : (r?.response ?? r?.result?.response ?? r?.output ?? null);
+        if (out) { note(model + ' ok (' + typeof out + ')'); return typeof out === 'string' ? out : JSON.stringify(out); }
         note(model + ' returned no text: ' + JSON.stringify(r).slice(0, 160));
       } catch (e) { note(model + ' failed: ' + String(e.message || e).slice(0, 200)); }
     }
@@ -400,11 +408,21 @@ export async function parseTrace(env, input) {
   };
 }
 
+// Models return strings, but not always — some Workers AI responses come back as an
+// object, and calling .match on that throws before anything gets parsed.
 const grabJSON = (s) => {
-  if (!s) return null;
-  const m = s.match(/\[[\s\S]*\]|\{[\s\S]*\}/);
+  if (s == null) return null;
+  if (typeof s === 'object') {
+    if (Array.isArray(s) || s.items || s.meal) return s;
+    s = s.response ?? s.result ?? s.text ?? s.content ?? JSON.stringify(s);
+  }
+  const t = String(s);
+  if (!t.trim()) return null;
+  const m = t.match(/\[[\s\S]*\]|\{[\s\S]*\}/);
   if (!m) return null;
-  try { return JSON.parse(m[0]); } catch { return null; }
+  try { return JSON.parse(m[0]); } catch { /* fall through */ }
+  // Trailing commas and stray fences are the usual culprits.
+  try { return JSON.parse(m[0].replace(/```/g, '').replace(/,\s*([\]}])/g, '$1')); } catch { return null; }
 };
 
 // Pull macros the user stated outright. If he says "at 240 calories", that IS the number —
@@ -490,7 +508,9 @@ If only one food is described, still use the same shape with a single item.
 KNOWN FOODS (use these figures when the text matches one)
 ${known.map((f) => `${f.name} | ${f.serving} | ${f.kcal}kcal ${f.protein}p ${f.carbs}c ${f.fat}f ${f.fiber}fib`).join('\n')}`;
 
-  const raw = grabJSON(await callAI(env, sys, input));
+  let raw = null;
+  try { raw = grabJSON(await callAI(env, sys, input)); }
+  catch (e) { AI_TRACE.push('parse threw: ' + String(e.message || e).slice(0, 160)); }
   const listOf = (x) => Array.isArray(x) ? x : Array.isArray(x?.items) ? x.items : null;
   let list = listOf(raw);
 

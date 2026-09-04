@@ -554,7 +554,10 @@ const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=s=>String(s??'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
 const api=async(p,o={})=>{const r=await fetch('/api/'+p,{...o,headers:o.body?{'content-type':'application/json'}:{}});
   if(r.status===401){show('gate');throw new Error('locked');}
-  return (r.headers.get('content-type')||'').includes('json')?r.json():r.text();};
+  const isJson=(r.headers.get('content-type')||'').includes('json');
+  const body=isJson?await r.json():await r.text();
+  if(!r.ok) throw new Error((body&&body.error)||('HTTP '+r.status));
+  return body;};
 const post=(p,b)=>api(p,{method:'POST',body:JSON.stringify(b||{})});
 const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(t._x);t._x=setTimeout(()=>t.classList.remove('show'),2600);};
 const show=w=>{$('#gate').classList.toggle('hide',w!=='gate');$('#app').classList.toggle('hide',w==='gate');};
@@ -1124,7 +1127,7 @@ document.addEventListener('click',async e=>{
           : `Logged ${Math.round(tot)} kcal`);
       } else toast(`Logged ${r.logged.length} exercise${r.logged.length>1?'s':''}`);
       await refresh();}
-    catch(err){toast('That did not save.');}
+    catch(err){toast('Did not save: '+String(err.message||err).slice(0,60));}
     b.disabled=false;return;
   }
   if(b.id==='undoFood'){await post('undo',{});toast('Removed.');return refresh();}

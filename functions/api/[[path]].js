@@ -71,12 +71,15 @@ export async function onRequest(ctx) {
         return json(await coachBrief(env));
 
       case 'POST food': {
-        const items = await parseFood(env, String(body.text || ''));
-        for (const i of items)
-          await run(env,
-            'INSERT INTO food_log (d,ts,item,kcal,protein,carbs,fat,fiber,src,parts) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)',
-            [d, nowStr(), i.item, i.kcal, i.protein, i.carbs, i.fat, i.fiber, i.src,
-             i.parts ? JSON.stringify(i.parts) : null]);
+        const text = String(body.text || '');
+        let items;
+        try {
+          items = await parseFood(env, text);
+        } catch (e) {
+          // Never lose the entry because the parser fell over. Log it flagged and move on.
+          items = [{ item: text.slice(0, 120), kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, src: 'unparsed' }];
+        }
+        for (const i of items) await insertFood(env, d, i);
         return json({ logged: items, today: await today(env, d) });
       }
 
@@ -247,9 +250,7 @@ export async function onRequest(ctx) {
           if (action.kind === 'food' && action.text) {
             const items = await parseFood(env, action.text);
             for (const i of items)
-              await run(env, 'INSERT INTO food_log (d,ts,item,kcal,protein,carbs,fat,fiber,src,parts) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)',
-                [dd, nowStr(), i.item, i.kcal, i.protein, i.carbs, i.fat, i.fiber, 'chat',
-                 i.parts ? JSON.stringify(i.parts) : null]);
+              await insertFood(env, dd, { ...i, src: 'chat' });
           } else if (action.kind === 'workout' && action.text) {
             const items = await parseWorkout(env, action.text);
             for (const i of items) await insertSet(env, dd, i, 'chat');
@@ -574,19 +575,49 @@ export async function onRequest(ctx) {
   return json({ error: 'not found', path }, 404);
 }
 
+// A missing column means a migration hasn't been run yet. Losing the whole entry over
+// an optional field is the wrong trade — write what the schema can take and carry on.
+const missingColumn = (e) => /no such column|has no column/i.test(String(e?.message || e));
+
+async function insertFood(env, d, i) {
+  const base = [d, nowStr(), i.item, i.kcal, i.protein, i.carbs, i.fat, i.fiber, i.src];
+  try {
+    await run(env,
+      'INSERT INTO food_log (d,ts,item,kcal,protein,carbs,fat,fiber,src,parts) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)',
+      [...base, i.parts ? JSON.stringify(i.parts) : null]);
+  } catch (e) {
+    if (!missingColumn(e)) throw e;
+    await run(env,
+      'INSERT INTO food_log (d,ts,item,kcal,protein,carbs,fat,fiber,src) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9)',
+      base);
+  }
+}
+
 async function insertSet(env, d, i, note) {
-  const ex = i.exercise_id
-    ? await one(env, 'SELECT met, unit FROM exercises WHERE id=?1', [i.exercise_id]) : null;
-  const kcal = estimateBurn({
-    met: ex?.met, unit: ex?.unit, minutes: i.minutes, sets: i.sets, reps: i.reps,
-    weightLb: await bodyWeightLb(env)
-  });
-  await run(env,
-    `INSERT INTO workout_log (d,ts,exercise_id,exercise,discipline,muscle,sets,reps,weight,minutes,distance,rpe,note,kcal)
-     VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14)`,
-    [d, nowStr(), i.exercise_id ?? null, i.exercise, i.discipline ?? null, i.muscle ?? null,
-     i.sets ?? null, i.reps ?? null, i.weight ?? null, i.minutes ?? null, i.distance ?? null,
-     i.rpe ?? null, note || null, kcal]);
+  let kcal = null;
+  try {
+    const ex = i.exercise_id
+      ? await one(env, 'SELECT met, unit FROM exercises WHERE id=?1', [i.exercise_id]) : null;
+    kcal = estimateBurn({
+      met: ex?.met, unit: ex?.unit, minutes: i.minutes, sets: i.sets, reps: i.reps,
+      weightLb: await bodyWeightLb(env)
+    });
+  } catch (e) { if (!missingColumn(e)) throw e; }
+
+  const base = [d, nowStr(), i.exercise_id ?? null, i.exercise, i.discipline ?? null, i.muscle ?? null,
+    i.sets ?? null, i.reps ?? null, i.weight ?? null, i.minutes ?? null, i.distance ?? null,
+    i.rpe ?? null, note || null];
+  try {
+    await run(env,
+      `INSERT INTO workout_log (d,ts,exercise_id,exercise,discipline,muscle,sets,reps,weight,minutes,distance,rpe,note,kcal)
+       VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14)`, [...base, kcal]);
+  } catch (e) {
+    if (!missingColumn(e)) throw e;
+    await run(env,
+      `INSERT INTO workout_log (d,ts,exercise_id,exercise,discipline,muscle,sets,reps,weight,minutes,distance,rpe,note)
+       VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13)`, base);
+    kcal = null;
+  }
   i.kcal = kcal;
   return kcal;
 }
