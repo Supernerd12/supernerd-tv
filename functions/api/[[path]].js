@@ -416,14 +416,33 @@ export async function onRequest(ctx) {
             [r.d, r.steps, r.walk_min, r.active_kcal, r.resting_hr, r.exercise_hr, r.sleep_min, r.src, r.distance]);
 
         // Hourly buckets, so the Day view can be a rolling 24 hours instead of a calendar date.
-        // Shortcuts sends these as a plain array from Find Health Samples grouped by hour.
-        for (const [arr, day, field] of [
+        // Shortcuts sends a list from Find Health Samples grouped by hour. Depending on the
+        // field type it lands as a real array, or as text with the values separated by
+        // commas, newlines or spaces. Accept all of them.
+        // Shortcuts can hand this over as a flat list, a list wrapped in another list,
+        // or plain text with the numbers run together. Flatten and scrape all of them.
+        const asHours = (v) => {
+          if (v == null) return null;
+          if (Array.isArray(v)) {
+            const flat = v.flat(4);
+            if (!flat.length) return null;
+            if (flat.every((x) => typeof x === 'number')) return flat;
+            return asHours(flat.join(','));
+          }
+          if (typeof v === 'number') return [v];
+          if (typeof v !== 'string') return null;
+          const parts = v.match(/-?\d+(?:\.\d+)?/g);
+          return parts && parts.length ? parts.map(Number) : null;
+        };
+
+        for (const [src, day, field] of [
           [body.hourly_steps, body.date || dayStr(), 'steps'],
           [body.hourly_distance, body.date || dayStr(), 'distance'],
           [body.hourly_steps_prev, body.date_prev || dayStr(-1), 'steps'],
           [body.hourly_distance_prev, body.date_prev || dayStr(-1), 'distance']
         ]) {
-          if (!Array.isArray(arr)) continue;
+          const arr = asHours(src);
+          if (!arr) continue;
           const d = String(day).slice(0, 10);
           for (let h = 0; h < Math.min(24, arr.length); h++) {
             const v = Number(arr[h]);
