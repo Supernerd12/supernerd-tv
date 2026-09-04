@@ -248,7 +248,7 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
 <div id="app" class="hide">
 <header>
   <h1 id="vtitle">Today</h1>
-  <button id="ver" title="Tap to force a fresh copy">v9</button>
+  <button id="ver" title="Tap to force a fresh copy">v10</button>
   <span class="date" id="vdate"></span>
 </header>
 
@@ -1067,7 +1067,13 @@ document.addEventListener('click',async e=>{
     if(!text)return toast(isF?'Say what you ate first.':'Say what you did first.');
     b.disabled=true;toast('Reading that…');
     try{const r=await post(isF?'food':'workout',{text});ta.value='';
-      toast(`Logged ${r.logged.length} ${isF?'item':'exercise'}${r.logged.length>1?'s':''}`);await refresh();}
+      if(isF&&r.logged?.length){
+        const tot=r.logged.reduce((a,x)=>a+(+x.kcal||0),0);
+        toast(r.logged.length>1
+          ? `${r.logged.length} items · ${Math.round(tot)} kcal — check them below`
+          : `Logged ${Math.round(tot)} kcal`);
+      } else toast(`Logged ${r.logged.length} exercise${r.logged.length>1?'s':''}`);
+      await refresh();}
     catch(err){toast('That did not save.');}
     b.disabled=false;return;
   }

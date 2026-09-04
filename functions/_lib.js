@@ -1,7 +1,7 @@
 // Fitness Hub — shared library (Cloudflare Pages Functions)
 // Underscore prefix = not routed, importable only.
 
-export const VERSION = 'v9';
+export const VERSION = 'v10';
 export const TZ = 'America/New_York';
 
 export const dayStr = (offset = 0) =>
@@ -323,32 +323,50 @@ export async function suggestMeal(env, opts = {}) {
 
 /* ---------------- natural-language parsing ---------------- */
 
+// Bigger models first. An 8B model cannot reliably split "yogurt, 4 strawberries and
+// 2 tsp of spread at 210 per 2 tbsp" into three rows with correct scaling; a 70B one can.
+const CF_MODELS = [
+  '@cf/meta/llama-3.3-70b-instruct-fp8-fast',
+  '@cf/meta/llama-4-scout-17b-16e-instruct',
+  '@cf/meta/llama-3.1-8b-instruct'
+];
+
 async function callAI(env, system, user) {
-  // Free-tier first: Cloudflare Workers AI binding, then Groq, then keyword fallback.
-  try {
-    if (env.AI) {
-      const r = await env.AI.run('@cf/meta/llama-3.1-8b-instruct', {
-        messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
-        max_tokens: 700
+  const msgs = [{ role: 'system', content: system }, { role: 'user', content: user }];
+
+  if (env.OPENAI_KEY) {
+    try {
+      const r = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${env.OPENAI_KEY}` },
+        body: JSON.stringify({ model: 'gpt-4o-mini', temperature: 0, max_tokens: 900, messages: msgs })
       });
-      return r.response || '';
+      const t = (await r.json())?.choices?.[0]?.message?.content;
+      if (t) return t;
+    } catch (e) { /* fall through */ }
+  }
+
+  if (env.AI) {
+    for (const model of CF_MODELS) {
+      try {
+        const r = await env.AI.run(model, { messages: msgs, max_tokens: 900, temperature: 0 });
+        if (r?.response) return r.response;
+      } catch (e) { /* try the next model */ }
     }
-  } catch (e) { /* fall through */ }
-  try {
-    if (env.GROQ_KEY) {
+  }
+
+  if (env.GROQ_KEY) {
+    try {
       const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: { 'content-type': 'application/json', authorization: `Bearer ${env.GROQ_KEY}` },
-        body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
-          messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
-          max_tokens: 700, temperature: 0.1
-        })
+        body: JSON.stringify({ model: 'llama-3.3-70b-versatile', temperature: 0, max_tokens: 900, messages: msgs })
       });
-      const j = await r.json();
-      return j.choices?.[0]?.message?.content || '';
-    }
-  } catch (e) { /* fall through */ }
+      const t = (await r.json())?.choices?.[0]?.message?.content;
+      if (t) return t;
+    } catch (e) { /* fall through */ }
+  }
+
   return '';
 }
 
@@ -406,8 +424,11 @@ export async function parseFood(env, input) {
   const known = await all(env, 'SELECT name,kcal,protein,carbs,fat,fiber,serving FROM foods LIMIT 120');
   const stated = statedMacros(input);
 
-  // Anything he spelled out is authoritative. Log it exactly and stop.
-  if (stated.kcal != null) {
+  // A stated total is authoritative, but only when he is describing a single item.
+  // Multi-part meals still go to the model so each component gets its own row.
+  const multi = /,|\band\b|\bplus\b|\bwith\b|\badded\b|\+/i.test(input) &&
+    input.trim().split(/\s+/).length > 6;
+  if (stated.kcal != null && !multi) {
     return [{
       item: cleanName(input).slice(0, 120) || input.slice(0, 120),
       kcal: stated.kcal, protein: stated.protein ?? 0, carbs: stated.carbs ?? 0,
@@ -416,19 +437,47 @@ export async function parseFood(env, input) {
   }
 
   const sys =
-    'You convert a spoken food log into JSON. Return ONLY a JSON array, no prose, no markdown. ' +
-    'Each element: {"item":string,"kcal":number,"protein":number,"carbs":number,"fat":number,"fiber":number}. ' +
-    'If the user states a calorie or macro number, use that number exactly. Otherwise estimate from the quantity described. ' +
-    'Never invent large multiples — a single named product is one serving unless a count is given.\n' +
-    known.map((f) => `${f.name} | ${f.serving} | ${f.kcal}kcal ${f.protein}p ${f.carbs}c ${f.fat}f ${f.fiber}fib`).join('\n');
+`You turn a spoken food log into JSON. Return ONLY a JSON array. No prose, no markdown, no code fences.
 
-  const parsed = grabJSON(await callAI(env, sys, input));
+Each element: {"item":string,"kcal":number,"protein":number,"carbs":number,"fat":number,"fiber":number}
+
+RULES
+1. ONE ELEMENT PER FOOD. If several foods are described, return several elements. Never merge them into one row.
+2. If a per-unit figure is given, scale it to the amount eaten. "210 per 2 tbsp" and "2 teaspoons" means 2 tsp = 0.667 tbsp, so 210 x (0.667/2) = 70 kcal.
+3. If a total calorie or macro figure is stated for an item, use it exactly. Do not re-estimate it.
+4. Anything not given a number, estimate from standard nutrition data for the amount described.
+5. Name each item for the food itself, not the whole sentence.
+
+EXAMPLE
+Input: 1 serving of plain Greek yogurt, added 4 strawberries, 2 teaspoons of hazelnut spread with cocoa at 210 per 2tbspn
+Output: [{"item":"Plain Greek yogurt, 1 serving","kcal":100,"protein":18,"carbs":6,"fat":0,"fiber":0},{"item":"Strawberries, 4","kcal":16,"protein":0,"carbs":4,"fat":0,"fiber":1},{"item":"Hazelnut cocoa spread, 2 tsp","kcal":70,"protein":1,"carbs":8,"fat":4,"fiber":0}]
+
+KNOWN FOODS (use these figures when the text matches one)
+${known.map((f) => `${f.name} | ${f.serving} | ${f.kcal}kcal ${f.protein}p ${f.carbs}c ${f.fat}f ${f.fiber}fib`).join('\n')}`;
+
+  let parsed = grabJSON(await callAI(env, sys, input));
+  if (Array.isArray(parsed) && parsed.length === 1 && multi) {
+    const retry = grabJSON(await callAI(env,
+      sys + '\n\nThe previous answer wrongly returned a single row. This input describes SEVERAL foods. Split it.',
+      input));
+    if (Array.isArray(retry) && retry.length > 1) parsed = retry;
+  }
   if (Array.isArray(parsed) && parsed.length) {
-    return parsed.map((p) => ({
+    const rows = parsed.map((p) => ({
       item: String(p.item || input).slice(0, 120),
       kcal: +p.kcal || 0, protein: +p.protein || 0, carbs: +p.carbs || 0,
       fat: +p.fat || 0, fiber: +p.fiber || 0, src: 'ai'
-    }));
+    })).filter((r) => r.item);
+    // If he stated a total and the model's sum is way off, trust him over the model.
+    if (stated.kcal != null) {
+      const sum = rows.reduce((a, r) => a + r.kcal, 0);
+      if (rows.length === 1) rows[0].kcal = stated.kcal;
+      else if (sum && Math.abs(sum - stated.kcal) / stated.kcal > 0.5) {
+        const k = stated.kcal / sum;
+        rows.forEach((r) => { r.kcal = Math.round(r.kcal * k); });
+      }
+    }
+    if (rows.length) return rows;
   }
 
   // No AI available: match against the food table, conservatively.
