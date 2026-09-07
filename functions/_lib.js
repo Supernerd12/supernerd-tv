@@ -1,7 +1,7 @@
 // Fitness Hub — shared library (Cloudflare Pages Functions)
 // Underscore prefix = not routed, importable only.
 
-export const VERSION = 'v23';
+export const VERSION = 'v24';
 export const TZ = 'America/New_York';
 
 export const dayStr = (offset = 0) =>
@@ -821,6 +821,58 @@ export async function icsFeed(env) {
 
   L.push('END:VCALENDAR');
   return L.join('\r\n');
+}
+
+/* ---------------- reading a nutrition label ---------------- */
+// Photograph the panel, get the numbers back. Vision models are decent at this but not
+// infallible, so nothing is saved until he has looked at the parsed values.
+
+const LABEL_PROMPT =
+`Read this nutrition label and return ONLY JSON, no prose, no code fences:
+{"name":string,"brand":string,"serving_desc":string,"serving_g":number|null,"servings_per_container":number|null,
+ "kcal":number,"protein":number,"carbs":number,"fat":number,"fiber":number,"sugar":number,"sodium":number}
+
+All macro figures are PER SERVING as printed, not per container.
+serving_desc is the serving size exactly as written, e.g. "2/3 cup (55g)" or "1 bottle".
+If the product name is not visible, describe what it plainly is. Use 0 for any macro the label omits.
+Never guess a calorie figure — read the one printed.`;
+
+export async function readLabel(env, dataUrl) {
+  const b64 = String(dataUrl).split(',').pop();
+
+  if (env.OPENAI_KEY) {
+    try {
+      const r = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${env.OPENAI_KEY}` },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini', max_tokens: 700, temperature: 0,
+          messages: [{ role: 'user', content: [
+            { type: 'text', text: LABEL_PROMPT },
+            { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${b64}` } }
+          ]}]
+        })
+      });
+      const t = (await r.json())?.choices?.[0]?.message?.content;
+      const j = grabJSON(t);
+      if (j) return { ...j, engine: 'openai' };
+    } catch (e) { /* fall through */ }
+  }
+
+  if (env.AI) {
+    for (const model of ['@cf/meta/llama-3.2-11b-vision-instruct', '@cf/llava-hf/llava-1.5-7b-hf']) {
+      try {
+        const bin = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+        const r = await env.AI.run(model, {
+          prompt: LABEL_PROMPT, image: [...bin], max_tokens: 700
+        });
+        const j = grabJSON(r?.response ?? r?.description ?? r);
+        if (j) return { ...j, engine: model };
+      } catch (e) { /* try the next one */ }
+    }
+  }
+
+  return null;
 }
 
 /* ---------------- energy balance ---------------- */

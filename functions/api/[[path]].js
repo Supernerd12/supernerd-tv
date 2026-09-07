@@ -3,7 +3,7 @@ import {
   all, one, run, profile, currentTarget, trends, today, decide,
   suggestMeal, parseFood, parseWorkout, contextDoc, checkin,
   dayRange, grocery, icsFeed, coachBrief, exerciseStats, trainingOverview, ensureExercise, matchExercise,
-  rangeStart, parseTrace, estimateBurn, bodyWeightLb, TZ, energyToday, energyRange
+  rangeStart, parseTrace, estimateBurn, bodyWeightLb, TZ, energyToday, energyRange, readLabel
 } from '../_lib.js';
 
 export async function onRequest(ctx) {
@@ -46,6 +46,15 @@ export async function onRequest(ctx) {
 
   const body = method === 'POST' ? await request.json().catch(() => ({})) : {};
   const d = body.date || url.searchParams.get('date') || dayStr();
+
+  if (method === 'GET' && path.startsWith('pimg/')) {
+    if (!env.FIT_R2) return new Response('no storage', { status: 500 });
+    const row = await one(env, 'SELECT okey FROM products WHERE id=?1', [Number(path.slice(5))]);
+    if (!row?.okey) return new Response('not found', { status: 404 });
+    const obj = await env.FIT_R2.get(row.okey);
+    if (!obj) return new Response('not found', { status: 404 });
+    return new Response(obj.body, { headers: { 'content-type': 'image/jpeg', 'cache-control': 'private, max-age=31536000' } });
+  }
 
   // /api/img/2026-09-02 -> the stored JPEG
   if (method === 'GET' && path.startsWith('img/')) {
@@ -466,6 +475,86 @@ export async function onRequest(ctx) {
           photos_storage: !!env.FIT_R2, coach_chat: !!(env.AI || env.OPENAI_KEY),
           counts
         });
+      }
+
+      /* ---- products: photograph the label once, tap it forever after ---- */
+
+      case 'POST product/scan': {
+        if (!body.image) return json({ error: 'no image' }, 400);
+        const parsed = await readLabel(env, body.image);
+        if (!parsed) return json({
+          error: 'Could not read that label. Add a Workers AI binding named AI, or an OPENAI_KEY secret, then try again — or type the numbers in by hand.'
+        }, 422);
+        return json({ ok: true, product: parsed });
+      }
+
+      case 'POST product': {
+        if (body.delete != null) {
+          const old = await one(env, 'SELECT okey FROM products WHERE id=?1', [body.delete]);
+          if (old?.okey && env.FIT_R2) await env.FIT_R2.delete(old.okey).catch(() => {});
+          await run(env, 'DELETE FROM products WHERE id=?1', [body.delete]);
+          return json({ ok: true });
+        }
+        if (body.stock != null && body.id) {
+          await run(env, 'UPDATE products SET in_stock=?1 WHERE id=?2', [body.stock ? 1 : 0, body.id]);
+          return json({ ok: true });
+        }
+
+        const f = ['name','brand','serving_desc','serving_g','servings_per_container',
+                   'kcal','protein','carbs','fat','fiber','sugar','sodium'];
+        if (body.id) {
+          const set = f.filter((k) => body[k] !== undefined);
+          if (set.length)
+            await run(env, `UPDATE products SET ${set.map((k,i)=>`${k}=?${i+2}`).join(', ')} WHERE id=?1`,
+              [body.id, ...set.map((k) => body[k])]);
+          return json({ ok: true, id: body.id });
+        }
+
+        // Keep the label photo — useful later for checking a figure you doubt.
+        let okey = null;
+        if (body.image && env.FIT_R2) {
+          const bin = Uint8Array.from(atob(String(body.image).split(',').pop()), (c) => c.charCodeAt(0));
+          okey = `products/${Date.now()}.jpg`;
+          await env.FIT_R2.put(okey, bin, { httpMetadata: { contentType: 'image/jpeg' } });
+        }
+        const res = await env.FIT_DB.prepare(
+          `INSERT INTO products (name,brand,serving_desc,serving_g,servings_per_container,
+             kcal,protein,carbs,fat,fiber,sugar,sodium,okey,barcode,in_stock,created)
+           VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,1,?15)`
+        ).bind(
+          String(body.name || 'Unnamed').slice(0, 90), body.brand || null,
+          body.serving_desc || '1 serving', body.serving_g ?? null, body.servings_per_container ?? null,
+          body.kcal || 0, body.protein || 0, body.carbs || 0, body.fat || 0,
+          body.fiber || 0, body.sugar || 0, body.sodium || 0,
+          okey, body.barcode || null, dayStr()
+        ).run();
+        return json({ ok: true, id: res.meta?.last_row_id ?? null });
+      }
+
+      case 'GET products':
+        return json(await all(env,
+          `SELECT * FROM products ORDER BY in_stock DESC, last_used DESC, name`));
+
+      // Log an amount of a saved product. Amount is in servings unless grams are given.
+      case 'POST product/log': {
+        const p2 = await one(env, 'SELECT * FROM products WHERE id=?1', [body.id]);
+        if (!p2) return json({ error: 'unknown product' }, 404);
+
+        let mult = Number(body.servings) || 1;
+        let label = `${p2.name}, ${mult === 1 ? p2.serving_desc : `${Math.round(mult * 100) / 100} × ${p2.serving_desc}`}`;
+        if (body.grams && p2.serving_g) {
+          mult = Number(body.grams) / p2.serving_g;
+          label = `${p2.name}, ${Math.round(body.grams)}g`;
+        }
+        const r1 = (v) => Math.round((v || 0) * mult * 10) / 10;
+
+        await insertFood(env, d, {
+          item: label, kcal: r1(p2.kcal), protein: r1(p2.protein), carbs: r1(p2.carbs),
+          fat: r1(p2.fat), fiber: r1(p2.fiber), src: 'product', parts: null
+        });
+        await run(env,
+          'UPDATE products SET times_used=COALESCE(times_used,0)+1, last_used=?1 WHERE id=?2', [dayStr(), body.id]);
+        return json({ ok: true, logged: label, kcal: r1(p2.kcal), today: await today(env, d) });
       }
 
       case 'GET inventory':

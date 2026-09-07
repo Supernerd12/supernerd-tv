@@ -108,6 +108,14 @@ h2{font:11px/1 var(--mono);text-transform:uppercase;letter-spacing:.16em;font-we
 .pill.on{background:linear-gradient(120deg,var(--acc),var(--acc2));color:#0A0A0C;border-color:transparent;
   box-shadow:0 6px 20px -8px var(--glowA)}
 .pill.g{color:var(--ink)}
+.prod{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px 4px;
+  border-top:1px solid var(--rule);font-size:15px}
+.prod .thumb{flex:0 0 46px;height:46px;border-radius:10px;background:rgba(255,255,255,.06);
+  border:1px solid var(--rule);object-fit:cover;display:block}
+.prod .meta{flex:1;min-width:0}
+.prod .meta b{display:block;font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.prod .meta span{font:10px/1.5 var(--mono);color:var(--faint);letter-spacing:.05em}
+.prod.out{opacity:.45}
 
 .alert{display:flex;gap:11px;align-items:center;padding:14px 16px;border-radius:var(--r-card);
   background:linear-gradient(140deg,var(--wash),rgba(255,255,255,.025));border:1px solid var(--rule);
@@ -255,7 +263,7 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
 <div id="app" class="hide">
 <header>
   <h1 id="vtitle">Today</h1>
-  <button id="ver" title="Tap to force a fresh copy">v23</button>
+  <button id="ver" title="Tap to force a fresh copy">v24</button>
   <span style="justify-self:end;display:flex;align-items:center;gap:10px">
     <span class="date" id="vdate"></span>
     <button id="gear" aria-label="Settings" style="width:34px;height:34px;display:grid;place-items:center;color:var(--dim)">
@@ -381,6 +389,17 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
   <div id="fLog"></div>
 
   <div id="fEdit" class="hide" style="margin-top:12px"></div>
+
+  <h2>My products</h2>
+  <div id="prods"></div>
+  <div class="row" style="margin-top:10px">
+    <button class="btn primary" id="scanBtn">Scan a label</button>
+    <button class="btn ghost" id="prodManual" style="flex:0 0 96px">By hand</button>
+  </div>
+  <input type="file" id="labelIn" accept="image/*" capture="environment" class="hide">
+  <div id="prodForm" class="hide" style="margin-top:12px"></div>
+  <div id="prodLog" class="hide" style="margin-top:12px"></div>
+  <p class="tiny" style="margin-top:8px">Photograph the nutrition panel once. After that it's two taps and an amount.</p>
 
   <h2>In the kitchen</h2>
   <div id="inv"></div>
@@ -671,6 +690,7 @@ const MUSCLES={
 let CHAT=[], CARDIORANGE='day', GUIDE='bright';
 let FOODITEMS=[], INVMANAGE=false, INVSEL=new Set(), INVCACHE=[];
 let TIMER=0, PENDING=null, WSERIES=[], BRANGE='day';
+let PRODUCTS=[], SCANNED=null, SCANIMG=null;
 const TITLES={hub:'Today',food:'Food and water',train:'Training',photos:'Progress',days:'History',settings:'Settings'};
 
 function roll(el,to){const from=+el.dataset.v||0;el.dataset.v=to;
@@ -691,7 +711,7 @@ function go(v){
   if(v==='photos')loadPhotos();
   if(v==='days')drawCal();
   if(v==='settings')loadSettings();
-  if(v==='food')loadInv();
+  if(v==='food'){loadInv();loadProducts();}
   if(v==='train'){loadTrain();loadBurn();}
 }
 
@@ -787,6 +807,53 @@ async function refresh(){
   $('#tBurn').textContent = t.burn_kcal
     ? `Roughly ${t.burn_kcal} kcal burned. An estimate from effort and bodyweight — it is deliberately not added back to your food target.`
     : '';
+}
+
+// Shrink before upload: a 12 MP label photo is pointless and slow.
+async function shrink(file, max=1400, q=0.82){
+  const img=await createImageBitmap(file);
+  const sc=Math.min(1,max/Math.max(img.width,img.height));
+  const c=document.createElement('canvas');
+  c.width=Math.round(img.width*sc); c.height=Math.round(img.height*sc);
+  c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+  return c.toDataURL('image/jpeg',q);
+}
+
+async function loadProducts(){
+  try{ PRODUCTS=await api('products'); }catch(e){ PRODUCTS=[]; }
+  $('#prods').innerHTML = PRODUCTS.length ? PRODUCTS.map(p=>`
+    <button class="prod ${p.in_stock?'':'out'}" data-prod="${p.id}">
+      ${p.okey?`<img class="thumb" src="/api/pimg/${p.id}" alt="">`:`<span class="thumb"></span>`}
+      <span class="meta"><b>${esc(p.name)}</b>
+        <span>${Math.round(p.kcal)} KCAL · ${Math.round(p.protein)}P · ${esc(p.serving_desc||'')}</span></span>
+      <span style="color:var(--faint);font-size:17px">›</span></button>`).join('')
+    : '<p class="empty">Nothing saved yet. Scan a label and it lives here.</p>';
+}
+
+function prodForm(p, img){
+  const v=(k,d2='')=>p&&p[k]!=null?p[k]:d2;
+  $('#prodForm').classList.remove('hide');
+  $('#prodForm').innerHTML=`<div class="card">
+    <div style="display:flex;align-items:baseline"><b style="font-family:var(--display);font-size:20px;text-transform:uppercase">${p?'Check the numbers':'New product'}</b>
+      <button class="tiny" id="pfClose" style="margin-left:auto;color:var(--dim)">close</button></div>
+    ${img?`<img src="${img}" style="width:100%;max-height:180px;object-fit:cover;border-radius:12px;margin-top:10px">`:''}
+    <input id="pfName" value="${esc(v('name'))}" placeholder="Product name" style="width:100%;margin-top:10px">
+    <input id="pfServ" value="${esc(v('serving_desc','1 serving'))}" placeholder="Serving, e.g. 2/3 cup (55g)" style="width:100%;margin-top:8px">
+    <div class="row" style="margin-top:8px">
+      <div><label class="tiny">Calories</label><input id="pfKcal" type="number" inputmode="decimal" value="${v('kcal',0)}" style="width:100%;margin-top:4px"></div>
+      <div><label class="tiny">Protein g</label><input id="pfProt" type="number" inputmode="decimal" value="${v('protein',0)}" style="width:100%;margin-top:4px"></div>
+      <div><label class="tiny">Serving g</label><input id="pfGram" type="number" inputmode="decimal" value="${v('serving_g','')}" placeholder="—" style="width:100%;margin-top:4px"></div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <div><label class="tiny">Carbs g</label><input id="pfCarb" type="number" inputmode="decimal" value="${v('carbs',0)}" style="width:100%;margin-top:4px"></div>
+      <div><label class="tiny">Fat g</label><input id="pfFat" type="number" inputmode="decimal" value="${v('fat',0)}" style="width:100%;margin-top:4px"></div>
+      <div><label class="tiny">Fibre g</label><input id="pfFib" type="number" inputmode="decimal" value="${v('fiber',0)}" style="width:100%;margin-top:4px"></div>
+    </div>
+    <button class="btn primary" id="pfSave" style="width:100%;margin-top:12px">${p&&p.id?'Save changes':'Save this product'}</button>
+    ${p&&p.id?`<button class="btn ghost" data-pdel="${p.id}" style="width:100%;margin-top:8px;color:var(--over)">Delete product</button>`:''}
+    <p class="tiny" style="margin-top:9px">Everything is per serving, as printed on the panel. Correct anything the reader got wrong before saving.</p>
+  </div>`;
+  $('#prodForm').scrollIntoView({behavior:'smooth',block:'center'});
 }
 
 async function loadInv(){
@@ -1546,6 +1613,72 @@ document.addEventListener('click',async e=>{
     await post('inventory',{id:+b.dataset.inv,in_stock:!on});
     b.dataset.s=on?'0':'1';b.classList.toggle('on',!on);return;
   }
+  if(b.id==='scanBtn'){$('#labelIn').click();return;}
+  if(b.id==='prodManual'){SCANNED=null;SCANIMG=null;prodForm(null,null);return;}
+  if(b.id==='pfClose'){$('#prodForm').classList.add('hide');return;}
+  if(b.id==='pfSave'){
+    const payload={
+      name:$('#pfName').value.trim()||'Unnamed', serving_desc:$('#pfServ').value.trim()||'1 serving',
+      kcal:+$('#pfKcal').value||0, protein:+$('#pfProt').value||0, carbs:+$('#pfCarb').value||0,
+      fat:+$('#pfFat').value||0, fiber:+$('#pfFib').value||0,
+      serving_g:$('#pfGram').value?+$('#pfGram').value:null
+    };
+    if(SCANNED&&SCANNED.id)payload.id=SCANNED.id; else if(SCANIMG)payload.image=SCANIMG;
+    b.disabled=true;
+    await post('product',payload);
+    b.disabled=false;SCANNED=null;SCANIMG=null;
+    $('#prodForm').classList.add('hide');toast('Saved.');return loadProducts();
+  }
+  if(b.dataset.pdel){
+    if(!confirm('Delete this product?'))return;
+    await post('product',{delete:+b.dataset.pdel});
+    $('#prodForm').classList.add('hide');toast('Deleted.');return loadProducts();
+  }
+  if(b.dataset.prod){
+    const p=PRODUCTS.find(x=>x.id==b.dataset.prod); if(!p)return;
+    $('#prodLog').classList.remove('hide');
+    $('#prodLog').innerHTML=`<div class="card">
+      <div style="display:flex;align-items:baseline"><b style="font-size:17px">${esc(p.name)}</b>
+        <button class="tiny" id="plClose" style="margin-left:auto;color:var(--dim)">close</button></div>
+      <p class="tiny" style="margin:6px 0 0">${Math.round(p.kcal)} kcal · ${Math.round(p.protein)}g protein per ${esc(p.serving_desc||'serving')}</p>
+      <p class="tiny" style="margin:14px 0 6px">How much?</p>
+      <div style="margin-bottom:8px">
+        ${[0.5,1,1.5,2,3].map(n=>`<button class="pill g" data-plog="${p.id}" data-amt="${n}">${n} ${n===1?'serving':'servings'}</button>`).join('')}
+      </div>
+      <div class="row">
+        <input id="plCustom" type="number" step="0.1" inputmode="decimal" placeholder="Servings">
+        ${p.serving_g?`<input id="plGrams" type="number" inputmode="decimal" placeholder="or grams">`:''}
+        <button class="btn primary" data-plogc="${p.id}" style="flex:0 0 76px">Log</button>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn ghost" data-pstock="${p.id}" data-s="${p.in_stock}">${p.in_stock?'Mark as out':'Back in stock'}</button>
+        <button class="btn ghost" data-pedit="${p.id}" style="flex:0 0 66px">Edit</button>
+      </div></div>`;
+    $('#prodLog').scrollIntoView({behavior:'smooth',block:'center'});return;
+  }
+  if(b.id==='plClose'){$('#prodLog').classList.add('hide');return;}
+  if(b.dataset.plog){
+    b.disabled=true;
+    const r=await post('product/log',{id:+b.dataset.plog,servings:+b.dataset.amt});
+    b.disabled=false;$('#prodLog').classList.add('hide');
+    toast(`Logged ${Math.round(r.kcal)} kcal`);loadProducts();return refresh();
+  }
+  if(b.dataset.plogc){
+    const g=$('#plGrams'), sv=$('#plCustom');
+    const body=g&&g.value?{id:+b.dataset.plogc,grams:+g.value}:{id:+b.dataset.plogc,servings:+sv.value||1};
+    b.disabled=true;
+    const r=await post('product/log',body);
+    b.disabled=false;$('#prodLog').classList.add('hide');
+    toast(`Logged ${Math.round(r.kcal)} kcal`);loadProducts();return refresh();
+  }
+  if(b.dataset.pstock){
+    await post('product',{id:+b.dataset.pstock,stock:b.dataset.s==='1'?0:1});
+    $('#prodLog').classList.add('hide');return loadProducts();
+  }
+  if(b.dataset.pedit){
+    const p=PRODUCTS.find(x=>x.id==b.dataset.pedit);
+    SCANNED=p;SCANIMG=null;$('#prodLog').classList.add('hide');return prodForm(p,p.okey?'/api/pimg/'+p.id:null);
+  }
   if(b.dataset.gadd){await post('todos',{kind:'grocery',text:b.dataset.gadd});return loadInv();}
   if(b.id==='gBtn'){const v=$('#gAdd').value.trim();if(!v)return toast('Type an item first.');await post('todos',{kind:'grocery',text:v});$('#gAdd').value='';return loadInv();}
   if(b.dataset.todo){await post('todos',{toggle:+b.dataset.todo});return VIEW==='days'?loadTodos():loadInv();}
@@ -1697,6 +1830,23 @@ $('#scrub').addEventListener('input',e=>{PLAYING=false;$('#play').textContent='P
   $('#shot').style.transform=`translate(${$('#ox').value}%,${$('#oy').value}%) scale(${$('#sc').value/100})`;
 }));
 $('#pass').addEventListener('keydown',e=>{if(e.key==='Enter')$('#unlock').click();});
+$('#labelIn').addEventListener('change',async e=>{
+  const f=e.target.files[0]; e.target.value='';
+  if(!f)return;
+  toast('Reading the label…');
+  try{
+    SCANIMG=await shrink(f);
+    const r=await post('product/scan',{image:SCANIMG});
+    SCANNED=r.product;
+    prodForm(r.product,SCANIMG);
+    toast('Check the numbers before saving.');
+  }catch(err){
+    SCANNED=null;
+    prodForm(null,SCANIMG);
+    toast(String(err.message||err).slice(0,70));
+  }
+});
+
 $('#fileIn').addEventListener('change',async e=>{
   const f=e.target.files[0];if(!f)return;
   const img=await createImageBitmap(f);
@@ -1713,7 +1863,7 @@ if(SR){const rec=new SR();rec.continuous=false;rec.interimResults=true;rec.lang=
 }else $('#mic').classList.add('hide');
 
 async function boot(){
-  await refresh(); loadInv(); rcPaint(); paintChat();
+  await refresh(); loadInv(); loadProducts(); rcPaint(); paintChat();
   const want=(location.hash||'').replace('#','');
   if(want && TITLES[want] && want!=='hub') go(want);
   document.querySelector('.stage').dataset.g=GUIDE;
