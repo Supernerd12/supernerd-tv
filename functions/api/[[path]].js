@@ -510,7 +510,9 @@ export async function onRequest(ctx) {
         }
 
         // "About half a bag left" — a guess beats a wrong number.
-        if (body.remaining != null && body.id) {
+        // Guarded by an explicit flag: an edit that happens to carry a remaining value
+        // must not short-circuit here and skip writing the rest of the fields.
+        if (body.set_remaining && body.id) {
           const left = Math.max(0, Number(body.remaining));
           await run(env, 'UPDATE products SET remaining=?1, in_stock=?2, auto_listed=CASE WHEN ?1>COALESCE(low_at,1) THEN 0 ELSE auto_listed END WHERE id=?3',
             [left, left > 0 ? 1 : 0, body.id]);
@@ -520,22 +522,31 @@ export async function onRequest(ctx) {
         // Bought it again: back to a full container and off the shopping list.
         if (body.restock && body.id) {
           const p3 = await one(env, 'SELECT name, servings_per_container FROM products WHERE id=?1', [body.id]);
-          const full = Number(body.servings_per_container) || p3?.servings_per_container || 1;
+          const per = Number(body.servings_per_container) || p3?.servings_per_container || 1;
+          const packs = Number(body.packs) || 1;
           await run(env,
-            'UPDATE products SET remaining=?1, servings_per_container=?1, in_stock=1, auto_listed=0 WHERE id=?2',
-            [full, body.id]);
+            'UPDATE products SET remaining=?1, packs=?2, servings_per_container=?3, in_stock=1, auto_listed=0 WHERE id=?4',
+            [per * packs, packs, per, body.id]);
           if (p3?.name)
             await run(env, "DELETE FROM todos WHERE kind='grocery' AND done=0 AND text=?1", [p3.name]);
           return json({ ok: true, remaining: full });
         }
 
         const f = ['name','brand','serving_desc','serving_g','servings_per_container',
-                   'kcal','protein','carbs','fat','fiber','sugar','sodium','category'];
+                   'kcal','protein','carbs','fat','fiber','sugar','sodium','category','packs'];
         if (body.id) {
-          const set = f.filter((k) => body[k] !== undefined);
+          const set = f.filter((k) => body[k] !== undefined && body[k] !== null);
           if (set.length)
             await run(env, `UPDATE products SET ${set.map((k,i)=>`${k}=?${i+2}`).join(', ')} WHERE id=?1`,
               [body.id, ...set.map((k) => body[k])]);
+          // Packs × servings-per-pack is the whole stock. Recalculate when either changes.
+          if (body.packs !== undefined || body.servings_per_container !== undefined) {
+            const cur = await one(env, 'SELECT packs, servings_per_container FROM products WHERE id=?1', [body.id]);
+            const total = (Number(cur?.packs) || 1) * (Number(cur?.servings_per_container) || 1);
+            if (body.recount !== false)
+              await run(env, 'UPDATE products SET remaining=?1, in_stock=CASE WHEN ?1>0 THEN 1 ELSE 0 END WHERE id=?2',
+                [total, body.id]);
+          }
           return json({ ok: true, id: body.id });
         }
 
@@ -548,22 +559,27 @@ export async function onRequest(ctx) {
         }
         const res = await env.FIT_DB.prepare(
           `INSERT INTO products (name,brand,serving_desc,serving_g,servings_per_container,
-             kcal,protein,carbs,fat,fiber,sugar,sodium,okey,barcode,in_stock,created,category,remaining)
-           VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,1,?15,?16,?17)`
+             kcal,protein,carbs,fat,fiber,sugar,sodium,okey,barcode,in_stock,created,category,remaining,packs)
+           VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,1,?15,?16,?17,?18)`
         ).bind(
           String(body.name || 'Unnamed').slice(0, 90), body.brand || null,
           body.serving_desc || '1 serving', body.serving_g ?? null, body.servings_per_container ?? null,
           body.kcal || 0, body.protein || 0, body.carbs || 0, body.fat || 0,
           body.fiber || 0, body.sugar || 0, body.sodium || 0,
           okey, body.barcode || null, dayStr(),
-          body.category || guessCategory(body.name), body.remaining ?? body.servings_per_container ?? null
+          body.category || guessCategory(body.name),
+          (Number(body.packs) || 1) * (Number(body.servings_per_container) || 1),
+          Number(body.packs) || 1
         ).run();
         return json({ ok: true, id: res.meta?.last_row_id ?? null });
       }
 
-      case 'GET products':
-        return json(await all(env,
-          `SELECT * FROM products ORDER BY in_stock DESC, last_used DESC, name`));
+      case 'GET products': {
+        const rows = await all(env, `SELECT * FROM products ORDER BY last_used DESC, name`);
+        const have = rows.filter((r) => r.remaining == null ? r.in_stock : r.remaining > 0);
+        const gone = rows.filter((r) => !(r.remaining == null ? r.in_stock : r.remaining > 0));
+        return json(url.searchParams.get('all') ? rows : { have, gone });
+      }
 
       // Everything currently on the shopping list, ready to leave the app.
       case 'GET grocery/export': {
@@ -573,7 +589,12 @@ export async function onRequest(ctx) {
           low = await all(env,
             'SELECT name, remaining FROM products WHERE remaining IS NOT NULL AND remaining <= COALESCE(low_at,1) ORDER BY remaining');
         } catch (e) { if (!missingColumn(e)) throw e; }
-        const names = [...new Set([...manual.map((m) => m.text), ...low.map((l) => l.name)])];
+        let out = [];
+        try {
+          out = await all(env,
+            'SELECT name FROM products WHERE remaining IS NOT NULL AND remaining <= 0');
+        } catch (e) { if (!missingColumn(e)) throw e; }
+        const names = [...new Set([...manual.map((m) => m.text), ...low.map((l) => l.name), ...out.map((o) => o.name)])];
         return json({
           items: names,
           text: names.map((n) => `• ${n}`).join('\n'),

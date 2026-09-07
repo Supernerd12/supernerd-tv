@@ -273,7 +273,7 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
 <div id="app" class="hide">
 <header>
   <h1 id="vtitle">Today</h1>
-  <button id="ver" title="Tap to force a fresh copy">v29</button>
+  <button id="ver" title="Tap to force a fresh copy">v30</button>
   <span style="justify-self:end;display:flex;align-items:center;gap:10px">
     <span class="date" id="vdate"></span>
     <button id="gear" aria-label="Settings" style="width:34px;height:34px;display:grid;place-items:center;color:var(--dim)">
@@ -702,7 +702,7 @@ const MUSCLES={
 let CHAT=[], CARDIORANGE='day', GUIDE='bright';
 let FOODITEMS=[], INVMANAGE=false, INVSEL=new Set(), INVCACHE=[];
 let TIMER=0, PENDING=null, WSERIES=[], BRANGE='day';
-let PRODUCTS=[], SCANNED=null, SCANIMG=null, MEALS=[], IDEAS=[], OPENCAT=new Set();
+let PRODUCTS=[], GONE=[], SCANNED=null, SCANIMG=null, MEALS=[], IDEAS=[], OPENCAT=new Set();
 const TITLES={hub:'Today',food:'Food and water',train:'Training',photos:'Progress',days:'History',settings:'Settings'};
 
 function roll(el,to){const from=+el.dataset.v||0;el.dataset.v=to;
@@ -863,8 +863,27 @@ function ideaCard(o,i){
   </div>`;
 }
 
+// A guess is better than always landing on the first option in the list.
+function guessCat(name){
+  const t=String(name||'').toLowerCase(), has=(...w)=>w.some(x=>t.includes(x));
+  if(has('chicken','beef','salmon','shrimp','turkey','steak','pork','tuna','patty','sausage','bacon'))return 'meat';
+  if(has('yogurt','milk','cheese','egg','butter','cottage','cream'))return 'dairy';
+  if(has('broccoli','bean','asparagus','brussels','vegetable','banana','apple','berr','spinach','salad','tomato','onion'))return 'produce';
+  if(has('rice','bread','wrap','potato','oatmeal','pasta','fries','crinkle','tortilla','bagel','cereal'))return 'carbs';
+  if(has('gelato','sorbet','chocolate','cookie','candy','ice cream','talenti','dessert'))return 'treats';
+  if(has('sauce','paste','salsa','tzatziki','dressing','seasoning','spread','mayo','mustard','ketchup','paprika','powder','syrup','oil','vinegar'))return 'sauces';
+  if(has('shake','juice','soda','coffee','tea','water','drink','seltzer'))return 'drinks';
+  if(has('nut','pistachio','almond','chip','cracker','bar','raisin','cranberr','seed','popcorn','jerky'))return 'snacks';
+  if(has(' + ','tray','entree','bowl','frozen meal'))return 'meals';
+  return 'other';
+}
+
 async function loadProducts(){
-  try{ PRODUCTS=await api('products'); }catch(e){ PRODUCTS=[]; }
+  try{
+    const r=await api('products');
+    PRODUCTS = Array.isArray(r) ? r : (r.have||[]);
+    GONE = Array.isArray(r) ? [] : (r.gone||[]);
+  }catch(e){ PRODUCTS=[]; GONE=[]; }
   const CATS=[['meals','Prepared meals'],['meat','Meat and fish'],['dairy','Dairy and eggs'],
     ['produce','Produce'],['carbs','Carbs and grains'],['snacks','Snacks'],
     ['treats','Treats'],['sauces','Sauces and seasoning'],['drinks','Drinks'],['other','Other']];
@@ -881,9 +900,9 @@ async function loadProducts(){
       ${open?`<div class="catbody">${list.map(p=>`
         <button class="itemrow ${p.remaining!=null&&p.remaining<=0?'out':''}" data-prod="${p.id}">
           <span>${esc(p.name)}</span>
-          <span class="q">${p.remaining==null?'' : p.remaining<=0?'out'
+          <span class="q">${p.remaining==null?'' 
             : p.remaining<=(p.low_at??1)?`<span style="color:var(--acc)">${Math.round(p.remaining*10)/10} left</span>`
-            : Math.round(p.remaining*10)/10}</span></button>`).join('')}</div>`:''}`;
+            : `${Math.round(p.remaining*10)/10}${(p.packs>1)?` · ${Math.round(p.packs)} packs`:''}`}</span></button>`).join('')}</div>`:''}`;
   }).join('') : '<p class="empty">Nothing saved yet. Scan a label and it lives here.</p>';
 }
 
@@ -900,7 +919,7 @@ function prodForm(p, img){
       ${[['meals','Prepared meals'],['meat','Meat and fish'],['dairy','Dairy and eggs'],['produce','Produce'],
          ['carbs','Carbs and grains'],['snacks','Snacks'],['treats','Treats'],['sauces','Sauces and seasoning'],
          ['drinks','Drinks'],['other','Other']].map(([k,l])=>
-        `<option value="${k}" ${v('category')===k?'selected':''}>${l}</option>`).join('')}
+        `<option value="${k}" ${(p&&p.category?p.category:guessCat(p&&p.name))===k?'selected':''}>${l}</option>`).join('')}
     </select>
     <div class="row" style="margin-top:8px">
       <div><label class="tiny">Calories</label><input id="pfKcal" type="number" inputmode="decimal" value="${v('kcal',0)}" style="width:100%;margin-top:4px"></div>
@@ -912,8 +931,10 @@ function prodForm(p, img){
       <div><label class="tiny">Fat g</label><input id="pfFat" type="number" inputmode="decimal" value="${v('fat',0)}" style="width:100%;margin-top:4px"></div>
       <div><label class="tiny">Fibre g</label><input id="pfFib" type="number" inputmode="decimal" value="${v('fiber',0)}" style="width:100%;margin-top:4px"></div>
     </div>
-    <div style="margin-top:8px"><label class="tiny">Serving weight, g (optional)</label>
-      <input id="pfGram" type="number" inputmode="decimal" value="${v('serving_g','')}" placeholder="—" style="width:100%;margin-top:4px"></div>
+    <div class="row" style="margin-top:8px">
+      <div><label class="tiny">How many packs</label><input id="pfQty" type="number" step="1" inputmode="numeric" value="${v('packs',1)}" style="width:100%;margin-top:4px"></div>
+      <div><label class="tiny">Serving weight, g</label><input id="pfGram" type="number" inputmode="decimal" value="${v('serving_g','')}" placeholder="—" style="width:100%;margin-top:4px"></div>
+    </div>
     <button class="btn primary" id="pfSave" style="width:100%;margin-top:12px">${p&&p.id?'Save changes':'Save this product'}</button>
     ${p&&p.id?`<button class="btn ghost" data-pdel="${p.id}" style="width:100%;margin-top:8px;color:var(--over)">Delete product</button>`:''}
     <p class="tiny" style="margin-top:9px">Everything is per serving, as printed on the panel. Correct anything the reader got wrong before saving.${
@@ -924,7 +945,12 @@ function prodForm(p, img){
 
 async function loadInv(){
   const gr=await api('todos');
-  $('#grocery').innerHTML=(gr.list.length?gr.list.map(g=>
+  const goneRows = GONE.length ? `<p class="tiny" style="margin:0 0 6px">Run out — tap when you've bought more</p>`
+    + GONE.map(p=>`<div class="item"><span>${esc(p.name)}</span>
+        <button class="m" data-prestock2="${p.id}" style="color:var(--acc);margin-left:auto">bought it</button>
+        <button class="m" data-pdel2="${p.id}" style="color:var(--over);margin-left:10px">×</button></div>`).join('')
+    : '';
+  $('#grocery').innerHTML=goneRows+(gr.list.length?gr.list.map(g=>
     `<div class="item"><button data-todo="${g.id}" style="text-align:left;text-decoration:${g.done?'line-through':'none'};opacity:${g.done?.5:1}">${esc(g.text)}</button><button class="m" data-del="${g.id}">remove</button></div>`).join('')
     :'<p class="empty">List is empty.</p>')
     +(gr.suggested.length?`<p class="tiny" style="margin-top:12px">Out of stock — tap to add:</p><div style="margin-top:6px">`+
@@ -1698,8 +1724,8 @@ document.addEventListener('click',async e=>{
       fat:+$('#pfFat').value||0, fiber:+$('#pfFib').value||0,
       serving_g:$('#pfGram').value?+$('#pfGram').value:null,
       category:$('#pfCat').value,
-      servings_per_container:$('#pfPack').value?+$('#pfPack').value:null,
-      remaining:$('#pfPack').value?+$('#pfPack').value:null
+      servings_per_container:$('#pfPack').value?+$('#pfPack').value:1,
+      packs:$('#pfQty').value?+$('#pfQty').value:1
     };
     if(SCANNED&&SCANNED.id)payload.id=SCANNED.id; else if(SCANIMG)payload.image=SCANIMG;
     b.disabled=true;
@@ -1733,8 +1759,9 @@ document.addEventListener('click',async e=>{
       <div class="line"><span>Fibre</span><b>${Math.round(p.fiber||0)} g</b></div>
       ${p.sugar?`<div class="line"><span>Sugar</span><b>${Math.round(p.sugar)} g</b></div>`:''}
       ${p.sodium?`<div class="line"><span>Sodium</span><b>${Math.round(p.sodium)} mg</b></div>`:''}
+      ${p.packs>1?`<div class="line" style="margin-top:8px"><span>Packs</span><b>${Math.round(p.packs)}</b></div>`:''}
       ${p.remaining!=null?`
-      <div class="line" style="margin-top:8px"><span>Servings left</span>
+      <div class="line"><span>Servings left</span>
         <b style="color:${p.remaining<=0?'var(--over)':p.remaining<=(p.low_at??1)?'var(--acc)':'var(--ink)'}">${Math.round(p.remaining*10)/10}${p.servings_per_container?` of ${p.servings_per_container}`:''}</b></div>`:''}
 
       <p class="tiny" style="margin:16px 0 6px">How much did you use?</p>
@@ -1784,22 +1811,33 @@ document.addEventListener('click',async e=>{
       : `Logged ${Math.round(r.kcal)} kcal`);
     loadProducts();loadInv();return refresh();
   }
+  if(b.dataset.prestock2){
+    const q=prompt('How many packs did you buy?','1'); if(q===null)return;
+    await post('product',{id:+b.dataset.prestock2,restock:true,packs:+q||1});
+    toast('Back in stock.');loadProducts();return loadInv();
+  }
+  if(b.dataset.pdel2){
+    if(!confirm('Remove this product entirely?'))return;
+    await post('product',{delete:+b.dataset.pdel2});
+    toast('Removed.');loadProducts();return loadInv();
+  }
   if(b.dataset.pset){
     const p=PRODUCTS.find(x=>x.id==b.dataset.pset);
     const full=p?.servings_per_container||1;
-    await post('product',{id:+b.dataset.pset,remaining:+b.dataset.frac*full});
+    await post('product',{id:+b.dataset.pset,set_remaining:true,remaining:+b.dataset.frac*full*(p?.packs||1)});
     $('#prodLog').classList.add('hide');toast('Updated.');return loadProducts();
   }
   if(b.dataset.pexact){
     const v=+$('#pcExact').value; if(isNaN(v))return toast('Enter a number first.');
-    await post('product',{id:+b.dataset.pexact,remaining:v});
+    await post('product',{id:+b.dataset.pexact,set_remaining:true,remaining:v});
     $('#prodLog').classList.add('hide');toast('Updated.');return loadProducts();
   }
   if(b.dataset.prestock){
     const p=PRODUCTS.find(x=>x.id==b.dataset.prestock);
-    const n=prompt('How many servings in the new pack?', p?.servings_per_container||'');
-    if(n===null)return;
-    await post('product',{id:+b.dataset.prestock,restock:true,servings_per_container:+n||1});
+    const q=prompt('How many packs did you buy?', '1');
+    if(q===null)return;
+    await post('product',{id:+b.dataset.prestock,restock:true,packs:+q||1,
+      servings_per_container:p?.servings_per_container||1});
     $('#prodLog').classList.add('hide');toast('Restocked, and off the list.');
     loadInv();return loadProducts();
   }
