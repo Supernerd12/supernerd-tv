@@ -574,6 +574,31 @@ export async function onRequest(ctx) {
         return json({ ok: true, id: res.meta?.last_row_id ?? null });
       }
 
+      case 'GET categories':
+        return json(await all(env, 'SELECT * FROM categories ORDER BY sort, label'));
+
+      case 'POST categories': {
+        if (body.delete) {
+          if (body.delete === 'other') return json({ error: 'Everything else has to stay.' }, 400);
+          await run(env, "UPDATE products SET category='other' WHERE category=?1", [body.delete]);
+          await run(env, 'DELETE FROM categories WHERE key=?1', [body.delete]);
+          return json({ ok: true });
+        }
+        if (body.rename && body.key) {
+          await run(env, 'UPDATE categories SET label=?1 WHERE key=?2', [String(body.rename).slice(0, 40), body.key]);
+          return json({ ok: true });
+        }
+        if (body.label) {
+          const key = String(body.key || body.label).toLowerCase()
+            .replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 24) || `c${Date.now()}`;
+          const max = await one(env, 'SELECT MAX(sort) m FROM categories WHERE sort < 999');
+          await run(env, 'INSERT OR REPLACE INTO categories (key,label,sort) VALUES (?1,?2,?3)',
+            [key, String(body.label).slice(0, 40), (max?.m || 100) + 10]);
+          return json({ ok: true, key });
+        }
+        return json({ error: 'nothing to do' }, 400);
+      }
+
       case 'GET products': {
         const rows = await all(env, `SELECT * FROM products ORDER BY last_used DESC, name`);
         const have = rows.filter((r) => r.remaining == null ? r.in_stock : r.remaining > 0);
@@ -1013,15 +1038,20 @@ const missingColumn = (e) => /no such column|has no column/i.test(String(e?.mess
 function guessCategory(name) {
   const t = String(name || '').toLowerCase();
   const has = (...w) => w.some((x) => t.includes(x));
+  if (has('canned','can of','tinned','jarred','paste','in syrup','in juice')) return 'canned';
+  if (has('frozen','freezer')) return 'frozen';
+  if (has('seasoning','spice','paprika','cumin','oregano','basil','cinnamon','cajun','garlic powder','onion powder','herb','pepper blend','salt')) return 'seasoning';
+  if (has('pasta','spaghetti','penne','noodle','macaroni','lasagn','ramen','orzo')) return 'pasta';
   if (has('chicken','beef','salmon','shrimp','turkey','steak','pork','tuna','patty','sausage','bacon')) return 'meat';
   if (has('yogurt','milk','cheese','egg','butter','cottage','cream')) return 'dairy';
-  if (has('broccoli','bean','asparagus','brussels','vegetable','banana','apple','berr','spinach','salad','tomato','onion','pepper ')) return 'produce';
-  if (has('rice','bread','wrap','potato','oatmeal','pasta','fries','crinkle','tortilla','bagel','cereal')) return 'carbs';
-  if (has('gelato','sorbet','chocolate','cookie','candy','ice cream','talenti','dessert')) return 'treats';
-  if (has('sauce','salsa','tzatziki','dressing','seasoning','spread','mayo','mustard','ketchup','paprika','powder','syrup','oil','vinegar')) return 'sauces';
-  if (has('shake','juice','soda','coffee','tea','water','drink','soda','seltzer')) return 'drinks';
-  if (has('nut','pistachio','almond','chip','cracker','bar','raisin','cranberr','seed','popcorn','jerky')) return 'snacks';
-  if (has(' + ','tray','entree','bowl','meal')) return 'meals';
+  if (has('broccoli','bean','asparagus','brussels','vegetable','banana','apple','berr','spinach','salad','tomato','onion','lettuce','carrot')) return 'produce';
+  if (has('rice','bread','wrap','potato','oatmeal','fries','crinkle','tortilla','bagel','cereal','quinoa','couscous')) return 'carbs';
+  if (has('gelato','sorbet','chocolate','cookie','candy','ice cream','talenti','dessert','brownie')) return 'treats';
+  if (has('sauce','salsa','tzatziki','dressing','spread','mayo','mustard','ketchup','syrup','vinegar','hummus')) return 'sauces';
+  if (has('oil','flour','sugar','baking','extract','yeast')) return 'baking';
+  if (has('shake','juice','soda','coffee','tea','water','drink','seltzer')) return 'drinks';
+  if (has('nut','pistachio','almond','chip','cracker','bar','raisin','cranberr','seed','popcorn','jerky','pretzel')) return 'snacks';
+  if (has(' + ','tray','entree','bowl','frozen meal')) return 'meals';
   return 'other';
 }
 

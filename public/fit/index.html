@@ -273,7 +273,7 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
 <div id="app" class="hide">
 <header>
   <h1 id="vtitle">Today</h1>
-  <button id="ver" title="Tap to force a fresh copy">v30</button>
+  <button id="ver" title="Tap to force a fresh copy">v31</button>
   <span style="justify-self:end;display:flex;align-items:center;gap:10px">
     <span class="date" id="vdate"></span>
     <button id="gear" aria-label="Settings" style="width:34px;height:34px;display:grid;place-items:center;color:var(--dim)">
@@ -659,6 +659,14 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
     </div>
   </div>
 
+  <h2>Food categories</h2>
+  <div id="catList"></div>
+  <div class="row" style="margin-top:8px">
+    <input id="catNew" placeholder="New category, e.g. Baby food">
+    <button class="btn" id="catAdd" style="flex:0 0 62px">Add</button>
+  </div>
+  <p class="tiny" style="margin-top:8px">Deleting a category moves anything in it to Everything else.</p>
+
   <h2>What's connected</h2>
   <div class="card"><div id="diag"></div></div>
 </section>
@@ -702,7 +710,7 @@ const MUSCLES={
 let CHAT=[], CARDIORANGE='day', GUIDE='bright';
 let FOODITEMS=[], INVMANAGE=false, INVSEL=new Set(), INVCACHE=[];
 let TIMER=0, PENDING=null, WSERIES=[], BRANGE='day';
-let PRODUCTS=[], GONE=[], SCANNED=null, SCANIMG=null, MEALS=[], IDEAS=[], OPENCAT=new Set();
+let PRODUCTS=[], GONE=[], SCANNED=null, SCANIMG=null, MEALS=[], IDEAS=[], OPENCAT=new Set(), CATS=[];
 const TITLES={hub:'Today',food:'Food and water',train:'Training',photos:'Progress',days:'History',settings:'Settings'};
 
 function roll(el,to){const from=+el.dataset.v||0;el.dataset.v=to;
@@ -871,7 +879,12 @@ function guessCat(name){
   if(has('broccoli','bean','asparagus','brussels','vegetable','banana','apple','berr','spinach','salad','tomato','onion'))return 'produce';
   if(has('rice','bread','wrap','potato','oatmeal','pasta','fries','crinkle','tortilla','bagel','cereal'))return 'carbs';
   if(has('gelato','sorbet','chocolate','cookie','candy','ice cream','talenti','dessert'))return 'treats';
-  if(has('sauce','paste','salsa','tzatziki','dressing','seasoning','spread','mayo','mustard','ketchup','paprika','powder','syrup','oil','vinegar'))return 'sauces';
+  if(has('canned','can of','tinned','jarred','paste','in syrup','in juice'))return 'canned';
+  if(has('frozen'))return 'frozen';
+  if(has('seasoning','spice','paprika','cumin','oregano','basil','cinnamon','cajun','garlic powder','onion powder','herb','salt'))return 'seasoning';
+  if(has('pasta','spaghetti','penne','noodle','macaroni','lasagn','ramen','orzo'))return 'pasta';
+  if(has('sauce','salsa','tzatziki','dressing','spread','mayo','mustard','ketchup','syrup','vinegar','hummus'))return 'sauces';
+  if(has('oil','flour','sugar','baking','extract','yeast'))return 'baking';
   if(has('shake','juice','soda','coffee','tea','water','drink','seltzer'))return 'drinks';
   if(has('nut','pistachio','almond','chip','cracker','bar','raisin','cranberr','seed','popcorn','jerky'))return 'snacks';
   if(has(' + ','tray','entree','bowl','frozen meal'))return 'meals';
@@ -884,13 +897,11 @@ async function loadProducts(){
     PRODUCTS = Array.isArray(r) ? r : (r.have||[]);
     GONE = Array.isArray(r) ? [] : (r.gone||[]);
   }catch(e){ PRODUCTS=[]; GONE=[]; }
-  const CATS=[['meals','Prepared meals'],['meat','Meat and fish'],['dairy','Dairy and eggs'],
-    ['produce','Produce'],['carbs','Carbs and grains'],['snacks','Snacks'],
-    ['treats','Treats'],['sauces','Sauces and seasoning'],['drinks','Drinks'],['other','Other']];
+  if(!CATS.length){ try{ CATS=await api('categories'); }catch(e){ CATS=[{key:'other',label:'Everything else'}]; } }
   const byCat={};
   PRODUCTS.forEach(p=>{const c=p.category||'other';(byCat[c]=byCat[c]||[]).push(p);});
 
-  $('#prods').innerHTML = PRODUCTS.length ? CATS.filter(([k])=>byCat[k]?.length).map(([k,label])=>{
+  $('#prods').innerHTML = PRODUCTS.length ? CATS.filter(c=>byCat[c.key]?.length).map(({key:k,label})=>{
     const list=byCat[k], open=OPENCAT.has(k);
     const low=list.filter(p=>p.remaining!=null&&p.remaining<=(p.low_at??1)).length;
     return `<button class="catrow" data-cat="${k}">
@@ -916,10 +927,8 @@ function prodForm(p, img){
     <input id="pfName" value="${esc(v('name'))}" placeholder="Product name" style="width:100%;margin-top:10px">
     <input id="pfServ" value="${esc(v('serving_desc','1 serving'))}" placeholder="Serving, e.g. 2/3 cup (55g)" style="width:100%;margin-top:8px">
     <select id="pfCat" style="width:100%;margin-top:8px">
-      ${[['meals','Prepared meals'],['meat','Meat and fish'],['dairy','Dairy and eggs'],['produce','Produce'],
-         ['carbs','Carbs and grains'],['snacks','Snacks'],['treats','Treats'],['sauces','Sauces and seasoning'],
-         ['drinks','Drinks'],['other','Other']].map(([k,l])=>
-        `<option value="${k}" ${(p&&p.category?p.category:guessCat(p&&p.name))===k?'selected':''}>${l}</option>`).join('')}
+      ${CATS.map(c=>
+        `<option value="${c.key}" ${(p&&p.category?p.category:guessCat(p&&p.name))===c.key?'selected':''}>${esc(c.label)}</option>`).join('')}
     </select>
     <div class="row" style="margin-top:8px">
       <div><label class="tiny">Calories</label><input id="pfKcal" type="number" inputmode="decimal" value="${v('kcal',0)}" style="width:100%;margin-top:4px"></div>
@@ -1391,6 +1400,14 @@ async function loadSettings(){
   }).catch(()=>{});
   $('#feed').value=location.origin+'/cal.ics?k=PASTE_YOUR_FIT_TOKEN';
   loadTodos();
+  try{
+    CATS=await api('categories');
+    $('#catList').innerHTML=CATS.map(c=>`<div class="item">
+      <span>${esc(c.label)}</span>
+      <button class="m" data-catren="${c.key}" data-lbl="${esc(c.label)}">rename</button>
+      ${c.key!=='other'?`<button class="m" data-catdel="${c.key}" style="color:var(--over);margin-left:10px">×</button>`:''}
+    </div>`).join('');
+  }catch(e){}
   if(d) $('#diag').innerHTML=`
     <div class="line" style="border-top:0;padding-top:0"><span>Version</span><b>${esc(d.version)}</b></div>
     <div class="line"><span>Natural language</span><b style="color:${d.natural_language==='none'?'var(--over)':'var(--good)'}">${esc(d.natural_language)}</b></div>
@@ -1884,6 +1901,21 @@ document.addEventListener('click',async e=>{
   if(b.dataset.brange){BRANGE=b.dataset.brange;
     document.querySelectorAll('[data-brange]').forEach(z=>z.classList.toggle('on',z===b));return loadBurn();}
   if(b.id==='gear')return go('settings');
+  if(b.id==='catAdd'){
+    const v=$('#catNew').value.trim(); if(!v)return toast('Name it first.');
+    await post('categories',{label:v}); $('#catNew').value='';
+    CATS=[]; toast('Added.'); return loadSettings();
+  }
+  if(b.dataset.catren){
+    const n=prompt('Rename this category', b.dataset.lbl); if(!n)return;
+    await post('categories',{key:b.dataset.catren,rename:n});
+    CATS=[]; toast('Renamed.'); return loadSettings();
+  }
+  if(b.dataset.catdel){
+    if(!confirm('Delete this category? Anything in it moves to Everything else.'))return;
+    await post('categories',{delete:b.dataset.catdel});
+    CATS=[]; toast('Deleted.'); return loadSettings();
+  }
   if(b.id==='sScale'){
     await post('settings',{profile:{sync_weight:$('#sSync').checked?'1':'0',
       weight_offset:$('#sOffset').value||'0'}});
