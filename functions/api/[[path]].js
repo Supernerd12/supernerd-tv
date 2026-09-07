@@ -70,6 +70,79 @@ export async function onRequest(ctx) {
       case 'GET energy':
         return json(await energyToday(env, d));
 
+      // Burn over time, split into the parts, for the training chart.
+      case 'GET burn': {
+        const range = url.searchParams.get('range') || 'week';
+        const p2 = await profile(env);
+        const lb = await bodyWeightLb(env);
+        const perStep = 0.04 * (lb / 150);
+
+        if (range === 'day') {
+          const now = new Date();
+          const keys = [];
+          for (let i = 23; i >= 0; i--) {
+            const dt = new Date(now.getTime() - i * 3600000);
+            const local = dt.toLocaleString('sv-SE', { timeZone: TZ });
+            keys.push({ t: local.slice(0, 13).replace(' ', 'T'), hour: Number(local.slice(11, 13)) });
+          }
+          const hrs = await all(env, 'SELECT t, steps FROM activity_hours WHERE t >= ?1', [keys[0].t]);
+          const byT = Object.fromEntries(hrs.map((r) => [r.t, r.steps || 0]));
+          const w = await all(env,
+            "SELECT ts, kcal, exercise FROM workout_log WHERE d >= ?1 AND kcal IS NOT NULL", [dayStr(-1)]);
+          const wByHour = {};
+          for (const r of w) {
+            const k = String(r.ts || '').slice(0, 13);
+            wByHour[k] = (wByHour[k] || 0) + (r.kcal || 0);
+          }
+          return json({
+            range, unit: 'kcal',
+            series: keys.map((k) => ({
+              d: k.t,
+              label: (k.hour % 12 === 0 ? 12 : k.hour % 12) + (k.hour < 12 ? 'a' : 'p'),
+              walk: Math.round((byT[k.t] || 0) * perStep),
+              training: Math.round(wByHour[k.t] || 0),
+              value: Math.round((byT[k.t] || 0) * perStep + (wByHour[k.t] || 0))
+            }))
+          });
+        }
+
+        const from = rangeStart(range);
+        const act = await all(env, 'SELECT d, steps FROM activity WHERE d>=?1 ORDER BY d', [from]);
+        const w = await all(env,
+          "SELECT d, SUM(COALESCE(kcal,0)) k FROM workout_log WHERE d>=?1 GROUP BY d", [from]);
+        const wByDay = Object.fromEntries(w.map((r) => [r.d, r.k]));
+        const days = {};
+        for (const r of act) days[r.d] = { walk: Math.round((r.steps || 0) * perStep), training: 0 };
+        for (const [d2, k] of Object.entries(wByDay)) {
+          days[d2] = days[d2] || { walk: 0, training: 0 };
+          days[d2].training = Math.round(k);
+        }
+        const series = Object.entries(days).sort().map(([d2, v]) => ({
+          d: d2, walk: v.walk, training: v.training, value: v.walk + v.training
+        }));
+        return json({ range, unit: 'kcal', series,
+          total: series.reduce((a, r) => a + r.value, 0),
+          avg: series.length ? Math.round(series.reduce((a, r) => a + r.value, 0) / series.length) : 0,
+          best: series.length ? series.reduce((a, b) => (b.value > a.value ? b : a)) : null });
+      }
+
+      case 'POST settings': {
+        for (const [k, v] of Object.entries(body.profile || {}))
+          if (/^[a-z_]{2,30}$/.test(k))
+            await run(env, 'INSERT OR REPLACE INTO profile (k,v) VALUES (?1,?2)', [k, String(v).slice(0, 200)]);
+        if (body.target) {
+          const t2 = await currentTarget(env);
+          await run(env,
+            'INSERT OR REPLACE INTO targets (d,kcal_low,kcal_high,protein,steps,reason) VALUES (?1,?2,?3,?4,?5,?6)',
+            [dayStr(), body.target.kcal_low ?? t2.kcal_low, body.target.kcal_high ?? t2.kcal_high,
+             body.target.protein ?? t2.protein, body.target.steps ?? t2.steps, 'set by hand']);
+        }
+        return json({ ok: true, profile: await profile(env), target: await currentTarget(env) });
+      }
+
+      case 'GET settings':
+        return json({ profile: await profile(env), target: await currentTarget(env) });
+
       case 'GET energy/history':
         return json(await energyRange(env, Math.min(90, Number(url.searchParams.get('days') || 14))));
 

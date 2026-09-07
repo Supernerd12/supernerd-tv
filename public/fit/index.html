@@ -61,7 +61,7 @@ header{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10
   position:sticky;top:0;z-index:5;padding:22px 0 16px;
   background:linear-gradient(180deg,var(--bg) 70%,transparent)}
 header h1{font-family:var(--display);font-size:27px;font-weight:600;margin:0;letter-spacing:.005em;line-height:1;text-transform:uppercase}
-header .date{justify-self:end;font:10px/1.3 var(--mono);color:var(--dim);text-transform:uppercase;letter-spacing:.14em;
+header .date{font:10px/1.3 var(--mono);color:var(--dim);text-transform:uppercase;letter-spacing:.14em;
   min-width:74px;text-align:right}
 #ver{justify-self:center;font:10px/1 var(--mono);letter-spacing:.14em;color:var(--dim);
   background:rgba(255,255,255,.06);border:1px solid var(--rule);border-radius:99px;
@@ -255,8 +255,14 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
 <div id="app" class="hide">
 <header>
   <h1 id="vtitle">Today</h1>
-  <button id="ver" title="Tap to force a fresh copy">v20</button>
-  <span class="date" id="vdate"></span>
+  <button id="ver" title="Tap to force a fresh copy">v21</button>
+  <span style="justify-self:end;display:flex;align-items:center;gap:10px">
+    <span class="date" id="vdate"></span>
+    <button id="gear" aria-label="Settings" style="width:34px;height:34px;display:grid;place-items:center;color:var(--dim)">
+      <svg viewBox="0 0 24 24" style="width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.7">
+        <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.6 1.6 0 00-1.8-.3 1.6 1.6 0 00-1 1.5V21a2 2 0 11-4 0v-.1A1.6 1.6 0 008 19.4a1.6 1.6 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.6 1.6 0 00.3-1.8 1.6 1.6 0 00-1.5-1H2a2 2 0 110-4h.1A1.6 1.6 0 004.6 8a1.6 1.6 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.6 1.6 0 001.8.3H9a1.6 1.6 0 001-1.5V2a2 2 0 114 0v.1a1.6 1.6 0 001 1.5 1.6 1.6 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.6 1.6 0 00-.3 1.8V9a1.6 1.6 0 001.5 1H22a2 2 0 110 4h-.1a1.6 1.6 0 00-1.5 1z"/>
+      </svg></button>
+  </span>
 </header>
 
 <section class="view" id="v-hub">
@@ -269,7 +275,11 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
       <span class="tiny" id="eSub" style="margin-left:auto;text-align:right"></span>
     </div>
     <div class="bar" id="eBar"><i></i></div>
-    <div class="line"><span>Burned</span><b id="eOut">—</b></div>
+    <div class="line"><span>Just being alive (BMR)</span><b id="eBmr">—</b></div>
+    <div class="line"><span>Ordinary daily living</span><b id="eLive">—</b></div>
+    <div class="line"><span>Steps</span><b id="eStep" style="color:var(--sync)">—</b></div>
+    <div class="line"><span>Training</span><b id="eWork">—</b></div>
+    <div class="line" style="border-top:1px solid var(--rule2)"><span>Total burned</span><b id="eOut">—</b></div>
     <div class="line"><span>Eaten</span><b id="eIn">—</b></div>
     <div class="line"><span>At this rate</span><b id="eRate">—</b></div>
     <p class="tiny" id="eHint" style="margin:10px 0 0"></p>
@@ -397,6 +407,20 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
   </div>
 
   <div id="cardioBox" class="hide" style="margin-top:14px"></div>
+
+  <h2>Calories out</h2>
+  <div class="card">
+    <div class="seg sm">
+      ${''}
+      <button data-brange="day" class="on">Day</button>
+      <button data-brange="week">Week</button>
+      <button data-brange="month">Month</button>
+    </div>
+    <canvas class="chart" id="bChart" style="height:170px;margin-top:12px"></canvas>
+    <div id="bStats"></div>
+    <p class="tiny" style="margin:10px 0 0"><span style="color:var(--acc)">■</span> training ·
+      <span style="color:var(--sync)">■</span> walking. Placed by when you logged it.</p>
+  </div>
 
   <div id="muscles" style="margin-top:12px"></div>
   <div id="exList" style="margin-top:6px"></div>
@@ -544,6 +568,25 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
   </p>
   <div id="dayDetail" style="margin-top:14px"></div>
 
+</section>
+
+<section class="view hide" id="v-settings">
+  <h2 style="margin-top:4px">Targets</h2>
+  <div class="card">
+    <div class="row">
+      <div><label class="tiny">Deficit/day</label><input id="sDef" type="number" inputmode="numeric" style="width:100%;margin-top:5px"></div>
+      <div><label class="tiny">Protein g</label><input id="sProt" type="number" inputmode="numeric" style="width:100%;margin-top:5px"></div>
+      <div><label class="tiny">Steps</label><input id="sSteps" type="number" inputmode="numeric" style="width:100%;margin-top:5px"></div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <div><label class="tiny">Water oz</label><input id="sWater" type="number" inputmode="numeric" style="width:100%;margin-top:5px"></div>
+      <div><label class="tiny">BMR override</label><input id="sBmr" type="number" inputmode="numeric" placeholder="auto" style="width:100%;margin-top:5px"></div>
+      <div><label class="tiny">Kcal floor</label><input id="sFloor" type="number" inputmode="numeric" style="width:100%;margin-top:5px"></div>
+    </div>
+    <button class="btn primary" id="sSave" style="width:100%;margin-top:12px">Save targets</button>
+    <p class="tiny" style="margin-top:9px">BMR is calculated from your height, age and current weight unless you override it. The floor is the calorie level the engine will never recommend going below.</p>
+  </div>
+
   <h2>Reminders</h2>
   <div id="reminders"></div>
   <div class="row" style="margin-top:8px">
@@ -562,15 +605,18 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
     <button class="btn" id="tAdd" style="flex:0 0 62px">Add</button>
   </div>
 
-  <h2>Send these to your calendar</h2>
+  <h2>Calendar feed</h2>
   <div class="card">
-    <p class="tiny" style="margin:0 0 10px">Subscribe once in Apple Calendar and every reminder above arrives with an alert, refreshing on its own. Settings → Calendar → Accounts → Add Subscribed Calendar.</p>
-    <input id="feed" readonly style="width:100%;font:12px ui-monospace,Menlo,monospace">
+    <p class="tiny" style="margin:0 0 10px">Subscribe once in Apple Calendar and every reminder arrives with an alert, refreshing on its own. Settings → Calendar → Accounts → Add Subscribed Calendar.</p>
+    <input id="feed" readonly style="width:100%;font:12px var(--mono)">
     <div class="row" style="margin-top:8px">
       <button class="btn ghost" id="copyFeed">Copy the link</button>
       <button class="btn ghost" id="openFeed">Subscribe now</button>
     </div>
   </div>
+
+  <h2>What's connected</h2>
+  <div class="card"><div id="diag"></div></div>
 </section>
 
 <nav>
@@ -611,8 +657,8 @@ const MUSCLES={
 };
 let CHAT=[], CARDIORANGE='day', GUIDE='bright';
 let FOODITEMS=[], INVMANAGE=false, INVSEL=new Set(), INVCACHE=[];
-let TIMER=0, PENDING=null, WSERIES=[];
-const TITLES={hub:'Today',food:'Food and water',train:'Training',photos:'Progress',days:'History'};
+let TIMER=0, PENDING=null, WSERIES=[], BRANGE='day';
+const TITLES={hub:'Today',food:'Food and water',train:'Training',photos:'Progress',days:'History',settings:'Settings'};
 
 function roll(el,to){const from=+el.dataset.v||0;el.dataset.v=to;
   if(matchMedia('(prefers-reduced-motion:reduce)').matches){el.textContent=to.toLocaleString();return;}
@@ -628,9 +674,10 @@ function go(v){
   window.scrollTo({top:0});
   if(v!=='photos'){PLAYING=false;if(stream)camOff();}
   if(v==='photos')loadPhotos();
-  if(v==='days'){drawCal();loadTodos();}
+  if(v==='days')drawCal();
+  if(v==='settings')loadSettings();
   if(v==='food')loadInv();
-  if(v==='train')loadTrain();
+  if(v==='train'){loadTrain();loadBurn();}
 }
 
 async function refresh(){
@@ -649,11 +696,15 @@ async function refresh(){
       : `target<br>${e.target}`;
     $('#eBar').classList.toggle('over', e.deficit<0);
     $('#eBar').firstElementChild.style.width=Math.min(100,Math.max(0,e.deficit/e.target*100))+'%';
+    $('#eBmr').textContent=`${e.bmr.toLocaleString()} kcal`;
+    $('#eLive').textContent=`+${(e.base-e.bmr).toLocaleString()} kcal`;
+    $('#eStep').textContent=e.step_burn?`+${e.step_burn.toLocaleString()} kcal`:'none yet';
+    $('#eWork').textContent=e.workout_burn?`+${e.workout_burn.toLocaleString()} kcal`:'none yet';
     $('#eOut').textContent=`${e.out.toLocaleString()} kcal`;
     $('#eIn').textContent=`${e.intake.toLocaleString()} kcal`;
     $('#eRate').textContent=`${e.weekly_rate_implied>0?'-':'+'}${Math.abs(e.weekly_rate_implied)} lb/wk`;
     $('#eHint').textContent = e.on_track
-      ? `Resting and daily living ${e.base}, steps ${e.step_burn}${e.workout_burn?`, training ${e.workout_burn}`:''}. You're past the target — eating more to "hit" a number is what stalls this.`
+      ? `Your body spends ${e.bmr} a day before you move at all — that is why a deficit exists without training. You're past the target; eating more to "hit" a number is what stalls this.`
       : e.deficit<0 ? `Above maintenance today. Not a problem on its own — the 7-day average is what moves the scale.`
       : `Short by ${e.short_by}. About ${e.walk_minutes_to_close} minutes of walking would close it.`;
   }).catch(()=>{});
@@ -1132,6 +1183,58 @@ async function loadCardio(){
   drawChart($('#cChart'),series,'steps',CHARTMODE,c.target_steps);
 }
 
+async function loadBurn(){
+  let b; try{ b=await api('burn?range='+BRANGE); }catch(e){ return; }
+  const s2=b.series||[];
+  const max=Math.max(1,...s2.map(r=>r.value));
+  const c=$('#bChart'); if(!c)return;
+  const dpr=devicePixelRatio||1, W=c.clientWidth||300, H=c.clientHeight||170;
+  c.width=W*dpr;c.height=H*dpr;
+  const x=c.getContext('2d');x.scale(dpr,dpr);x.clearRect(0,0,W,H);
+  const acc=cssVar('--acc')||'#B368F7', cyan='#5BC8F5';
+  const top=18,bot=H-24,plot=bot-top,n=s2.length;
+  x.strokeStyle='rgba(255,255,255,.07)';x.lineWidth=1;
+  [0,.5,1].forEach(f=>{const y=top+plot*f;x.beginPath();x.moveTo(0,y+.5);x.lineTo(W,y+.5);x.stroke();});
+  if(!n){x.fillStyle='rgba(255,255,255,.34)';x.font='13px -apple-system,sans-serif';
+    x.fillText('Nothing logged in this window.',0,H/2);$('#bStats').innerHTML='';return;}
+  const gap=n>20?2:4, bw=Math.max(3,(W-gap*(n-1))/n), r=Math.min(bw/2,5);
+  s2.forEach((row,i)=>{
+    const wh=(row.walk/max)*plot, th=(row.training/max)*plot;
+    const xx=i*(bw+gap);
+    if(wh>0.5){x.fillStyle=hexA(cyan,.8);rr(x,xx,bot-wh,bw,wh,r);x.fill();}
+    if(th>0.5){x.fillStyle=acc;rr(x,xx,bot-wh-th,bw,th,r);x.fill();}
+  });
+  x.fillStyle='rgba(255,255,255,.34)';x.font='10px ui-monospace,Menlo,monospace';
+  const lab=q=>q.label||shortD(q.d);
+  x.fillText(lab(s2[0]),0,H-6);
+  const last=lab(s2[n-1]); x.fillText(last,W-x.measureText(last).width,H-6);
+  x.fillStyle=hexA(acc,.85);x.fillText(Math.round(max)+' kcal',0,11);
+  $('#bStats').innerHTML = BRANGE==='day'
+    ? `<div class="line" style="margin-top:10px"><span>Burned through movement today</span><b>${s2.reduce((a,q)=>a+q.value,0).toLocaleString()} kcal</b></div>`
+    : `<div class="line" style="margin-top:10px"><span>Daily average</span><b>${(b.avg||0).toLocaleString()} kcal</b></div>
+       <div class="line"><span>Best day</span><b>${b.best?b.best.value.toLocaleString()+' · '+shortD(b.best.d):'—'}</b></div>
+       <div class="line"><span>Total</span><b>${(b.total||0).toLocaleString()} kcal</b></div>`;
+}
+
+async function loadSettings(){
+  const [st,d] = await Promise.all([api('settings'), api('diagnostics').catch(()=>null)]);
+  const p=st.profile||{}, t=st.target||{};
+  $('#sDef').value=p.deficit_target||400;
+  $('#sProt').value=t.protein||120;
+  $('#sSteps').value=t.steps||8500;
+  $('#sWater').value=p.water_oz_target||80;
+  $('#sBmr').value=p.bmr_override||'';
+  $('#sFloor').value=p.kcal_floor||1450;
+  $('#feed').value=location.origin+'/cal.ics?k=PASTE_YOUR_FIT_TOKEN';
+  loadTodos();
+  if(d) $('#diag').innerHTML=`
+    <div class="line" style="border-top:0;padding-top:0"><span>Version</span><b>${esc(d.version)}</b></div>
+    <div class="line"><span>Natural language</span><b style="color:${d.natural_language==='none'?'var(--over)':'var(--good)'}">${esc(d.natural_language)}</b></div>
+    <div class="line"><span>Coach chat</span><b style="color:${d.coach_chat?'var(--good)':'var(--over)'}">${d.coach_chat?'on':'not wired'}</b></div>
+    <div class="line"><span>Photo storage</span><b style="color:${d.photos_storage?'var(--good)':'var(--over)'}">${d.photos_storage?'on':'no R2 bucket'}</b></div>
+    <div class="line"><span>Entries stored</span><b style="font-size:14px">${d.counts.food_log} meals · ${d.counts.workout_log} workouts · ${d.counts.weights} weigh-ins</b></div>`;
+}
+
 async function loadLibrary(){
   const list = await api('exercises?mode=library&discipline='+DISC+(MUSCLE?'&muscle='+MUSCLE:''));
   $('#library').classList.remove('hide');
@@ -1439,6 +1542,16 @@ document.addEventListener('click',async e=>{
   if(b.dataset.muscle){MUSCLE=MUSCLE===b.dataset.muscle?null:b.dataset.muscle;$('#exDetail').classList.add('hide');return loadTrain();}
   if(b.dataset.ex)return openExercise(+b.dataset.ex);
   if(b.dataset.crange){CARDIORANGE=b.dataset.crange;return loadCardio();}
+  if(b.dataset.brange){BRANGE=b.dataset.brange;
+    document.querySelectorAll('[data-brange]').forEach(z=>z.classList.toggle('on',z===b));return loadBurn();}
+  if(b.id==='gear')return go('settings');
+  if(b.id==='sSave'){
+    await post('settings',{
+      profile:{deficit_target:+$('#sDef').value||400, water_oz_target:+$('#sWater').value||80,
+        kcal_floor:+$('#sFloor').value||1450, bmr_override:$('#sBmr').value||''},
+      target:{protein:+$('#sProt').value||120, steps:+$('#sSteps').value||8500}});
+    toast('Saved.');refresh();return;
+  }
   if(b.dataset.cm2){CHARTMODE=b.dataset.cm2;return loadCardio();}
   if(b.id==='browse')return loadLibrary();
   if(b.id==='libClose'){$('#library').classList.add('hide');return;}
