@@ -482,8 +482,12 @@ export async function onRequest(ctx) {
       case 'POST product/scan': {
         if (!body.image) return json({ error: 'no image' }, 400);
         const parsed = await readLabel(env, body.image);
-        if (!parsed) return json({
-          error: 'Could not read that label. Add a Workers AI binding named AI, or an OPENAI_KEY secret, then try again — or type the numbers in by hand.'
+        if (parsed?.error === 'no_vision') return json({
+          error: 'No vision model is available. Add a Workers AI binding named AI, or an OPENAI_KEY secret.'
+        }, 422);
+        if (parsed?.error === 'unreadable') return json({
+          error: 'The panel came out unreadable — the numbers are the hard part. Try again straight on with the panel filling the frame, or type them in.',
+          partial: parsed.partial, engine: parsed.engine
         }, 422);
         return json({ ok: true, product: parsed });
       }

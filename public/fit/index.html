@@ -273,7 +273,7 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
 <div id="app" class="hide">
 <header>
   <h1 id="vtitle">Today</h1>
-  <button id="ver" title="Tap to force a fresh copy">v27</button>
+  <button id="ver" title="Tap to force a fresh copy">v28</button>
   <span style="justify-self:end;display:flex;align-items:center;gap:10px">
     <span class="date" id="vdate"></span>
     <button id="gear" aria-label="Settings" style="width:34px;height:34px;display:grid;place-items:center;color:var(--dim)">
@@ -822,7 +822,7 @@ async function refresh(){
 }
 
 // Shrink before upload: a 12 MP label photo is pointless and slow.
-async function shrink(file, max=1400, q=0.82){
+async function shrink(file, max=2000, q=0.92){
   const img=await createImageBitmap(file);
   const sc=Math.min(1,max/Math.max(img.width,img.height));
   const c=document.createElement('canvas');
@@ -916,7 +916,8 @@ function prodForm(p, img){
       <input id="pfGram" type="number" inputmode="decimal" value="${v('serving_g','')}" placeholder="—" style="width:100%;margin-top:4px"></div>
     <button class="btn primary" id="pfSave" style="width:100%;margin-top:12px">${p&&p.id?'Save changes':'Save this product'}</button>
     ${p&&p.id?`<button class="btn ghost" data-pdel="${p.id}" style="width:100%;margin-top:8px;color:var(--over)">Delete product</button>`:''}
-    <p class="tiny" style="margin-top:9px">Everything is per serving, as printed on the panel. Correct anything the reader got wrong before saving.</p>
+    <p class="tiny" style="margin-top:9px">Everything is per serving, as printed on the panel. Correct anything the reader got wrong before saving.${
+      p&&p.engine?` Read by ${esc(p.engine)}.`:''}</p>
   </div>`;
   $('#prodForm').scrollIntoView({behavior:'smooth',block:'center'});
 }
@@ -1984,7 +1985,7 @@ $('#labelIn').addEventListener('change',async e=>{
   }catch(err){
     SCANNED=null;
     prodForm(null,SCANIMG);
-    toast(String(err.message||err).slice(0,70));
+    toast(String(err.message||err).slice(0,90));
   }
 });
 

@@ -1,7 +1,7 @@
 // Fitness Hub — shared library (Cloudflare Pages Functions)
 // Underscore prefix = not routed, importable only.
 
-export const VERSION = 'v27';
+export const VERSION = 'v28';
 export const TZ = 'America/New_York';
 
 export const dayStr = (offset = 0) =>
@@ -828,51 +828,105 @@ export async function icsFeed(env) {
 // infallible, so nothing is saved until he has looked at the parsed values.
 
 const LABEL_PROMPT =
-`Read this nutrition label and return ONLY JSON, no prose, no code fences:
+`You are reading a Nutrition Facts panel. Transcribe the printed numbers exactly. Do not estimate.
+
+Return ONLY JSON, no prose, no code fences:
 {"name":string,"brand":string,"serving_desc":string,"serving_g":number|null,"servings_per_container":number|null,
- "kcal":number,"protein":number,"carbs":number,"fat":number,"fiber":number,"sugar":number,"sodium":number}
+ "kcal":number,"protein":number,"carbs":number,"fat":number,"fiber":number,"sugar":number,"sodium":number,
+ "confident":boolean}
 
-All macro figures are PER SERVING as printed, not per container.
-serving_desc is the serving size exactly as written, e.g. "2/3 cup (55g)" or "1 bottle".
-If the product name is not visible, describe what it plainly is. Use 0 for any macro the label omits.
-Never guess a calorie figure — read the one printed.`;
+Read in this order and copy each figure as printed:
+1. "Serving size" — copy the whole thing, e.g. "4 oz (113g)". serving_g is the number in grams.
+2. "servings per container" — the number near the top.
+3. "Calories" — the large number. This is kcal.
+4. Total Fat -> fat. Total Carbohydrate -> carbs. Dietary Fiber -> fiber. Total Sugars -> sugar. Protein -> protein. Sodium in mg -> sodium.
 
-export async function readLabel(env, dataUrl) {
-  const b64 = String(dataUrl).split(',').pop();
+Every macro figure is PER SERVING, never per container.
+name: the food itself, e.g. "Atlantic Salmon". brand: the retailer or maker if shown.
+Set confident to false if any figure is unreadable. Never return 0 for calories — if you cannot read it, set confident false.`;
 
+const RETRY_PROMPT =
+`Look at this Nutrition Facts panel again and read ONLY these numbers, exactly as printed:
+Calories, Total Fat, Total Carbohydrate, Dietary Fiber, Total Sugars, Protein, Sodium, Serving size, servings per container.
+Return ONLY: {"kcal":number,"fat":number,"carbs":number,"fiber":number,"sugar":number,"protein":number,"sodium":number,"serving_desc":string,"serving_g":number|null,"servings_per_container":number|null}
+The Calories figure is the largest number on the panel. Read it carefully.`;
+
+// Multimodal models, strongest first. Label OCR is the hardest thing this app asks of a
+// model — small dense digits — so the order matters a lot more here than for text.
+const VISION_MODELS = [
+  '@cf/meta/llama-4-scout-17b-16e-instruct',
+  '@cf/meta/llama-3.2-11b-vision-instruct',
+  '@cf/llava-hf/llava-1.5-7b-hf'
+];
+
+async function visionCall(env, prompt, b64) {
   if (env.OPENAI_KEY) {
     try {
       const r = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: { 'content-type': 'application/json', authorization: `Bearer ${env.OPENAI_KEY}` },
         body: JSON.stringify({
-          model: 'gpt-4o-mini', max_tokens: 700, temperature: 0,
+          model: 'gpt-4o-mini', max_tokens: 800, temperature: 0,
           messages: [{ role: 'user', content: [
-            { type: 'text', text: LABEL_PROMPT },
-            { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${b64}` } }
+            { type: 'text', text: prompt },
+            { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${b64}`, detail: 'high' } }
           ]}]
         })
       });
       const t = (await r.json())?.choices?.[0]?.message?.content;
-      const j = grabJSON(t);
-      if (j) return { ...j, engine: 'openai' };
+      if (t) return { text: t, engine: 'gpt-4o-mini' };
     } catch (e) { /* fall through */ }
   }
 
   if (env.AI) {
-    for (const model of ['@cf/meta/llama-3.2-11b-vision-instruct', '@cf/llava-hf/llava-1.5-7b-hf']) {
+    const bin = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+    const arr = [...bin];
+    for (const model of VISION_MODELS) {
       try {
-        const bin = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-        const r = await env.AI.run(model, {
-          prompt: LABEL_PROMPT, image: [...bin], max_tokens: 700
-        });
-        const j = grabJSON(r?.response ?? r?.description ?? r);
-        if (j) return { ...j, engine: model };
+        const r = await env.AI.run(model, { prompt, image: arr, max_tokens: 800, temperature: 0 });
+        const t = r?.response ?? r?.description ?? null;
+        if (t) return { text: t, engine: model.split('/').pop() };
       } catch (e) { /* try the next one */ }
     }
   }
-
   return null;
+}
+
+export async function readLabel(env, dataUrl) {
+  const b64 = String(dataUrl).split(',').pop();
+
+  const first = await visionCall(env, LABEL_PROMPT, b64);
+  if (!first) return { error: 'no_vision' };
+
+  let j = grabJSON(first.text) || {};
+  const bad = !Number(j.kcal) || j.confident === false;
+
+  // Zeros across the board mean it didn't read the panel, not that the food is calorie-free.
+  if (bad) {
+    const second = await visionCall(env, RETRY_PROMPT, b64);
+    const k = second ? grabJSON(second.text) : null;
+    if (k && Number(k.kcal)) {
+      j = { ...j, ...k };
+    } else {
+      return {
+        error: 'unreadable',
+        partial: j.name ? { name: j.name, brand: j.brand } : null,
+        engine: first.engine
+      };
+    }
+  }
+
+  const n = (v) => { const x = Number(v); return isFinite(x) && x >= 0 ? Math.round(x * 10) / 10 : 0; };
+  return {
+    name: String(j.name || '').slice(0, 90),
+    brand: j.brand ? String(j.brand).slice(0, 60) : null,
+    serving_desc: String(j.serving_desc || '1 serving').slice(0, 60),
+    serving_g: j.serving_g ? n(j.serving_g) : null,
+    servings_per_container: j.servings_per_container ? n(j.servings_per_container) : null,
+    kcal: n(j.kcal), protein: n(j.protein), carbs: n(j.carbs), fat: n(j.fat),
+    fiber: n(j.fiber), sugar: n(j.sugar), sodium: n(j.sodium),
+    engine: first.engine
+  };
 }
 
 /* ---------------- looking a product up ---------------- */
