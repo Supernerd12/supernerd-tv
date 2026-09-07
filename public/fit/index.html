@@ -255,7 +255,7 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
 <div id="app" class="hide">
 <header>
   <h1 id="vtitle">Today</h1>
-  <button id="ver" title="Tap to force a fresh copy">v21</button>
+  <button id="ver" title="Tap to force a fresh copy">v23</button>
   <span style="justify-self:end;display:flex;align-items:center;gap:10px">
     <span class="date" id="vdate"></span>
     <button id="gear" aria-label="Settings" style="width:34px;height:34px;display:grid;place-items:center;color:var(--dim)">
@@ -411,7 +411,6 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
   <h2>Calories out</h2>
   <div class="card">
     <div class="seg sm">
-      ${''}
       <button data-brange="day" class="on">Day</button>
       <button data-brange="week">Week</button>
       <button data-brange="month">Month</button>
@@ -587,6 +586,20 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
     <p class="tiny" style="margin-top:9px">BMR is calculated from your height, age and current weight unless you override it. The floor is the calorie level the engine will never recommend going below.</p>
   </div>
 
+  <h2>Weight from the scale</h2>
+  <div class="card">
+    <p class="tiny" style="margin:0 0 12px">A weight you type in always wins. Synced values only fill days you didn't enter yourself.</p>
+    <label class="tiny" style="display:flex;align-items:center;gap:10px;text-transform:none;letter-spacing:0;font-size:14px;color:var(--ink)">
+      <input type="checkbox" id="sSync" style="width:22px;height:22px;padding:0;flex:0 0 22px"> Accept weight synced from Health</label>
+    <div style="margin-top:12px"><label class="tiny">Correction, lb</label>
+      <input id="sOffset" type="number" step="0.1" inputmode="decimal" placeholder="0" style="width:100%;margin-top:5px"></div>
+    <p class="tiny" style="margin-top:8px">If your scale reads differently once it's paired to its app, put the gap here and it's applied to every synced reading. Reads 2 lb high? Enter -2.</p>
+    <button class="btn ghost" id="sScale" style="width:100%;margin-top:12px">Save scale settings</button>
+  </div>
+
+  <h2>Recent weigh-ins</h2>
+  <div id="wList"></div>
+
   <h2>Reminders</h2>
   <div id="reminders"></div>
   <div class="row" style="margin-top:8px">
@@ -668,6 +681,8 @@ function roll(el,to){const from=+el.dataset.v||0;el.dataset.v=to;
 function go(v){
   VIEW=v;
   document.body.dataset.sec=v;
+  // Survive a refresh on the tab you were actually using.
+  try{ history.replaceState(null,'','#'+v); }catch(e){}
   $$('.view').forEach(s=>s.classList.toggle('hide',s.id!=='v-'+v));
   $$('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
   $('#vtitle').textContent=TITLES[v];
@@ -1225,6 +1240,16 @@ async function loadSettings(){
   $('#sWater').value=p.water_oz_target||80;
   $('#sBmr').value=p.bmr_override||'';
   $('#sFloor').value=p.kcal_floor||1450;
+  $('#sSync').checked = p.sync_weight !== '0';
+  $('#sOffset').value = p.weight_offset || '';
+  api('history?days=45').then(h=>{
+    const w=(h.weights||[]).filter(r=>r.lb);
+    $('#wList').innerHTML = w.length ? w.map(r=>`<div class="item">
+      <span>${r.lb} lb${r.waist?` · ${r.waist}"`:''}</span>
+      <span class="m" style="color:${r.src==='sync'?'var(--sync)':'var(--dim)'}">${shortD(r.d)} · ${r.src==='sync'?'synced':'typed'}</span>
+      <button class="m" data-wdel="${r.d}" style="color:var(--over);margin-left:10px">×</button></div>`).join('')
+      : '<p class="empty">No weigh-ins yet.</p>';
+  }).catch(()=>{});
   $('#feed').value=location.origin+'/cal.ics?k=PASTE_YOUR_FIT_TOKEN';
   loadTodos();
   if(d) $('#diag').innerHTML=`
@@ -1545,6 +1570,16 @@ document.addEventListener('click',async e=>{
   if(b.dataset.brange){BRANGE=b.dataset.brange;
     document.querySelectorAll('[data-brange]').forEach(z=>z.classList.toggle('on',z===b));return loadBurn();}
   if(b.id==='gear')return go('settings');
+  if(b.id==='sScale'){
+    await post('settings',{profile:{sync_weight:$('#sSync').checked?'1':'0',
+      weight_offset:$('#sOffset').value||'0'}});
+    toast('Saved.');return;
+  }
+  if(b.dataset.wdel){
+    if(!confirm('Delete the weigh-in for '+b.dataset.wdel+'?'))return;
+    await post('weight/delete',{date:b.dataset.wdel});
+    toast('Deleted.');loadSettings();return refresh();
+  }
   if(b.id==='sSave'){
     await post('settings',{
       profile:{deficit_target:+$('#sDef').value||400, water_oz_target:+$('#sWater').value||80,
@@ -1679,6 +1714,8 @@ if(SR){const rec=new SR();rec.continuous=false;rec.interimResults=true;rec.lang=
 
 async function boot(){
   await refresh(); loadInv(); rcPaint(); paintChat();
+  const want=(location.hash||'').replace('#','');
+  if(want && TITLES[want] && want!=='hub') go(want);
   document.querySelector('.stage').dataset.g=GUIDE;
   $('#feed').value=location.origin+'/cal.ics?k=PASTE_YOUR_FIT_TOKEN';
   setInterval(()=>{if(!$('#app').classList.contains('hide'))refresh().catch(()=>{});},180000);

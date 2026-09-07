@@ -371,13 +371,26 @@ export async function onRequest(ctx) {
 
       case 'POST weight': {
         if (body.lb == null && body.waist == null) return json({ error: 'need lb or waist' }, 400);
-        await run(env,
-          `INSERT INTO weights (d,lb,waist,bodyfat,muscle,visceral,note) VALUES (?1,?2,?3,?4,?5,?6,?7)
-           ON CONFLICT(d) DO UPDATE SET
-             lb=COALESCE(excluded.lb,lb), waist=COALESCE(excluded.waist,waist),
-             bodyfat=COALESCE(excluded.bodyfat,bodyfat), muscle=COALESCE(excluded.muscle,muscle),
-             visceral=COALESCE(excluded.visceral,visceral), note=COALESCE(excluded.note,note)`,
-          [d, body.lb ?? null, body.waist ?? null, body.bodyfat ?? null, body.muscle ?? null, body.visceral ?? null, body.note ?? null]);
+        // Typed by hand, so mark it. Nothing synced is allowed to overwrite this later.
+        try {
+          await run(env,
+            `INSERT INTO weights (d,lb,waist,bodyfat,muscle,visceral,note,src) VALUES (?1,?2,?3,?4,?5,?6,?7,'manual')
+             ON CONFLICT(d) DO UPDATE SET
+               lb=COALESCE(excluded.lb,lb), waist=COALESCE(excluded.waist,waist),
+               bodyfat=COALESCE(excluded.bodyfat,bodyfat), muscle=COALESCE(excluded.muscle,muscle),
+               visceral=COALESCE(excluded.visceral,visceral), note=COALESCE(excluded.note,note),
+               src='manual'`,
+            [d, body.lb ?? null, body.waist ?? null, body.bodyfat ?? null, body.muscle ?? null, body.visceral ?? null, body.note ?? null]);
+        } catch (e) {
+          if (!missingColumn(e)) throw e;
+          await run(env,
+            `INSERT INTO weights (d,lb,waist,bodyfat,muscle,visceral,note) VALUES (?1,?2,?3,?4,?5,?6,?7)
+             ON CONFLICT(d) DO UPDATE SET
+               lb=COALESCE(excluded.lb,lb), waist=COALESCE(excluded.waist,waist),
+               bodyfat=COALESCE(excluded.bodyfat,bodyfat), muscle=COALESCE(excluded.muscle,muscle),
+               visceral=COALESCE(excluded.visceral,visceral), note=COALESCE(excluded.note,note)`,
+            [d, body.lb ?? null, body.waist ?? null, body.bodyfat ?? null, body.muscle ?? null, body.visceral ?? null, body.note ?? null]);
+        }
         return json({ ok: true, trends: await trends(env) });
       }
 
@@ -544,13 +557,37 @@ export async function onRequest(ctx) {
           }
         }
 
-        for (const b of bodyRows)
-          await run(env,
-            `INSERT INTO weights (d,lb,bodyfat,muscle,visceral) VALUES (?1,?2,?3,?4,?5)
-             ON CONFLICT(d) DO UPDATE SET
-               lb=COALESCE(excluded.lb,lb), bodyfat=COALESCE(excluded.bodyfat,bodyfat),
-               muscle=COALESCE(excluded.muscle,muscle), visceral=COALESCE(excluded.visceral,visceral)`,
-            [b.d, b.lb, b.bodyfat, b.muscle, b.visceral]);
+        // A weight you typed after looking at the scale beats one a connected app
+        // pushed in later. Sync fills gaps; it does not correct you.
+        const prof = await profile(env);
+        const syncWeight = prof.sync_weight !== '0';
+        const offset = Number(prof.weight_offset) || 0;
+        let skipped = 0;
+
+        for (const b of bodyRows) {
+          const existing = await one(env, 'SELECT lb, src FROM weights WHERE d=?1', [b.d]).catch(() => null);
+          const manualAlready = existing && existing.src === 'manual' && existing.lb != null;
+          const lb = b.lb != null && syncWeight && !manualAlready
+            ? Math.round((b.lb + offset) * 10) / 10 : null;
+          if (b.lb != null && lb === null) skipped++;
+
+          try {
+            await run(env,
+              `INSERT INTO weights (d,lb,bodyfat,muscle,visceral,src) VALUES (?1,?2,?3,?4,?5,'sync')
+               ON CONFLICT(d) DO UPDATE SET
+                 lb=COALESCE(excluded.lb,lb), bodyfat=COALESCE(excluded.bodyfat,bodyfat),
+                 muscle=COALESCE(excluded.muscle,muscle), visceral=COALESCE(excluded.visceral,visceral),
+                 src=CASE WHEN weights.src='manual' THEN 'manual' ELSE 'sync' END`,
+              [b.d, lb, b.bodyfat, b.muscle, b.visceral]);
+          } catch (e) {
+            if (!missingColumn(e)) throw e;
+            await run(env,
+              `INSERT INTO weights (d,lb,bodyfat,muscle,visceral) VALUES (?1,?2,?3,?4,?5)
+               ON CONFLICT(d) DO UPDATE SET lb=COALESCE(excluded.lb,lb), bodyfat=COALESCE(excluded.bodyfat,bodyfat),
+                 muscle=COALESCE(excluded.muscle,muscle), visceral=COALESCE(excluded.visceral,visceral)`,
+              [b.d, lb, b.bodyfat, b.muscle, b.visceral]);
+          }
+        }
 
         // Health Auto Export grouped by hour gives real per-hour points. Store them
         // directly — far better than deriving buckets from a running total.
@@ -607,6 +644,7 @@ export async function onRequest(ctx) {
         return json({
           ok: true, days: rows.length, body_days: bodyRows.length, hours_stored: hourCount?.n ?? 0,
           derived_steps_this_hour: derived, hourly_points_stored: haeHours,
+          weights_skipped_manual_wins: skipped,
           received: got,
           warning: rows.length === 0 && bodyRows.length === 0
             ? 'Nothing usable arrived. Every value was empty, zero or not a number — check the Get Value actions in your shortcut.'
@@ -719,7 +757,7 @@ export async function onRequest(ctx) {
       case 'GET history': {
         const n = Math.min(180, Number(url.searchParams.get('days') || 60));
         return json({
-          weights: await all(env, 'SELECT * FROM weights ORDER BY d DESC LIMIT ?1', [n]),
+          weights: await all(env, 'SELECT * FROM weights ORDER BY d DESC LIMIT ?1', [n]).catch(() => []),
           activity: await all(env, 'SELECT * FROM activity ORDER BY d DESC LIMIT ?1', [n]),
           intake: await all(env,
             'SELECT d, ROUND(SUM(kcal)) kcal, ROUND(SUM(protein)) protein, ROUND(SUM(fiber)) fiber FROM food_log GROUP BY d ORDER BY d DESC LIMIT ?1', [n])
