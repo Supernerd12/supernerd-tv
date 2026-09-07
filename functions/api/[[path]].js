@@ -3,7 +3,7 @@ import {
   all, one, run, profile, currentTarget, trends, today, decide,
   suggestMeal, parseFood, parseWorkout, contextDoc, checkin,
   dayRange, grocery, icsFeed, coachBrief, exerciseStats, trainingOverview, ensureExercise, matchExercise,
-  rangeStart, parseTrace, estimateBurn, bodyWeightLb, TZ
+  rangeStart, parseTrace, estimateBurn, bodyWeightLb, TZ, energyToday, energyRange
 } from '../_lib.js';
 
 export async function onRequest(ctx) {
@@ -66,6 +66,23 @@ export async function onRequest(ctx) {
 
       case 'GET context':
         return txt(await contextDoc(env));
+
+      case 'GET energy':
+        return json(await energyToday(env, d));
+
+      case 'GET energy/history':
+        return json(await energyRange(env, Math.min(90, Number(url.searchParams.get('days') || 14))));
+
+      // Every entry for one day, not just the totals.
+      case 'GET dayfull': {
+        const [t, ph, water, e] = await Promise.all([
+          today(env, d),
+          one(env, 'SELECT * FROM photos WHERE d=?1', [d]),
+          all(env, 'SELECT id,ts,oz FROM water_log WHERE d=?1 ORDER BY id', [d]),
+          energyToday(env, d)
+        ]);
+        return json({ ...t, photo: ph || null, water_entries: water, energy: e });
+      }
 
       case 'GET brief':
         return json(await coachBrief(env));

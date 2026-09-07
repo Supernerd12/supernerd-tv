@@ -255,7 +255,7 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
 <div id="app" class="hide">
 <header>
   <h1 id="vtitle">Today</h1>
-  <button id="ver" title="Tap to force a fresh copy">v19</button>
+  <button id="ver" title="Tap to force a fresh copy">v20</button>
   <span class="date" id="vdate"></span>
 </header>
 
@@ -263,6 +263,25 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
   <div class="coach" id="coach"></div>
   <div id="alerts" style="margin-top:14px"></div>
   <div class="card acc" style="margin-top:16px">
+    <p class="tiny" style="margin:0 0 2px">Deficit today</p>
+    <div style="display:flex;align-items:baseline;gap:9px">
+      <span class="big" id="eDef">—</span><span class="tiny">kcal<br>under</span>
+      <span class="tiny" id="eSub" style="margin-left:auto;text-align:right"></span>
+    </div>
+    <div class="bar" id="eBar"><i></i></div>
+    <div class="line"><span>Burned</span><b id="eOut">—</b></div>
+    <div class="line"><span>Eaten</span><b id="eIn">—</b></div>
+    <div class="line"><span>At this rate</span><b id="eRate">—</b></div>
+    <p class="tiny" id="eHint" style="margin:10px 0 0"></p>
+  </div>
+
+  <h2>Weight and waist</h2>
+  <div class="card">
+    <canvas class="chart" id="wChart" style="height:190px"></canvas>
+    <div id="wRead" class="tiny" style="text-align:center;margin-top:6px">Drag across to read any day</div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
     <div style="display:flex;align-items:baseline;gap:10px">
       <span class="big plain" id="hWeight">—</span>
       <span class="tiny">lb</span>
@@ -441,6 +460,9 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
     <img id="shot" alt="Progress photo">
     <div class="guides"><b class="gv"></b><b class="g1"></b><b class="g2"></b><b class="g3"></b></div>
     <div class="stamp" id="stamp"></div>
+    <div id="count" class="hide" style="position:absolute;inset:0;display:grid;place-items:center;
+      font-family:var(--display);font-size:150px;font-weight:700;color:#fff;
+      text-shadow:0 4px 40px rgba(0,0,0,.9);pointer-events:none"></div>
   </div>
 
   <div id="scrubWrap" style="margin-top:10px">
@@ -454,6 +476,12 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
 
   <div id="camCtl" class="hide" style="margin-top:12px">
     <p class="tiny" style="margin:0 0 10px">Head on the top line, shoulders on the second, feet on the bottom. The faded frame behind you is your last photo — match it.</p>
+    <div class="seg sm" id="timerSeg" style="margin-bottom:9px">
+      <button data-timer="0" class="on">No timer</button>
+      <button data-timer="5">5s</button>
+      <button data-timer="10">10s</button>
+      <button data-timer="15">15s</button>
+    </div>
     <div class="row">
       <button class="btn ghost" id="camOff" style="flex:0 0 82px">Cancel</button>
       <button class="btn primary" id="capture">Capture</button>
@@ -467,6 +495,14 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
     </div>
   </div>
   <input type="file" id="fileIn" accept="image/*" capture="user" class="hide">
+
+  <div id="review" class="hide" style="margin-top:12px">
+    <p class="tiny" style="margin:0 0 10px">Happy with it? Nothing is saved until you keep it.</p>
+    <div class="row">
+      <button class="btn ghost" id="retake">Retake</button>
+      <button class="btn primary" id="keepShot">Keep this one</button>
+    </div>
+  </div>
 
   <div id="tools" class="hide" style="margin-top:16px">
     <h2 style="margin-top:0">Nudge this frame into line</h2>
@@ -575,6 +611,7 @@ const MUSCLES={
 };
 let CHAT=[], CARDIORANGE='day', GUIDE='bright';
 let FOODITEMS=[], INVMANAGE=false, INVSEL=new Set(), INVCACHE=[];
+let TIMER=0, PENDING=null, WSERIES=[];
 const TITLES={hub:'Today',food:'Food and water',train:'Training',photos:'Progress',days:'History'};
 
 function roll(el,to){const from=+el.dataset.v||0;el.dataset.v=to;
@@ -603,6 +640,28 @@ async function refresh(){
   const v=$('#ver'), mine=v.textContent.trim().split(' ')[0];
   if(s.version===mine){v.className='ok';v.textContent=mine;}
   else{v.className='bad';v.textContent=`${mine} / api ${s.version}`;}
+
+  api('energy').then(e=>{
+    const el=$('#eDef');
+    el.classList.toggle('over', e.deficit<0);
+    roll(el, Math.abs(e.deficit));
+    $('#eSub').innerHTML = e.deficit<0 ? 'over<br>on the day'
+      : `target<br>${e.target}`;
+    $('#eBar').classList.toggle('over', e.deficit<0);
+    $('#eBar').firstElementChild.style.width=Math.min(100,Math.max(0,e.deficit/e.target*100))+'%';
+    $('#eOut').textContent=`${e.out.toLocaleString()} kcal`;
+    $('#eIn').textContent=`${e.intake.toLocaleString()} kcal`;
+    $('#eRate').textContent=`${e.weekly_rate_implied>0?'-':'+'}${Math.abs(e.weekly_rate_implied)} lb/wk`;
+    $('#eHint').textContent = e.on_track
+      ? `Resting and daily living ${e.base}, steps ${e.step_burn}${e.workout_burn?`, training ${e.workout_burn}`:''}. You're past the target — eating more to "hit" a number is what stalls this.`
+      : e.deficit<0 ? `Above maintenance today. Not a problem on its own — the 7-day average is what moves the scale.`
+      : `Short by ${e.short_by}. About ${e.walk_minutes_to_close} minutes of walking would close it.`;
+  }).catch(()=>{});
+
+  api('history?days=120').then(h=>{
+    WSERIES=(h.weights||[]).filter(r=>r.lb).sort((a,b)=>a.d<b.d?-1:1);
+    drawWeight();
+  }).catch(()=>{});
 
   api('brief').then(b=>{
     $('#coach').innerHTML=`<p class="hi">${esc(b.greeting)}</p>
@@ -722,9 +781,41 @@ async function drawCal(){
   if(SEL)showDay(SEL);
 }
 
-function showDay(ds){
+async function showDay(ds){
   SEL=ds; $$('.cell').forEach(c=>c.classList.toggle('sel',c.dataset.day===ds));
+  $('#dayDetail').innerHTML='<p class="empty">Loading…</p>';
+  let f=null; try{ f=await api('dayfull?date='+ds); }catch(e){}
   const r=CALDATA[ds]||{};
+  if(f){
+    const e=f.energy||{};
+    $('#dayDetail').innerHTML=`<div class="card">
+      <div style="display:flex;align-items:baseline"><b style="font-family:var(--display);font-size:22px;text-transform:uppercase">${fmtD(ds)}</b></div>
+      <div class="line" style="margin-top:12px;border-top:1px solid var(--rule)"><span>Deficit</span>
+        <b style="color:${e.deficit>=e.target?'var(--good)':e.deficit<0?'var(--over)':'var(--ink)'}">${e.deficit!=null?e.deficit+' kcal':'—'}</b></div>
+      <div class="line"><span>Burned / eaten</span><b>${e.out||'—'} / ${e.intake||0}</b></div>
+      <div class="line"><span>Weight</span><b>${f.weight_lb?f.weight_lb+' lb':'—'}</b></div>
+      <div class="line"><span>Waist</span><b>${f.waist_in?f.waist_in+'"':'—'}</b></div>
+      <div class="line"><span>Steps</span><b style="color:var(--sync)">${f.steps?f.steps.toLocaleString():'—'}</b></div>
+      <div class="line"><span>Water</span><b>${f.water_oz||0} oz</b></div>
+
+      ${f.food_items?.length?`<p class="tiny" style="margin:16px 0 4px">Everything eaten</p>`+
+        f.food_items.map(i=>`<div class="line" style="padding:8px 0"><span style="color:var(--ink);font-size:14px">${esc(i.item)}
+          ${i.parts?.length?`<span style="display:block;font:10px/1.5 var(--mono);color:var(--faint);margin-top:2px">${
+            i.parts.map(p=>esc(p.item.split(',')[0])+' '+Math.round(p.kcal)).join('  ·  ')}</span>`:''}</span>
+          <b style="font-size:14px">${Math.round(i.kcal)} kcal · ${Math.round(i.protein)}g</b></div>`).join('')
+        :'<p class="tiny" style="margin:16px 0 0">No food logged this day.</p>'}
+
+      ${f.workouts?.length?`<p class="tiny" style="margin:16px 0 4px">Training</p>`+
+        f.workouts.map(w=>`<div class="line" style="padding:8px 0"><span style="color:var(--ink);font-size:14px">${esc(w.exercise)}</span>
+          <b style="font-size:14px">${[w.sets&&`${w.sets}×${w.reps}`,w.weight&&`${w.weight} lb`,w.minutes&&`${w.minutes} min`,w.kcal&&`≈${Math.round(w.kcal)} kcal`].filter(Boolean).join(' · ')||'logged'}</b></div>`).join('')
+        :'<p class="tiny" style="margin:16px 0 0">No training logged this day.</p>'}
+
+      ${f.water_entries?.length?`<p class="tiny" style="margin:16px 0 4px">Water</p>
+        <p class="tiny" style="margin:0">${f.water_entries.map(w=>Math.round(w.oz)+' oz').join(' · ')}</p>`:''}
+      ${f.photo?`<img src="/api/img/${ds}" alt="" style="width:100%;border-radius:12px;margin-top:14px;display:block">`:''}
+    </div>`;
+    return;
+  }
   $('#dayDetail').innerHTML=`<div class="card">
     <div style="display:flex;align-items:baseline"><b style="font-size:16px">${fmtD(ds)}</b>
       ${r.photo?`<span class="tiny" style="margin-left:auto;color:var(--sync)">photo on file</span>`:''}</div>
@@ -791,10 +882,26 @@ function frameToJpeg(src,sw,sh,mirror){
 async function capture(){
   const v=$('#cam');
   if(!v.videoWidth)return toast('Camera is still warming up.');
-  const data=frameToJpeg(v,v.videoWidth,v.videoHeight,FACING==='user');
-  toast('Saving…');
-  await post('photo',{image:data,w:1080,h:1440});
-  camOff(); await loadPhotos(); refresh(); toast('Photo saved.');
+
+  if(TIMER>0){
+    const el=$('#count'); el.classList.remove('hide');
+    for(let n=TIMER;n>0;n--){
+      el.textContent=n;
+      if(n<=3&&navigator.vibrate)navigator.vibrate(40);
+      await sleep(1000);
+    }
+    el.textContent='';el.classList.add('hide');
+    if(navigator.vibrate)navigator.vibrate([60,40,60]);
+  }
+
+  // Hold it for review. Nothing is written until he says keep.
+  PENDING=frameToJpeg(v,v.videoWidth,v.videoHeight,FACING==='user');
+  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
+  $('#cam').classList.add('hide');
+  const shot=$('#shot'); shot.classList.remove('hide'); shot.src=PENDING; shot.style.transform='';
+  $('#stamp').textContent='not saved yet';
+  $('#camCtl').classList.add('hide');
+  $('#review').classList.remove('hide');
 }
 
 const loadImg=d=>new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src='/api/img/'+d;});
@@ -861,6 +968,78 @@ function paintChat(waiting){
     : '<p class="tiny" style="margin:0">Ask about today, this week, what to eat, or what to train. It reads the same numbers the app does.</p>';
   el.scrollTop=el.scrollHeight;
 }
+
+/* ───────── weight and waist trend ───────── */
+function drawWeight(hoverIdx){
+  const c=$('#wChart'); if(!c||!WSERIES.length)return;
+  const dpr=devicePixelRatio||1, W=c.clientWidth||300, H=c.clientHeight||190;
+  c.width=W*dpr; c.height=H*dpr;
+  const x=c.getContext('2d'); x.scale(dpr,dpr); x.clearRect(0,0,W,H);
+  const acc=cssVar('--acc')||'#FFB627', acc2=cssVar('--acc2')||'#FF6B35';
+  const cyan='#5BC8F5';
+  const top=18, bot=H-24, plot=bot-top, n=WSERIES.length;
+
+  const lbs=WSERIES.map(r=>r.lb);
+  const lo=Math.min(...lbs)-0.6, hi=Math.max(...lbs)+0.6;
+  const px=i=>n===1?W/2:(i/(n-1))*(W-10)+5;
+  const py=v=>bot-((v-lo)/Math.max(0.1,hi-lo))*plot;
+
+  x.strokeStyle='rgba(255,255,255,.07)';x.lineWidth=1;
+  [0,.5,1].forEach(f=>{const y=top+plot*f;x.beginPath();x.moveTo(0,y+.5);x.lineTo(W,y+.5);x.stroke();});
+
+  // waist on its own scale, drawn behind
+  const waists=WSERIES.map(r=>r.waist).filter(v=>v!=null);
+  if(waists.length>1){
+    const wlo=Math.min(...waists)-0.4, whi=Math.max(...waists)+0.4;
+    const wy=v=>bot-((v-wlo)/Math.max(0.1,whi-wlo))*plot;
+    x.beginPath(); let started=false;
+    WSERIES.forEach((r,i)=>{ if(r.waist==null)return;
+      started?x.lineTo(px(i),wy(r.waist)):(x.moveTo(px(i),wy(r.waist)),started=true); });
+    x.strokeStyle=hexA(cyan,.75); x.lineWidth=2; x.setLineDash([4,3]); x.stroke(); x.setLineDash([]);
+  }
+
+  const fill=x.createLinearGradient(0,top,0,bot);
+  fill.addColorStop(0,hexA(acc,.22)); fill.addColorStop(1,hexA(acc,0));
+  x.beginPath(); x.moveTo(px(0),bot);
+  WSERIES.forEach((r,i)=>x.lineTo(px(i),py(r.lb)));
+  x.lineTo(px(n-1),bot); x.closePath(); x.fillStyle=fill; x.fill();
+
+  const g=x.createLinearGradient(0,0,W,0); g.addColorStop(0,acc); g.addColorStop(1,acc2);
+  x.beginPath();
+  WSERIES.forEach((r,i)=>i?x.lineTo(px(i),py(r.lb)):x.moveTo(px(i),py(r.lb)));
+  x.strokeStyle=g; x.lineWidth=2.5; x.lineJoin='round'; x.lineCap='round';
+  x.shadowColor=hexA(acc,.5); x.shadowBlur=10; x.stroke(); x.shadowBlur=0;
+
+  const i=hoverIdx==null?n-1:hoverIdx, r=WSERIES[i];
+  if(hoverIdx!=null){
+    x.strokeStyle=hexA(acc,.4);x.beginPath();x.moveTo(px(i),top);x.lineTo(px(i),bot);x.stroke();
+  }
+  x.beginPath(); x.arc(px(i),py(r.lb),5,0,7); x.fillStyle=acc; x.fill();
+  x.beginPath(); x.arc(px(i),py(r.lb),9,0,7); x.strokeStyle=hexA(acc,.35); x.lineWidth=1.5; x.stroke();
+
+  x.fillStyle='rgba(255,255,255,.34)'; x.font='10px ui-monospace,Menlo,monospace';
+  x.fillText(shortD(WSERIES[0].d),0,H-6);
+  const last=shortD(WSERIES[n-1].d);
+  x.fillText(last, W-x.measureText(last).width, H-6);
+  x.fillStyle=hexA(acc,.85); x.fillText(hi.toFixed(1),0,11);
+
+  $('#wRead').innerHTML = `<b style="color:var(--acc);font-size:15px">${r.lb} lb</b>`
+    + (r.waist?` · <b style="color:var(--sync)">${r.waist}"</b>`:'')
+    + ` · ${shortD(r.d)}`;
+}
+
+function scrubWeight(ev){
+  if(!WSERIES.length)return;
+  const c=$('#wChart'), rect=c.getBoundingClientRect();
+  const cx=(ev.touches?ev.touches[0].clientX:ev.clientX)-rect.left;
+  const i=Math.round((cx-5)/Math.max(1,rect.width-10)*(WSERIES.length-1));
+  drawWeight(Math.max(0,Math.min(WSERIES.length-1,i)));
+  if(ev.cancelable)ev.preventDefault();
+}
+['touchstart','touchmove','mousemove'].forEach(ev=>
+  document.addEventListener(ev,e=>{ if(e.target&&e.target.id==='wChart')scrubWeight(e); },{passive:false}));
+['touchend','mouseleave'].forEach(ev=>
+  document.addEventListener(ev,e=>{ if(e.target&&e.target.id==='wChart')drawWeight(); }));
 
 /* ───────── training ───────── */
 async function loadTrain(){
@@ -1318,6 +1497,16 @@ document.addEventListener('click',async e=>{
   if(b.id==='camOff')return camOff();
   if(b.id==='flip'){FACING=FACING==='user'?'environment':'user';camOff();return camOn();}
   if(b.id==='capture')return capture();
+  if(b.dataset.timer!=null){TIMER=+b.dataset.timer;
+    document.querySelectorAll('[data-timer]').forEach(x=>x.classList.toggle('on',x===b));return;}
+  if(b.id==='retake'){PENDING=null;$('#review').classList.add('hide');return camOn();}
+  if(b.id==='keepShot'){
+    if(!PENDING)return;
+    b.disabled=true;toast('Saving…');
+    await post('photo',{image:PENDING,w:1080,h:1440});
+    PENDING=null;$('#review').classList.add('hide');b.disabled=false;
+    camOff();await loadPhotos();refresh();return toast('Photo saved.');
+  }
   if(b.id==='more'){$('#tools').classList.toggle('hide');return;}
   if(b.id==='play'){
     if(PHOTOS.length<2)return toast('Need at least two photos.');

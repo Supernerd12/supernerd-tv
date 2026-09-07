@@ -1,7 +1,7 @@
 // Fitness Hub — shared library (Cloudflare Pages Functions)
 // Underscore prefix = not routed, importable only.
 
-export const VERSION = 'v19';
+export const VERSION = 'v20';
 export const TZ = 'America/New_York';
 
 export const dayStr = (offset = 0) =>
@@ -664,6 +664,7 @@ async function attachExercises(env, items) {
 
 export async function contextDoc(env) {
   const [p, t, tr, td] = await Promise.all([profile(env), currentTarget(env), trends(env), today(env)]);
+  const en = await energyToday(env);
   const d = decide(tr, t, Number(p.kcal_floor || 1450));
   const recent = await all(env, 'SELECT d,lb,waist FROM weights ORDER BY d DESC LIMIT 10');
   const w14 = await all(
@@ -689,8 +690,14 @@ Steps: ${tr.steps_7day_avg ?? '—'}/day over 7 days, ${tr.steps_30day_avg ?? '�
 Intake last 14 days: ${tr.avg_kcal_14day ?? '—'} kcal, ${tr.avg_protein_14day ?? '—'} g protein, ${tr.avg_fiber_14day ?? '—'} g fibre across ${tr.days_logged_14} logged days
 Strength sessions last 14 days: ${tr.strength_sessions_14}
 
-## Today (${td.date})
-${td.kcal} / ${t.kcal_high} kcal — ${td.kcal_remaining} left
+## Today (${td.date}) — energy balance
+Burned about ${en.out} kcal (${en.base} resting and daily living, ${en.step_burn} from steps, ${en.workout_burn} from training)
+Ate ${en.intake} kcal. Deficit ${en.deficit} against a ${en.target} target${en.on_track ? ' — on track' : `, short by ${en.short_by}`}.
+At that rate: ${en.weekly_rate_implied} lb a week.
+The point is the gap, not hitting an intake number. Never tell him to eat more to "reach" a calorie target.
+
+## Today's intake detail
+${td.kcal} / ${t.kcal_high} kcal
 ${td.protein} / ${t.protein} g protein — ${td.protein_remaining} left
 Fibre ${td.fiber} g | Steps ${td.steps ?? 'not synced'} | Workouts logged: ${td.workouts.length}
 Eaten: ${td.food_items.map((i) => i.item).join('; ') || 'nothing logged yet'}
@@ -816,6 +823,65 @@ export async function icsFeed(env) {
   return L.join('\r\n');
 }
 
+/* ---------------- energy balance ---------------- */
+// The number that actually matters is the gap between what he burns and what he eats.
+// Intake targets encourage eating UP to a number; a deficit target does the opposite.
+
+export function mifflinBMR({ weightLb, heightCm, age, sex }) {
+  const kg = (weightLb || 154) / 2.20462;
+  const base = 10 * kg + 6.25 * (heightCm || 170) - 5 * (age || 40);
+  return Math.round(base + (sex === 'female' ? -161 : 5));
+}
+
+export async function energyToday(env, d = dayStr()) {
+  const [p, td] = await Promise.all([profile(env), today(env, d)]);
+  const lb = td.weight_lb || (await bodyWeightLb(env));
+  const bmr = Number(p.bmr_override) || mifflinBMR({
+    weightLb: lb, heightCm: Number(p.height_cm), age: Number(p.age), sex: p.sex
+  });
+
+  // Resting burn plus the unavoidable business of being awake, before deliberate movement.
+  const base = Math.round(bmr * (Number(p.activity_base) || 1.15));
+
+  // Steps at roughly 0.04 kcal each for a 150 lb body, scaled to his actual weight.
+  const stepBurn = Math.round((td.steps || 0) * 0.04 * (lb / 150));
+
+  // Logged training, minus any walking already counted in the step total.
+  const workoutBurn = Math.round(
+    (td.workouts || []).filter((w) => w.discipline !== 'cardio').reduce((a, w) => a + (w.kcal || 0), 0)
+  );
+
+  const out = base + stepBurn + workoutBurn;
+  const inn = td.kcal || 0;
+  const target = Number(p.deficit_target) || 400;
+  const deficit = out - inn;
+
+  // How many more steps would close the gap, if he wanted to walk it off instead.
+  const perStep = 0.04 * (lb / 150);
+  const stepsToClose = deficit < target ? Math.round((target - deficit) / perStep) : 0;
+
+  return {
+    date: d, bmr, base, step_burn: stepBurn, workout_burn: workoutBurn,
+    out, intake: inn, deficit, target,
+    on_track: deficit >= target,
+    short_by: Math.max(0, target - deficit),
+    room_left: Math.max(0, out - target - inn),
+    steps_to_close: stepsToClose,
+    walk_minutes_to_close: stepsToClose ? Math.round(stepsToClose / 110) : 0,
+    weekly_rate_implied: Math.round((deficit / 3500) * 7 * 100) / 100
+  };
+}
+
+export async function energyRange(env, days = 14) {
+  const out = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const d = dayStr(-i);
+    const e = await energyToday(env, d);
+    if (e.intake > 0 || e.step_burn > 0) out.push({ d, deficit: e.deficit, intake: e.intake, out: e.out });
+  }
+  return out;
+}
+
 /* ---------------- calories burned ---------------- */
 // MET-based: kcal = MET x bodyweight(kg) x hours. Rep work has no clock on it, so
 // duration is inferred at roughly 3 seconds a rep plus 45 seconds rest between sets.
@@ -888,19 +954,21 @@ export async function coachBrief(env) {
     plan = `Today: ${oldest === 'core' ? 'core and a walk' : oldest + ' work'} — it's been ${staleness(oldest) > 30 ? 'a while' : staleness(oldest) + ' days'}. Two sets, add the third only if the second felt easy.`;
   }
 
-  // 3 — what to eat, based on what is actually left
+  // 3 — the gap between burned and eaten, and what would close it
+  const e = await energyToday(env, td.date);
   let food;
-  const remK = td.kcal_remaining, remP = td.protein_remaining;
-  if (td.kcal === 0) {
-    food = `Nothing logged yet. Front-load the protein — ${t.protein} g is a lot to catch up on after 6pm.`;
-  } else if (remP > 55 && hour >= 15) {
-    food = `You're ${Math.round(remP)} g of protein short with ${Math.round(remK)} kcal left. Lean protein and a vegetable, skip the extra carbs tonight.`;
-  } else if (remK < 0) {
-    food = `Over by ${Math.abs(Math.round(remK))} kcal. Nothing to fix — the week is what counts, not the day.`;
-  } else if (remK < 300 && remP <= 20) {
-    food = `Nearly closed out — ${Math.round(remK)} kcal left. Greek yogurt or a shake finishes it clean.`;
+  if (e.intake === 0) {
+    food = `Nothing logged yet. You've burned about ${e.out} today, so there's plenty of room — front-load the protein.`;
+  } else if (e.on_track) {
+    food = `Burned about ${e.out}, ate ${e.intake} — you're ${e.deficit} down, past the ${e.target} target. ` +
+      (e.room_left > 250 ? `${e.room_left} kcal of headroom left if you want it.` : `Hold here and the day's done.`);
+  } else if (e.short_by > 0 && hour < 19) {
+    food = `Burned about ${e.out}, ate ${e.intake} — ${e.deficit} down against a ${e.target} target. ` +
+      `A ${e.walk_minutes_to_close}-minute walk closes it, or just stop eating here.`;
+  } else if (e.deficit < 0) {
+    food = `Ate ${e.intake} against roughly ${e.out} burned — up ${Math.abs(e.deficit)} on the day. One day doesn't matter; the week does.`;
   } else {
-    food = `${Math.round(remK)} kcal and ${Math.round(remP)} g of protein still to go. There's room for dessert if the protein lands first.`;
+    food = `${e.deficit} down on the day, short of ${e.target}. Too late to walk it off — leave it and start tomorrow earlier.`;
   }
 
   // 4 — one thing that still needs doing, at most
@@ -908,7 +976,7 @@ export async function coachBrief(env) {
 
   return {
     greeting: `${greet}, ${p.name}.`,
-    progress, plan, food,
+    progress, plan, food, energy: e,
     chase: chase ? chase.text : null,
     chase_go: chase ? chase.go : null
   };
