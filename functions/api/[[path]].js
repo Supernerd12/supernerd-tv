@@ -522,7 +522,7 @@ export async function onRequest(ctx) {
         }
 
         const f = ['name','brand','serving_desc','serving_g','servings_per_container',
-                   'kcal','protein','carbs','fat','fiber','sugar','sodium'];
+                   'kcal','protein','carbs','fat','fiber','sugar','sodium','category'];
         if (body.id) {
           const set = f.filter((k) => body[k] !== undefined);
           if (set.length)
@@ -540,14 +540,15 @@ export async function onRequest(ctx) {
         }
         const res = await env.FIT_DB.prepare(
           `INSERT INTO products (name,brand,serving_desc,serving_g,servings_per_container,
-             kcal,protein,carbs,fat,fiber,sugar,sodium,okey,barcode,in_stock,created)
-           VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,1,?15)`
+             kcal,protein,carbs,fat,fiber,sugar,sodium,okey,barcode,in_stock,created,category,remaining)
+           VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,1,?15,?16,?17)`
         ).bind(
           String(body.name || 'Unnamed').slice(0, 90), body.brand || null,
           body.serving_desc || '1 serving', body.serving_g ?? null, body.servings_per_container ?? null,
           body.kcal || 0, body.protein || 0, body.carbs || 0, body.fat || 0,
           body.fiber || 0, body.sugar || 0, body.sodium || 0,
-          okey, body.barcode || null, dayStr()
+          okey, body.barcode || null, dayStr(),
+          body.category || guessCategory(body.name), body.remaining ?? body.servings_per_container ?? null
         ).run();
         return json({ ok: true, id: res.meta?.last_row_id ?? null });
       }
@@ -979,6 +980,22 @@ export async function onRequest(ctx) {
 const missingColumn = (e) => /no such column|has no column/i.test(String(e?.message || e));
 
 // Counting down what's left is what makes the grocery list write itself.
+// Rough grouping so the list reads like a cupboard, not a spreadsheet.
+function guessCategory(name) {
+  const t = String(name || '').toLowerCase();
+  const has = (...w) => w.some((x) => t.includes(x));
+  if (has('chicken','beef','salmon','shrimp','turkey','steak','pork','tuna','patty','sausage','bacon')) return 'meat';
+  if (has('yogurt','milk','cheese','egg','butter','cottage','cream')) return 'dairy';
+  if (has('broccoli','bean','asparagus','brussels','vegetable','banana','apple','berr','spinach','salad','tomato','onion','pepper ')) return 'produce';
+  if (has('rice','bread','wrap','potato','oatmeal','pasta','fries','crinkle','tortilla','bagel','cereal')) return 'carbs';
+  if (has('gelato','sorbet','chocolate','cookie','candy','ice cream','talenti','dessert')) return 'treats';
+  if (has('sauce','salsa','tzatziki','dressing','seasoning','spread','mayo','mustard','ketchup','paprika','powder','syrup','oil','vinegar')) return 'sauces';
+  if (has('shake','juice','soda','coffee','tea','water','drink','soda','seltzer')) return 'drinks';
+  if (has('nut','pistachio','almond','chip','cracker','bar','raisin','cranberr','seed','popcorn','jerky')) return 'snacks';
+  if (has(' + ','tray','entree','bowl','meal')) return 'meals';
+  return 'other';
+}
+
 async function depleteProduct(env, p, servingsUsed) {
   try {
     if (p.remaining == null) return null;

@@ -116,6 +116,16 @@ h2{font:11px/1 var(--mono);text-transform:uppercase;letter-spacing:.16em;font-we
 .prod .meta b{display:block;font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .prod .meta span{font:10px/1.5 var(--mono);color:var(--faint);letter-spacing:.05em}
 .prod.out{opacity:.45}
+.catrow{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+  padding:13px 4px;border-top:1px solid var(--rule);font-size:15px;font-weight:600}
+.catrow .n{margin-left:auto;font:10px/1 var(--mono);color:var(--faint);letter-spacing:.08em}
+.catrow .chev{color:var(--faint);font-size:16px;transition:transform .2s;display:inline-block}
+.catbody{padding:2px 0 8px 4px}
+.itemrow{display:flex;align-items:center;gap:10px;width:100%;text-align:left;
+  padding:10px 8px;font-size:15px;border-radius:9px}
+.itemrow:active{background:rgba(255,255,255,.05)}
+.itemrow .q{margin-left:auto;font:10px/1 var(--mono);color:var(--faint);letter-spacing:.06em;white-space:nowrap}
+.itemrow.out{opacity:.4}
 
 .alert{display:flex;gap:11px;align-items:center;padding:14px 16px;border-radius:var(--r-card);
   background:linear-gradient(140deg,var(--wash),rgba(255,255,255,.025));border:1px solid var(--rule);
@@ -263,7 +273,7 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
 <div id="app" class="hide">
 <header>
   <h1 id="vtitle">Today</h1>
-  <button id="ver" title="Tap to force a fresh copy">v26</button>
+  <button id="ver" title="Tap to force a fresh copy">v27</button>
   <span style="justify-self:end;display:flex;align-items:center;gap:10px">
     <span class="date" id="vdate"></span>
     <button id="gear" aria-label="Settings" style="width:34px;height:34px;display:grid;place-items:center;color:var(--dim)">
@@ -692,7 +702,7 @@ const MUSCLES={
 let CHAT=[], CARDIORANGE='day', GUIDE='bright';
 let FOODITEMS=[], INVMANAGE=false, INVSEL=new Set(), INVCACHE=[];
 let TIMER=0, PENDING=null, WSERIES=[], BRANGE='day';
-let PRODUCTS=[], SCANNED=null, SCANIMG=null, MEALS=[], IDEAS=[];
+let PRODUCTS=[], SCANNED=null, SCANIMG=null, MEALS=[], IDEAS=[], OPENCAT=new Set();
 const TITLES={hub:'Today',food:'Food and water',train:'Training',photos:'Progress',days:'History',settings:'Settings'};
 
 function roll(el,to){const from=+el.dataset.v||0;el.dataset.v=to;
@@ -855,16 +865,26 @@ function ideaCard(o,i){
 
 async function loadProducts(){
   try{ PRODUCTS=await api('products'); }catch(e){ PRODUCTS=[]; }
-  $('#prods').innerHTML = PRODUCTS.length ? PRODUCTS.map(p=>`
-    <button class="prod ${p.in_stock?'':'out'}" data-prod="${p.id}">
-      ${p.okey?`<img class="thumb" src="/api/pimg/${p.id}" alt="">`
-        :`<span class="thumb" style="display:grid;place-items:center;font-family:var(--display);font-size:17px;color:var(--dim)">${Math.round(p.kcal)}</span>`}
-      <span class="meta"><b>${esc(p.name)}</b>
-        <span>${Math.round(p.kcal)} KCAL · ${Math.round(p.protein)}P${
-          p.remaining!=null ? ` · <span style="color:${p.remaining<=0?'var(--over)':p.remaining<=(p.low_at??1)?'var(--acc)':'var(--faint)'}">${
-            p.remaining<=0?'OUT':`${Math.round(p.remaining*10)/10} LEFT`}</span>` : ''}</span></span>
-      <span style="color:var(--faint);font-size:17px">›</span></button>`).join('')
-    : '<p class="empty">Nothing saved yet. Scan a label and it lives here.</p>';
+  const CATS=[['meals','Prepared meals'],['meat','Meat and fish'],['dairy','Dairy and eggs'],
+    ['produce','Produce'],['carbs','Carbs and grains'],['snacks','Snacks'],
+    ['treats','Treats'],['sauces','Sauces and seasoning'],['drinks','Drinks'],['other','Other']];
+  const byCat={};
+  PRODUCTS.forEach(p=>{const c=p.category||'other';(byCat[c]=byCat[c]||[]).push(p);});
+
+  $('#prods').innerHTML = PRODUCTS.length ? CATS.filter(([k])=>byCat[k]?.length).map(([k,label])=>{
+    const list=byCat[k], open=OPENCAT.has(k);
+    const low=list.filter(p=>p.remaining!=null&&p.remaining<=(p.low_at??1)).length;
+    return `<button class="catrow" data-cat="${k}">
+        <span>${label}</span>
+        <span class="n">${list.length}${low?` · <span style="color:var(--acc)">${low} low</span>`:''}</span>
+        <span class="chev" style="transform:rotate(${open?90:0}deg)">›</span></button>
+      ${open?`<div class="catbody">${list.map(p=>`
+        <button class="itemrow ${p.remaining!=null&&p.remaining<=0?'out':''}" data-prod="${p.id}">
+          <span>${esc(p.name)}</span>
+          <span class="q">${p.remaining==null?'' : p.remaining<=0?'out'
+            : p.remaining<=(p.low_at??1)?`<span style="color:var(--acc)">${Math.round(p.remaining*10)/10} left</span>`
+            : Math.round(p.remaining*10)/10}</span></button>`).join('')}</div>`:''}`;
+  }).join('') : '<p class="empty">Nothing saved yet. Scan a label and it lives here.</p>';
 }
 
 function prodForm(p, img){
@@ -876,6 +896,12 @@ function prodForm(p, img){
     ${img?`<img src="${img}" style="width:100%;max-height:180px;object-fit:cover;border-radius:12px;margin-top:10px">`:''}
     <input id="pfName" value="${esc(v('name'))}" placeholder="Product name" style="width:100%;margin-top:10px">
     <input id="pfServ" value="${esc(v('serving_desc','1 serving'))}" placeholder="Serving, e.g. 2/3 cup (55g)" style="width:100%;margin-top:8px">
+    <select id="pfCat" style="width:100%;margin-top:8px">
+      ${[['meals','Prepared meals'],['meat','Meat and fish'],['dairy','Dairy and eggs'],['produce','Produce'],
+         ['carbs','Carbs and grains'],['snacks','Snacks'],['treats','Treats'],['sauces','Sauces and seasoning'],
+         ['drinks','Drinks'],['other','Other']].map(([k,l])=>
+        `<option value="${k}" ${v('category')===k?'selected':''}>${l}</option>`).join('')}
+    </select>
     <div class="row" style="margin-top:8px">
       <div><label class="tiny">Calories</label><input id="pfKcal" type="number" inputmode="decimal" value="${v('kcal',0)}" style="width:100%;margin-top:4px"></div>
       <div><label class="tiny">Protein g</label><input id="pfProt" type="number" inputmode="decimal" value="${v('protein',0)}" style="width:100%;margin-top:4px"></div>
@@ -1669,6 +1695,7 @@ document.addEventListener('click',async e=>{
       kcal:+$('#pfKcal').value||0, protein:+$('#pfProt').value||0, carbs:+$('#pfCarb').value||0,
       fat:+$('#pfFat').value||0, fiber:+$('#pfFib').value||0,
       serving_g:$('#pfGram').value?+$('#pfGram').value:null,
+      category:$('#pfCat').value,
       servings_per_container:$('#pfPack').value?+$('#pfPack').value:null,
       remaining:$('#pfPack').value?+$('#pfPack').value:null
     };
@@ -1682,6 +1709,10 @@ document.addEventListener('click',async e=>{
     if(!confirm('Delete this product?'))return;
     await post('product',{delete:+b.dataset.pdel});
     $('#prodForm').classList.add('hide');toast('Deleted.');return loadProducts();
+  }
+  if(b.dataset.cat){
+    OPENCAT.has(b.dataset.cat)?OPENCAT.delete(b.dataset.cat):OPENCAT.add(b.dataset.cat);
+    return loadProducts();
   }
   if(b.dataset.prod){
     const p=PRODUCTS.find(x=>x.id==b.dataset.prod); if(!p)return;
