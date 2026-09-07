@@ -255,7 +255,7 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
 <div id="app" class="hide">
 <header>
   <h1 id="vtitle">Today</h1>
-  <button id="ver" title="Tap to force a fresh copy">v17</button>
+  <button id="ver" title="Tap to force a fresh copy">v19</button>
   <span class="date" id="vdate"></span>
 </header>
 
@@ -940,7 +940,7 @@ async function loadCardio(){
       `}
       <p class="tiny" style="margin:12px 0 0">${roll
         ? (c.hourly_available ? 'Hour by hour from Apple Health.'
-            : (t.steps ? 'Showing today\u2019s total. Add the hourly actions to your shortcut for a true rolling 24 hours.'
+            : (t.steps ? 'Showing today\u2019s total. Hourly bars fill in as your shortcut runs through the day.'
                        : 'Nothing synced yet today. Run your shortcut.'))
         : 'Straight from Apple Health. Nothing to log by hand.'}</p>
     </div>

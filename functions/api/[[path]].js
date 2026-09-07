@@ -462,12 +462,61 @@ export async function onRequest(ctx) {
                muscle=COALESCE(excluded.muscle,muscle), visceral=COALESCE(excluded.visceral,visceral)`,
             [b.d, b.lb, b.bodyfat, b.muscle, b.visceral]);
 
+        // Health Auto Export grouped by hour gives real per-hour points. Store them
+        // directly — far better than deriving buckets from a running total.
+        const hae = body?.data?.metrics || body?.metrics;
+        let haeHours = 0;
+        if (Array.isArray(hae)) {
+          for (const m of hae) {
+            const field = m.name === 'step_count' ? 'steps'
+              : /walking_running_distance|distance_walking_running/.test(m.name) ? 'distance' : null;
+            if (!field) continue;
+            for (const pt of m.data || []) {
+              const raw = String(pt.date || '');
+              const day = raw.slice(0, 10);
+              const hh = raw.slice(11, 13);
+              const v = Number(pt.qty ?? pt.value);
+              if (!day || !/^\d\d$/.test(hh) || !isFinite(v) || v <= 0) continue;
+              await run(env,
+                `INSERT INTO activity_hours (t,${field},src) VALUES (?1,?2,'hae')
+                 ON CONFLICT(t) DO UPDATE SET ${field}=excluded.${field}`,
+                [`${day}T${hh}`, v]);
+              haeHours++;
+            }
+          }
+        }
+
+        // No hourly data at all? Derive the hour from the running daily total instead.
+        // Each time the shortcut fires, whatever the day's total has gained since the
+        // last sync belongs to the hour we're in now. No health samples leave the phone,
+        // so iOS's bulk-sharing limit never comes into it.
+        let derived = 0;
+        const todayRow = rows.find((r) => r.d === dayStr() && r.steps);
+        if (todayRow && !body.hourly_steps && !haeHours) {
+          const t = new Date().toLocaleString('sv-SE', { timeZone: TZ });
+          const key = t.slice(0, 13).replace(' ', 'T');
+          const sofar = await one(env,
+            "SELECT COALESCE(SUM(steps),0) s, COALESCE(SUM(distance),0) km FROM activity_hours WHERE t LIKE ?1",
+            [dayStr() + '%']);
+          const gainedSteps = todayRow.steps - (sofar?.s || 0);
+          const gainedDist = (todayRow.distance || 0) - (sofar?.km || 0);
+          if (gainedSteps > 0) {
+            const cur = await one(env, 'SELECT steps, distance FROM activity_hours WHERE t=?1', [key]);
+            await run(env,
+              `INSERT INTO activity_hours (t,steps,distance,src) VALUES (?1,?2,?3,'derived')
+               ON CONFLICT(t) DO UPDATE SET steps=?2, distance=?3`,
+              [key, (cur?.steps || 0) + gainedSteps, (cur?.distance || 0) + Math.max(0, gainedDist)]);
+            derived = gainedSteps;
+          }
+        }
+
         const hourCount = await one(env, 'SELECT COUNT(*) n FROM activity_hours');
         const got = Object.fromEntries(Object.entries(body)
           .filter(([k]) => !['metrics','data'].includes(k))
           .map(([k, v]) => [k, Array.isArray(v) ? `array(${v.length})` : v]));
         return json({
           ok: true, days: rows.length, body_days: bodyRows.length, hours_stored: hourCount?.n ?? 0,
+          derived_steps_this_hour: derived, hourly_points_stored: haeHours,
           received: got,
           warning: rows.length === 0 && bodyRows.length === 0
             ? 'Nothing usable arrived. Every value was empty, zero or not a number — check the Get Value actions in your shortcut.'
@@ -661,16 +710,33 @@ function normalizeHealth(body) {
 
   const metrics = body?.data?.metrics || body?.metrics;
   if (Array.isArray(metrics)) {
+    // Health Auto Export sends one point per time bucket. Grouped by hour that is 24
+    // points a day, so cumulative metrics have to be summed rather than overwritten —
+    // otherwise a day's steps collapse to whatever the last hour happened to be.
+    const CUMULATIVE = new Set(['steps', 'distance', 'active_kcal', 'walk_min']);
+    const totals = {};
     for (const m of metrics) {
       const key = map[m.name];
       if (!key) continue;
+      const kg = /kg/i.test(m.units || '');
       for (const pt of m.data || []) {
         const day = String(pt.date || '').slice(0, 10);
-        let v = pt.qty ?? pt.value ?? pt.asleep ?? null;
-        if (key === 'sleep_min' && v != null && v < 24) v = v * 60; // hours -> minutes
-        put(day, key, Number(v));
+        if (!day) continue;
+        let v = Number(pt.qty ?? pt.value ?? pt.asleep ?? pt.Avg ?? null);
+        if (!isFinite(v)) continue;
+        if (key === 'sleep_min' && v < 24) v *= 60;
+        if (key === 'distance' && kg) { /* units mismatch, leave as sent */ }
+
+        if (CUMULATIVE.has(key)) {
+          totals[day] = totals[day] || {};
+          totals[day][key] = (totals[day][key] || 0) + v;
+        } else {
+          put(day, key, v);  // heart rate and the like: last reading wins
+        }
       }
     }
+    for (const [day, byKey] of Object.entries(totals))
+      for (const [key, v] of Object.entries(byKey)) put(day, key, v);
   } else {
     const day = String(body.date || dayStr()).slice(0, 10);
     put(day, 'steps', Number(body.steps));
