@@ -273,7 +273,7 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
 <div id="app" class="hide">
 <header>
   <h1 id="vtitle">Today</h1>
-  <button id="ver" title="Tap to force a fresh copy">v28</button>
+  <button id="ver" title="Tap to force a fresh copy">v29</button>
   <span style="justify-self:end;display:flex;align-items:center;gap:10px">
     <span class="date" id="vdate"></span>
     <button id="gear" aria-label="Settings" style="width:34px;height:34px;display:grid;place-items:center;color:var(--dim)">
@@ -1368,6 +1368,7 @@ async function loadSettings(){
   if(d) $('#diag').innerHTML=`
     <div class="line" style="border-top:0;padding-top:0"><span>Version</span><b>${esc(d.version)}</b></div>
     <div class="line"><span>Natural language</span><b style="color:${d.natural_language==='none'?'var(--over)':'var(--good)'}">${esc(d.natural_language)}</b></div>
+    <div class="line"><span>Label reading</span><b style="font-size:14px;color:${d.vision==='none'?'var(--over)':d.vision==='gpt-4o-mini'?'var(--good)':'var(--acc)'}">${esc(d.vision||'—')}</b></div>
     <div class="line"><span>Coach chat</span><b style="color:${d.coach_chat?'var(--good)':'var(--over)'}">${d.coach_chat?'on':'not wired'}</b></div>
     <div class="line"><span>Photo storage</span><b style="color:${d.photos_storage?'var(--good)':'var(--over)'}">${d.photos_storage?'on':'no R2 bucket'}</b></div>
     <div class="line"><span>Entries stored</span><b style="font-size:14px">${d.counts.food_log} meals · ${d.counts.workout_log} workouts · ${d.counts.weights} weigh-ins</b></div>`;

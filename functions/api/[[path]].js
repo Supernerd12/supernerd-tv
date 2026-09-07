@@ -469,9 +469,13 @@ export async function onRequest(ctx) {
                   (SELECT COUNT(*) FROM food_log) food_log, (SELECT COUNT(*) FROM workout_log) workout_log,
                   (SELECT COUNT(*) FROM weights) weights, (SELECT COUNT(*) FROM activity) activity,
                   (SELECT COUNT(*) FROM activity_hours) activity_hours, (SELECT COUNT(*) FROM photos) photos`);
+        // Report in the order the code actually tries them, not the order I happened to check.
+        const engine = env.OPENAI_KEY ? 'openai' : env.AI ? 'workers-ai' : env.GROQ_KEY ? 'groq' : 'none';
         return json({
           version: VERSION, database: true,
-          natural_language: !!env.AI ? 'workers-ai' : env.OPENAI_KEY ? 'openai' : env.GROQ_KEY ? 'groq' : 'none',
+          natural_language: engine,
+          vision: env.OPENAI_KEY ? 'gpt-4o-mini' : env.AI ? 'workers-ai (weaker at labels)' : 'none',
+          available: { openai: !!env.OPENAI_KEY, workers_ai: !!env.AI, groq: !!env.GROQ_KEY },
           photos_storage: !!env.FIT_R2, coach_chat: !!(env.AI || env.OPENAI_KEY),
           counts
         });
