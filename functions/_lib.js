@@ -1,7 +1,7 @@
 // Fitness Hub — shared library (Cloudflare Pages Functions)
 // Underscore prefix = not routed, importable only.
 
-export const VERSION = 'v24';
+export const VERSION = 'v26';
 export const TZ = 'America/New_York';
 
 export const dayStr = (offset = 0) =>
@@ -873,6 +873,103 @@ export async function readLabel(env, dataUrl) {
   }
 
   return null;
+}
+
+/* ---------------- looking a product up ---------------- */
+// Open Food Facts is a free, open database. Try it before asking a model to guess.
+
+export async function lookupProduct(env, name) {
+  const q = String(name || '').trim();
+  if (!q) return null;
+
+  try {
+    const r = await fetch(
+      `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(q)}&search_simple=1&action=process&json=1&page_size=5`,
+      { headers: { 'user-agent': 'supernerd-fit/1.0' } }
+    );
+    const j = await r.json();
+    for (const p of j.products || []) {
+      const n = p.nutriments || {};
+      const kcal = n['energy-kcal_serving'] ?? n['energy-kcal_100g'];
+      if (!kcal) continue;
+      const perServing = n['energy-kcal_serving'] != null;
+      const g = (k) => Number(n[perServing ? `${k}_serving` : `${k}_100g`] ?? 0);
+      return {
+        name: p.product_name || q,
+        brand: p.brands || null,
+        serving_desc: perServing ? (p.serving_size || '1 serving') : '100 g',
+        serving_g: perServing ? parseFloat(p.serving_quantity) || null : 100,
+        kcal: Math.round(Number(kcal)),
+        protein: Math.round(g('proteins') * 10) / 10,
+        carbs: Math.round(g('carbohydrates') * 10) / 10,
+        fat: Math.round(g('fat') * 10) / 10,
+        fiber: Math.round(g('fiber') * 10) / 10,
+        sugar: Math.round(g('sugars') * 10) / 10,
+        sodium: Math.round(g('sodium') * 1000),
+        source: 'openfoodfacts'
+      };
+    }
+  } catch (e) { /* fall through to the model */ }
+
+  const t = await callAI(env,
+    'Return ONLY JSON: {"name":string,"serving_desc":string,"serving_g":number|null,"kcal":number,"protein":number,"carbs":number,"fat":number,"fiber":number}. ' +
+    'Standard nutrition figures for one ordinary serving of the food named. No prose.',
+    q);
+  const j = grabJSON(t);
+  return j ? { ...j, source: 'estimate' } : null;
+}
+
+/* ---------------- what to eat, with a recipe ---------------- */
+
+export async function mealIdeas(env, opts = {}) {
+  const [t, td, p] = await Promise.all([currentTarget(env), today(env), profile(env)]);
+  const en = await energyToday(env);
+  const stock = await all(env,
+    'SELECT name, serving_desc, kcal, protein, carbs, fat, fiber FROM products WHERE in_stock=1 LIMIT 60');
+  const saved = await all(env, 'SELECT name, kcal, protein FROM meals ORDER BY last_used DESC LIMIT 12');
+
+  const hour = Number(new Date().toLocaleString('en-US', { timeZone: TZ, hour: '2-digit', hour12: false }));
+  const slot = hour < 10.5 ? 'breakfast' : hour < 15 ? 'lunch' : hour < 21 ? 'dinner' : 'a late snack';
+  const room = Math.max(150, en.room_left || (t.kcal_high - td.kcal));
+  const proteinLeft = Math.max(0, t.protein - td.protein);
+
+  if (!stock.length) return { error: 'Nothing is marked in stock. Mark what you actually have first.' };
+
+  const sys =
+`You suggest meals for one person from ingredients he actually has. Return ONLY JSON, no prose, no fences:
+{"options":[{"name":string,"method":string,"kcal":number,"protein":number,"carbs":number,"fat":number,"fiber":number,
+  "items":[{"name":string,"amount":string}],"recipe":[string]}]}
+
+Give exactly 3 options. Rules:
+- Use ONLY the ingredients listed below. Never introduce something he doesn't have.
+- It is ${slot}. He has about ${room} kcal of room and wants ${proteinLeft} g more protein today.
+- Each option must land under ${room} kcal. Get as close to ${proteinLeft} g protein as the ingredients allow.
+- "method" is how it's cooked: Ninja Crispi air fryer, stovetop, microwave, or no-cook. He prefers the Crispi and hates cleanup.
+- "recipe" is 3 to 6 short imperative steps with real temperatures and times.
+- Macros are for the whole dish as described in items.
+- Vary them: don't return three versions of the same plate.
+
+INGREDIENTS HE HAS
+${stock.map((f) => `${f.name} | ${f.serving_desc} | ${f.kcal}kcal ${f.protein}p ${f.carbs}c ${f.fat}f ${f.fiber}fib`).join('\n')}
+${saved.length ? `\nMEALS HE ALREADY LIKES (vary from these, don't repeat them exactly)\n${saved.map((m) => m.name).join(', ')}` : ''}`;
+
+  const raw = grabJSON(await callAI(env, sys, opts.hint || `What should I eat for ${slot}?`));
+  const list = Array.isArray(raw?.options) ? raw.options : Array.isArray(raw) ? raw : null;
+  if (!list?.length) return { error: 'The suggestion engine is not wired up. Add a Workers AI binding named AI, or an OPENAI_KEY secret.' };
+
+  return {
+    slot, room, protein_left: proteinLeft,
+    options: list.slice(0, 3).map((o) => ({
+      name: String(o.name || 'Meal').slice(0, 80),
+      method: String(o.method || '').slice(0, 40),
+      kcal: Math.round(+o.kcal || 0), protein: Math.round(+o.protein || 0),
+      carbs: Math.round(+o.carbs || 0), fat: Math.round(+o.fat || 0), fiber: Math.round(+o.fiber || 0),
+      items: (o.items || []).slice(0, 12).map((i) => ({
+        name: String(i.name || '').slice(0, 60), amount: String(i.amount || '').slice(0, 40)
+      })),
+      recipe: (o.recipe || []).slice(0, 8).map((r) => String(r).slice(0, 220))
+    }))
+  };
 }
 
 /* ---------------- energy balance ---------------- */

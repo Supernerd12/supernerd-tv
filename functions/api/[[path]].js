@@ -3,7 +3,7 @@ import {
   all, one, run, profile, currentTarget, trends, today, decide,
   suggestMeal, parseFood, parseWorkout, contextDoc, checkin,
   dayRange, grocery, icsFeed, coachBrief, exerciseStats, trainingOverview, ensureExercise, matchExercise,
-  rangeStart, parseTrace, estimateBurn, bodyWeightLb, TZ, energyToday, energyRange, readLabel
+  rangeStart, parseTrace, estimateBurn, bodyWeightLb, TZ, energyToday, energyRange, readLabel, lookupProduct, mealIdeas
 } from '../_lib.js';
 
 export async function onRequest(ctx) {
@@ -497,7 +497,28 @@ export async function onRequest(ctx) {
         }
         if (body.stock != null && body.id) {
           await run(env, 'UPDATE products SET in_stock=?1 WHERE id=?2', [body.stock ? 1 : 0, body.id]);
+          if (!body.stock) await run(env, 'UPDATE products SET remaining=0 WHERE id=?1', [body.id]).catch(() => {});
           return json({ ok: true });
+        }
+
+        // "About half a bag left" — a guess beats a wrong number.
+        if (body.remaining != null && body.id) {
+          const left = Math.max(0, Number(body.remaining));
+          await run(env, 'UPDATE products SET remaining=?1, in_stock=?2, auto_listed=CASE WHEN ?1>COALESCE(low_at,1) THEN 0 ELSE auto_listed END WHERE id=?3',
+            [left, left > 0 ? 1 : 0, body.id]);
+          return json({ ok: true, remaining: left });
+        }
+
+        // Bought it again: back to a full container and off the shopping list.
+        if (body.restock && body.id) {
+          const p3 = await one(env, 'SELECT name, servings_per_container FROM products WHERE id=?1', [body.id]);
+          const full = Number(body.servings_per_container) || p3?.servings_per_container || 1;
+          await run(env,
+            'UPDATE products SET remaining=?1, servings_per_container=?1, in_stock=1, auto_listed=0 WHERE id=?2',
+            [full, body.id]);
+          if (p3?.name)
+            await run(env, "DELETE FROM todos WHERE kind='grocery' AND done=0 AND text=?1", [p3.name]);
+          return json({ ok: true, remaining: full });
         }
 
         const f = ['name','brand','serving_desc','serving_g','servings_per_container',
@@ -535,6 +556,22 @@ export async function onRequest(ctx) {
         return json(await all(env,
           `SELECT * FROM products ORDER BY in_stock DESC, last_used DESC, name`));
 
+      // Everything currently on the shopping list, ready to leave the app.
+      case 'GET grocery/export': {
+        const manual = await all(env, "SELECT text FROM todos WHERE kind='grocery' AND done=0 ORDER BY id");
+        let low = [];
+        try {
+          low = await all(env,
+            'SELECT name, remaining FROM products WHERE remaining IS NOT NULL AND remaining <= COALESCE(low_at,1) ORDER BY remaining');
+        } catch (e) { if (!missingColumn(e)) throw e; }
+        const names = [...new Set([...manual.map((m) => m.text), ...low.map((l) => l.name)])];
+        return json({
+          items: names,
+          text: names.map((n) => `• ${n}`).join('\n'),
+          low_on: low.map((l) => ({ name: l.name, remaining: l.remaining }))
+        });
+      }
+
       // Log an amount of a saved product. Amount is in servings unless grams are given.
       case 'POST product/log': {
         const p2 = await one(env, 'SELECT * FROM products WHERE id=?1', [body.id]);
@@ -554,8 +591,85 @@ export async function onRequest(ctx) {
         });
         await run(env,
           'UPDATE products SET times_used=COALESCE(times_used,0)+1, last_used=?1 WHERE id=?2', [dayStr(), body.id]);
-        return json({ ok: true, logged: label, kcal: r1(p2.kcal), today: await today(env, d) });
+
+        // Take it out of the container. A tub of yogurt is finite.
+        const stockNote = await depleteProduct(env, p2, mult);
+        return json({ ok: true, logged: label, kcal: r1(p2.kcal), stock: stockNote, today: await today(env, d) });
       }
+
+      case 'POST product/lookup': {
+        const found = await lookupProduct(env, body.name);
+        return found ? json({ ok: true, product: found })
+                     : json({ error: 'Nothing found for that name. Type the numbers in instead.' }, 404);
+      }
+
+      /* ---- saved meals: several ingredients, one tap ---- */
+
+      case 'GET meals':
+        return json((await all(env, 'SELECT * FROM meals ORDER BY last_used DESC, name'))
+          .map((m) => ({ ...m, items: m.items ? JSON.parse(m.items) : [], recipe: m.recipe ? JSON.parse(m.recipe) : [] })));
+
+      case 'POST meals': {
+        if (body.delete != null) {
+          await run(env, 'DELETE FROM meals WHERE id=?1', [body.delete]);
+          return json({ ok: true });
+        }
+        const vals = [
+          String(body.name || 'Meal').slice(0, 80), body.method || null,
+          JSON.stringify(body.recipe || []), JSON.stringify(body.items || []),
+          body.kcal || 0, body.protein || 0, body.carbs || 0, body.fat || 0, body.fiber || 0,
+          body.source || 'manual'
+        ];
+        if (body.id) {
+          await run(env,
+            `UPDATE meals SET name=?2, method=?3, recipe=?4, items=?5, kcal=?6, protein=?7,
+               carbs=?8, fat=?9, fiber=?10, source=?11 WHERE id=?1`, [body.id, ...vals]);
+          return json({ ok: true, id: body.id });
+        }
+        const res = await env.FIT_DB.prepare(
+          `INSERT INTO meals (name,method,recipe,items,kcal,protein,carbs,fat,fiber,source,created)
+           VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11)`
+        ).bind(...vals, dayStr()).run();
+        return json({ ok: true, id: res.meta?.last_row_id ?? null });
+      }
+
+      case 'POST meal/log': {
+        let m = body.id ? await one(env, 'SELECT * FROM meals WHERE id=?1', [body.id]) : null;
+        const src = m || body.meal;
+        if (!src) return json({ error: 'no meal' }, 400);
+
+        const mult = Number(body.servings) || 1;
+        const r1 = (v) => Math.round((v || 0) * mult * 10) / 10;
+        const items = typeof src.items === 'string' ? JSON.parse(src.items || '[]') : (src.items || []);
+
+        await insertFood(env, d, {
+          item: mult === 1 ? src.name : `${src.name} ×${mult}`,
+          kcal: r1(src.kcal), protein: r1(src.protein), carbs: r1(src.carbs),
+          fat: r1(src.fat), fiber: r1(src.fiber), src: 'meal',
+          parts: items.length ? items.map((i) => ({
+            item: `${i.name}${i.amount ? ', ' + i.amount : ''}`,
+            kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0
+          })) : null
+        });
+
+        // Logging an unsaved suggestion saves it too, so it's one tap next time.
+        if (!m && body.save !== false) {
+          const res = await env.FIT_DB.prepare(
+            `INSERT INTO meals (name,method,recipe,items,kcal,protein,carbs,fat,fiber,source,times_used,last_used,created)
+             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,'ai',1,?10,?10)`
+          ).bind(src.name, src.method || null, JSON.stringify(src.recipe || []),
+                 JSON.stringify(items), src.kcal || 0, src.protein || 0, src.carbs || 0,
+                 src.fat || 0, src.fiber || 0, dayStr()).run();
+          m = { id: res.meta?.last_row_id };
+        } else if (m) {
+          await run(env, 'UPDATE meals SET times_used=COALESCE(times_used,0)+1, last_used=?1 WHERE id=?2',
+            [dayStr(), m.id]);
+        }
+        return json({ ok: true, meal_id: m?.id ?? null, today: await today(env, d) });
+      }
+
+      case 'POST ideas':
+        return json(await mealIdeas(env, { hint: body.hint }));
 
       case 'GET inventory':
         return json(await all(env, 'SELECT id,name,kcal,protein,fiber,serving,kind,in_stock FROM foods ORDER BY kind,name'));
@@ -863,6 +977,32 @@ export async function onRequest(ctx) {
 // A missing column means a migration hasn't been run yet. Losing the whole entry over
 // an optional field is the wrong trade — write what the schema can take and carry on.
 const missingColumn = (e) => /no such column|has no column/i.test(String(e?.message || e));
+
+// Counting down what's left is what makes the grocery list write itself.
+async function depleteProduct(env, p, servingsUsed) {
+  try {
+    if (p.remaining == null) return null;
+    const left = Math.max(0, Math.round((p.remaining - servingsUsed) * 100) / 100);
+    const lowAt = p.low_at ?? 1;
+    const nowOut = left <= 0;
+    await run(env, 'UPDATE products SET remaining=?1, in_stock=?2 WHERE id=?3',
+      [left, nowOut ? 0 : 1, p.id]);
+
+    if (left <= lowAt && !p.auto_listed) {
+      const already = await one(env,
+        "SELECT id FROM todos WHERE kind='grocery' AND done=0 AND text=?1", [p.name]);
+      if (!already)
+        await run(env,
+          "INSERT INTO todos (kind,text,done,created) VALUES ('grocery',?1,0,?2)", [p.name, dayStr()]);
+      await run(env, 'UPDATE products SET auto_listed=1 WHERE id=?1', [p.id]);
+      return { remaining: left, low: true, added_to_list: true, out: nowOut };
+    }
+    return { remaining: left, low: left <= lowAt, out: nowOut };
+  } catch (e) {
+    if (!missingColumn(e)) throw e;
+    return null;
+  }
+}
 
 async function insertFood(env, d, i) {
   const base = [d, nowStr(), i.item, i.kcal, i.protein, i.carbs, i.fat, i.fiber, i.src];
