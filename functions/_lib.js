@@ -1,7 +1,7 @@
 // Fitness Hub — shared library (Cloudflare Pages Functions)
 // Underscore prefix = not routed, importable only.
 
-export const VERSION = 'v33';
+export const VERSION = 'v34';
 export const TZ = 'America/New_York';
 
 export const dayStr = (offset = 0) =>
