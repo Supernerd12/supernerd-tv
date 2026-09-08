@@ -209,7 +209,13 @@ canvas.chart{width:100%;height:158px;display:block;border-radius:var(--r-sm)}
 .stage{position:relative;width:100%;aspect-ratio:3/4;background:#000;border-radius:22px;overflow:hidden;border:1px solid var(--rule);
   box-shadow:0 24px 60px -34px #000}
 .stage video,.stage img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
-#ghost{opacity:0;filter:grayscale(1);transition:opacity .2s}
+#cam,#shot{z-index:1}
+/* The ghost has to sit ON the live camera, not behind it. It is never captured —
+   the canvas only ever draws the video element. */
+#ghost{z-index:2;opacity:0;filter:grayscale(1);transition:opacity .2s;pointer-events:none}
+.guides{z-index:3}
+.stamp{z-index:4}
+#count{z-index:5}
 .guides{position:absolute;inset:0;pointer-events:none}
 .guides b{position:absolute;background:var(--acc);opacity:.55;display:block}
 .guides .gv{left:50%;top:0;bottom:0;width:1px}
@@ -273,7 +279,7 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
 <div id="app" class="hide">
 <header>
   <h1 id="vtitle">Today</h1>
-  <button id="ver" title="Tap to force a fresh copy">v34</button>
+  <button id="ver" title="Tap to force a fresh copy">v35</button>
   <span style="justify-self:end;display:flex;align-items:center;gap:10px">
     <span class="date" id="vdate"></span>
     <button id="gear" aria-label="Settings" style="width:34px;height:34px;display:grid;place-items:center;color:var(--dim)">
@@ -547,6 +553,7 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
         <span class="tiny" style="text-transform:none;letter-spacing:0;font-size:14px;color:var(--ink)">Onion skin</span>
         <button id="onionBtn" class="pill on" style="margin:0 0 0 auto">On</button>
         <button id="onionGrey" class="pill on" style="margin:0">Grey</button>
+        <button id="onionBlend" class="pill" style="margin:0">Blend</button>
       </div>
       <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
         <span class="tiny" style="flex:0 0 42px">Fade</span>
@@ -730,14 +737,15 @@ const MUSCLES={
 let CHAT=[], CARDIORANGE='day', GUIDE='bright';
 let FOODITEMS=[], INVMANAGE=false, INVSEL=new Set(), INVCACHE=[];
 let TIMER=0, PENDING=null, WSERIES=[], BRANGE='day';
-let ONION=true, ONIONOP=32, ONIONGREY=true, GHOSTPICK='last';
+let ONION=true, ONIONOP=32, ONIONGREY=true, ONIONBLEND='normal', GHOSTPICK='last';
 try{
   const st=JSON.parse(localStorage.getItem('onion')||'{}');
   if(st.on!=null)ONION=st.on; if(st.op!=null)ONIONOP=st.op;
   if(st.grey!=null)ONIONGREY=st.grey; if(st.pick)GHOSTPICK=st.pick;
+  if(st.blend)ONIONBLEND=st.blend;
 }catch(e){}
 const saveOnion=()=>{ try{ localStorage.setItem('onion',
-  JSON.stringify({on:ONION,op:ONIONOP,grey:ONIONGREY,pick:GHOSTPICK})); }catch(e){} };
+  JSON.stringify({on:ONION,op:ONIONOP,grey:ONIONGREY,pick:GHOSTPICK,blend:ONIONBLEND})); }catch(e){} };
 let PRODUCTS=[], GONE=[], SCANNED=null, SCANIMG=null, MEALS=[], IDEAS=[], OPENCAT=new Set(), CATS=[], BURNSERIES=[], OPENIDEA=null, IDEAMETA=null;
 const TITLES={hub:'Today',food:'Food and water',train:'Training',photos:'Progress',days:'History',settings:'Settings'};
 
@@ -1129,6 +1137,8 @@ async function camOn(){
   $('#onionOp').value=ONIONOP; $('#onionVal').textContent=ONIONOP+'%';
   $('#onionBtn').textContent=ONION?'On':'Off'; $('#onionBtn').classList.toggle('on',ONION);
   $('#onionGrey').textContent=ONIONGREY?'Grey':'Colour'; $('#onionGrey').classList.toggle('on',ONIONGREY);
+  $('#onionBlend').textContent=ONIONBLEND==='normal'?'Blend':ONIONBLEND==='screen'?'Screen':'Diff';
+  $('#onionBlend').classList.toggle('on',ONIONBLEND!=='normal');
   document.querySelectorAll('[data-ghostpick]').forEach(x=>x.classList.toggle('on',x.dataset.ghostpick===GHOSTPICK));
     $('#stamp').textContent='line up with the guides';
   }catch(e){ toast('Camera unavailable — opening the picker.'); $('#fileIn').click(); }
@@ -1143,6 +1153,7 @@ function applyOnion(){
   g.src='/api/img/'+p.d;
   g.style.opacity=ONIONOP/100;
   g.style.filter=ONIONGREY?'grayscale(1)':'none';
+  g.style.mixBlendMode=ONIONBLEND;
   const st=$('#stamp');
   if(st&&stream)st.textContent='matching '+p.d;
 }
@@ -2078,6 +2089,13 @@ document.addEventListener('click',async e=>{
     saveOnion();return applyOnion();}
   if(b.id==='onionGrey'){ONIONGREY=!ONIONGREY;b.textContent=ONIONGREY?'Grey':'Colour';
     b.classList.toggle('on',ONIONGREY);saveOnion();return applyOnion();}
+  if(b.id==='onionBlend'){
+    const modes=['normal','screen','difference'];
+    ONIONBLEND=modes[(modes.indexOf(ONIONBLEND)+1)%modes.length];
+    b.textContent=ONIONBLEND==='normal'?'Blend':ONIONBLEND==='screen'?'Screen':'Diff';
+    b.classList.toggle('on',ONIONBLEND!=='normal');
+    saveOnion();return applyOnion();
+  }
   if(b.dataset.ghostpick){
     GHOSTPICK=b.dataset.ghostpick;
     document.querySelectorAll('[data-ghostpick]').forEach(x=>x.classList.toggle('on',x===b));
@@ -2090,6 +2108,8 @@ document.addEventListener('click',async e=>{
   $('#onionOp').value=ONIONOP; $('#onionVal').textContent=ONIONOP+'%';
   $('#onionBtn').textContent=ONION?'On':'Off'; $('#onionBtn').classList.toggle('on',ONION);
   $('#onionGrey').textContent=ONIONGREY?'Grey':'Colour'; $('#onionGrey').classList.toggle('on',ONIONGREY);
+  $('#onionBlend').textContent=ONIONBLEND==='normal'?'Blend':ONIONBLEND==='screen'?'Screen':'Diff';
+  $('#onionBlend').classList.toggle('on',ONIONBLEND!=='normal');
   document.querySelectorAll('[data-ghostpick]').forEach(x=>x.classList.toggle('on',x.dataset.ghostpick===GHOSTPICK));
     document.querySelectorAll('[data-guide]').forEach(x=>x.classList.toggle('on',x===b));return;}
 
@@ -2233,6 +2253,8 @@ async function boot(){
   $('#onionOp').value=ONIONOP; $('#onionVal').textContent=ONIONOP+'%';
   $('#onionBtn').textContent=ONION?'On':'Off'; $('#onionBtn').classList.toggle('on',ONION);
   $('#onionGrey').textContent=ONIONGREY?'Grey':'Colour'; $('#onionGrey').classList.toggle('on',ONIONGREY);
+  $('#onionBlend').textContent=ONIONBLEND==='normal'?'Blend':ONIONBLEND==='screen'?'Screen':'Diff';
+  $('#onionBlend').classList.toggle('on',ONIONBLEND!=='normal');
   document.querySelectorAll('[data-ghostpick]').forEach(x=>x.classList.toggle('on',x.dataset.ghostpick===GHOSTPICK));
   $('#feed').value=location.origin+'/cal.ics?k=PASTE_YOUR_FIT_TOKEN';
   setInterval(()=>{if(!$('#app').classList.contains('hide'))refresh().catch(()=>{});},180000);
