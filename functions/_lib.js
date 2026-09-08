@@ -1,7 +1,7 @@
 // Fitness Hub — shared library (Cloudflare Pages Functions)
 // Underscore prefix = not routed, importable only.
 
-export const VERSION = 'v36';
+export const VERSION = 'v38';
 export const TZ = 'America/New_York';
 
 export const dayStr = (offset = 0) =>
@@ -749,27 +749,40 @@ export async function dayRange(env, from, to) {
   const [w, act, food, work, wat, ph] = await Promise.all([
     all(env, 'SELECT d,lb,waist FROM weights WHERE d BETWEEN ?1 AND ?2', [from, to]),
     all(env, 'SELECT d,steps,walk_min,active_kcal,sleep_min FROM activity WHERE d BETWEEN ?1 AND ?2', [from, to]),
-    all(env, 'SELECT d, ROUND(SUM(kcal)) kcal, ROUND(SUM(protein)) protein, ROUND(SUM(fiber)) fiber FROM food_log WHERE d BETWEEN ?1 AND ?2 GROUP BY d', [from, to]),
+    // COUNT, not SUM. An entry logged at zero calories is still a logged entry —
+    // summing to 0 was silently hiding the food marker on those days.
+    all(env, 'SELECT d, COUNT(*) n, ROUND(SUM(kcal)) kcal, ROUND(SUM(protein)) protein, ROUND(SUM(fiber)) fiber FROM food_log WHERE d BETWEEN ?1 AND ?2 GROUP BY d', [from, to]),
     all(env, 'SELECT d, COUNT(*) n, GROUP_CONCAT(exercise) ex FROM workout_log WHERE d BETWEEN ?1 AND ?2 GROUP BY d', [from, to]),
-    all(env, 'SELECT d, ROUND(SUM(oz)) oz FROM water_log WHERE d BETWEEN ?1 AND ?2 GROUP BY d', [from, to]),
+    all(env, 'SELECT d, COUNT(*) n, ROUND(SUM(oz)) oz FROM water_log WHERE d BETWEEN ?1 AND ?2 GROUP BY d', [from, to]),
     all(env, 'SELECT d FROM photos WHERE d BETWEEN ?1 AND ?2', [from, to])
   ]);
   const days = {};
   const put = (d, patch) => { days[d] = { d, ...(days[d] || {}), ...patch }; };
-  for (const r of w) put(r.d, { lb: r.lb, waist: r.waist });
+  // Each marker asks "was anything recorded", never "was the value non-zero".
+  for (const r of w) put(r.d, { lb: r.lb, waist: r.waist, has_weight: r.lb != null || r.waist != null });
   for (const r of act) put(r.d, { steps: r.steps, walk_min: r.walk_min, active_kcal: r.active_kcal, sleep_min: r.sleep_min });
-  for (const r of food) put(r.d, { kcal: r.kcal, protein: r.protein, fiber: r.fiber });
-  for (const r of work) put(r.d, { workouts: r.n, exercises: r.ex });
-  for (const r of wat) put(r.d, { water_oz: r.oz });
-  for (const r of ph) put(r.d, { photo: true });
+  for (const r of food) put(r.d, { kcal: r.kcal, protein: r.protein, fiber: r.fiber, has_food: r.n > 0 });
+  for (const r of work) put(r.d, { workouts: r.n, exercises: r.ex, has_training: r.n > 0 });
+  for (const r of wat) put(r.d, { water_oz: r.oz, has_water: r.n > 0 });
+  for (const r of ph) put(r.d, { photo: true, has_photo: true });
   return Object.values(days).sort((a, b) => (a.d < b.d ? 1 : -1));
 }
 
 /* ---------------- v2: grocery list from the plan ---------------- */
 
 export async function grocery(env) {
-  const missing = await all(env,
-    "SELECT name,kind FROM foods WHERE in_stock=0 AND kind IN ('protein','veg','carb') ORDER BY kind,name");
+  // Products, not the retired foods table. Suggest what has run out or is nearly out.
+  let missing = [];
+  try {
+    missing = await all(env,
+      `SELECT name, category AS kind, remaining FROM products
+        WHERE (remaining IS NOT NULL AND remaining <= COALESCE(low_at,1))
+           OR (remaining IS NULL AND in_stock = 0)
+        ORDER BY remaining, name LIMIT 24`);
+  } catch (e) {
+    missing = await all(env, 'SELECT name, category AS kind FROM products WHERE in_stock=0 ORDER BY name LIMIT 24')
+      .catch(() => []);
+  }
   const manual = await all(env, "SELECT id,text,done FROM todos WHERE kind='grocery' ORDER BY done,id");
   return { suggested: missing, list: manual };
 }
