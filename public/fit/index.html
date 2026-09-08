@@ -210,6 +210,7 @@ canvas.chart{width:100%;height:158px;display:block;border-radius:var(--r-sm)}
   box-shadow:0 24px 60px -34px #000}
 .stage video,.stage img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
 #cam,#shot{z-index:1}
+#cam.mirror{transform:scaleX(-1)}
 /* The ghost has to sit ON the live camera, not behind it. It is never captured —
    the canvas only ever draws the video element. */
 #ghost{z-index:2;opacity:0;filter:grayscale(1);transition:opacity .2s;pointer-events:none}
@@ -279,7 +280,7 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
 <div id="app" class="hide">
 <header>
   <h1 id="vtitle">Today</h1>
-  <button id="ver" title="Tap to force a fresh copy">v35</button>
+  <button id="ver" title="Tap to force a fresh copy">v36</button>
   <span style="justify-self:end;display:flex;align-items:center;gap:10px">
     <span class="date" id="vdate"></span>
     <button id="gear" aria-label="Settings" style="width:34px;height:34px;display:grid;place-items:center;color:var(--dim)">
@@ -554,6 +555,7 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
         <button id="onionBtn" class="pill on" style="margin:0 0 0 auto">On</button>
         <button id="onionGrey" class="pill on" style="margin:0">Grey</button>
         <button id="onionBlend" class="pill" style="margin:0">Blend</button>
+        <button id="mirrorBtn" class="pill on" style="margin:0">Mirror</button>
       </div>
       <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
         <span class="tiny" style="flex:0 0 42px">Fade</span>
@@ -565,7 +567,7 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
         <button data-ghostpick="first">First photo</button>
         <button data-ghostpick="pick">Choose</button>
       </div>
-      <p class="tiny" style="margin:10px 0 0">Line yourself up with the faded frame behind you. Same spot, same distance, same light.</p>
+      <p class="tiny" style="margin:10px 0 0">Line yourself up with the faded frame. Same spot, same distance, same light. Mirror flips the preview so it matches what gets saved — turn it off if you want text in the room to read the right way round.</p>
     </div>
 
     <div class="seg sm" id="guideSeg" style="margin-top:9px">
@@ -737,15 +739,15 @@ const MUSCLES={
 let CHAT=[], CARDIORANGE='day', GUIDE='bright';
 let FOODITEMS=[], INVMANAGE=false, INVSEL=new Set(), INVCACHE=[];
 let TIMER=0, PENDING=null, WSERIES=[], BRANGE='day';
-let ONION=true, ONIONOP=32, ONIONGREY=true, ONIONBLEND='normal', GHOSTPICK='last';
+let ONION=true, ONIONOP=32, ONIONGREY=true, ONIONBLEND='normal', GHOSTPICK='last', MIRROR=true;
 try{
   const st=JSON.parse(localStorage.getItem('onion')||'{}');
   if(st.on!=null)ONION=st.on; if(st.op!=null)ONIONOP=st.op;
   if(st.grey!=null)ONIONGREY=st.grey; if(st.pick)GHOSTPICK=st.pick;
-  if(st.blend)ONIONBLEND=st.blend;
+  if(st.blend)ONIONBLEND=st.blend; if(st.mirror!=null)MIRROR=st.mirror;
 }catch(e){}
 const saveOnion=()=>{ try{ localStorage.setItem('onion',
-  JSON.stringify({on:ONION,op:ONIONOP,grey:ONIONGREY,pick:GHOSTPICK,blend:ONIONBLEND})); }catch(e){} };
+  JSON.stringify({on:ONION,op:ONIONOP,grey:ONIONGREY,pick:GHOSTPICK,blend:ONIONBLEND,mirror:MIRROR})); }catch(e){} };
 let PRODUCTS=[], GONE=[], SCANNED=null, SCANIMG=null, MEALS=[], IDEAS=[], OPENCAT=new Set(), CATS=[], BURNSERIES=[], OPENIDEA=null, IDEAMETA=null;
 const TITLES={hub:'Today',food:'Food and water',train:'Training',photos:'Progress',days:'History',settings:'Settings'};
 
@@ -1131,6 +1133,7 @@ async function camOn(){
     stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:FACING,width:{ideal:1440},height:{ideal:1920}},audio:false});
     const v=$('#cam'); v.srcObject=stream; await v.play();
     v.classList.remove('hide'); $('#shot').classList.add('hide');
+    $('#cam').classList.toggle('mirror', MIRROR && FACING==='user');
     applyOnion();
     $('#camCtl').classList.remove('hide'); $('#scrubWrap').classList.add('hide'); $('#tools').classList.add('hide');
     document.querySelector('.stage').dataset.g=GUIDE;
@@ -1139,6 +1142,7 @@ async function camOn(){
   $('#onionGrey').textContent=ONIONGREY?'Grey':'Colour'; $('#onionGrey').classList.toggle('on',ONIONGREY);
   $('#onionBlend').textContent=ONIONBLEND==='normal'?'Blend':ONIONBLEND==='screen'?'Screen':'Diff';
   $('#onionBlend').classList.toggle('on',ONIONBLEND!=='normal');
+  $('#mirrorBtn').classList.toggle('on',MIRROR);
   document.querySelectorAll('[data-ghostpick]').forEach(x=>x.classList.toggle('on',x.dataset.ghostpick===GHOSTPICK));
     $('#stamp').textContent='line up with the guides';
   }catch(e){ toast('Camera unavailable — opening the picker.'); $('#fileIn').click(); }
@@ -1190,7 +1194,7 @@ async function capture(){
   }
 
   // Hold it for review. Nothing is written until he says keep.
-  PENDING=frameToJpeg(v,v.videoWidth,v.videoHeight,FACING==='user');
+  PENDING=frameToJpeg(v,v.videoWidth,v.videoHeight, MIRROR && FACING==='user');
   if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
   $('#ghost').removeAttribute('src'); $('#ghost').style.opacity=0;
   $('#cam').classList.add('hide');
@@ -2089,6 +2093,13 @@ document.addEventListener('click',async e=>{
     saveOnion();return applyOnion();}
   if(b.id==='onionGrey'){ONIONGREY=!ONIONGREY;b.textContent=ONIONGREY?'Grey':'Colour';
     b.classList.toggle('on',ONIONGREY);saveOnion();return applyOnion();}
+  if(b.id==='mirrorBtn'){
+    MIRROR=!MIRROR;
+    b.classList.toggle('on',MIRROR);
+    $('#cam').classList.toggle('mirror', MIRROR && FACING==='user');
+    saveOnion();
+    return toast(MIRROR?'Mirrored, like a mirror.':'True view — text reads correctly.');
+  }
   if(b.id==='onionBlend'){
     const modes=['normal','screen','difference'];
     ONIONBLEND=modes[(modes.indexOf(ONIONBLEND)+1)%modes.length];
@@ -2110,6 +2121,7 @@ document.addEventListener('click',async e=>{
   $('#onionGrey').textContent=ONIONGREY?'Grey':'Colour'; $('#onionGrey').classList.toggle('on',ONIONGREY);
   $('#onionBlend').textContent=ONIONBLEND==='normal'?'Blend':ONIONBLEND==='screen'?'Screen':'Diff';
   $('#onionBlend').classList.toggle('on',ONIONBLEND!=='normal');
+  $('#mirrorBtn').classList.toggle('on',MIRROR);
   document.querySelectorAll('[data-ghostpick]').forEach(x=>x.classList.toggle('on',x.dataset.ghostpick===GHOSTPICK));
     document.querySelectorAll('[data-guide]').forEach(x=>x.classList.toggle('on',x===b));return;}
 
@@ -2255,6 +2267,7 @@ async function boot(){
   $('#onionGrey').textContent=ONIONGREY?'Grey':'Colour'; $('#onionGrey').classList.toggle('on',ONIONGREY);
   $('#onionBlend').textContent=ONIONBLEND==='normal'?'Blend':ONIONBLEND==='screen'?'Screen':'Diff';
   $('#onionBlend').classList.toggle('on',ONIONBLEND!=='normal');
+  $('#mirrorBtn').classList.toggle('on',MIRROR);
   document.querySelectorAll('[data-ghostpick]').forEach(x=>x.classList.toggle('on',x.dataset.ghostpick===GHOSTPICK));
   $('#feed').value=location.origin+'/cal.ics?k=PASTE_YOUR_FIT_TOKEN';
   setInterval(()=>{if(!$('#app').classList.contains('hide'))refresh().catch(()=>{});},180000);
