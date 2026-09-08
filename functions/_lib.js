@@ -1,7 +1,7 @@
 // Fitness Hub — shared library (Cloudflare Pages Functions)
 // Underscore prefix = not routed, importable only.
 
-export const VERSION = 'v31';
+export const VERSION = 'v33';
 export const TZ = 'America/New_York';
 
 export const dayStr = (offset = 0) =>
@@ -978,44 +978,82 @@ export async function lookupProduct(env, name) {
 export async function mealIdeas(env, opts = {}) {
   const [t, td, p] = await Promise.all([currentTarget(env), today(env), profile(env)]);
   const en = await energyToday(env);
-  const stock = await all(env,
-    'SELECT name, serving_desc, kcal, protein, carbs, fat, fiber FROM products WHERE in_stock=1 LIMIT 60');
-  const saved = await all(env, 'SELECT name, kcal, protein FROM meals ORDER BY last_used DESC LIMIT 12');
+  let stock;
+  try {
+    stock = await all(env,
+      `SELECT name, category, role, serving_desc, kcal, protein, carbs, fat, fiber
+         FROM products
+        WHERE (remaining IS NULL AND in_stock=1) OR remaining > 0
+        LIMIT 80`);
+  } catch (e) {
+    stock = await all(env,
+      `SELECT name, category, serving_desc, kcal, protein, carbs, fat, fiber
+         FROM products
+        WHERE (remaining IS NULL AND in_stock=1) OR remaining > 0
+        LIMIT 80`);
+  }
+  const saved = await all(env, 'SELECT name FROM meals ORDER BY last_used DESC LIMIT 12');
+  const eaten = (td.food_items || []).map((i) => i.item).join('; ');
 
   const hour = Number(new Date().toLocaleString('en-US', { timeZone: TZ, hour: '2-digit', hour12: false }));
   const slot = hour < 10.5 ? 'breakfast' : hour < 15 ? 'lunch' : hour < 21 ? 'dinner' : 'a late snack';
-  const room = Math.max(150, en.room_left || (t.kcal_high - td.kcal));
+  const room = Math.max(200, en.room_left || (t.kcal_high - td.kcal));
   const proteinLeft = Math.max(0, t.protein - td.protein);
 
-  if (!stock.length) return { error: 'Nothing is marked in stock. Mark what you actually have first.' };
+  if (!stock.length) return { error: 'Nothing is in stock. Add groceries first.' };
+
+  // Three kinds of thing, and they behave completely differently.
+  const roleOf = (f) => f.role || (f.category === 'meals' ? 'complete' : 'ingredient');
+  const complete = stock.filter((f) => roleOf(f) === 'complete');
+  const bases = stock.filter((f) => roleOf(f) === 'base');
+  const parts = stock.filter((f) => roleOf(f) === 'ingredient');
 
   const sys =
-`You suggest meals for one person from ingredients he actually has. Return ONLY JSON, no prose, no fences:
-{"options":[{"name":string,"method":string,"kcal":number,"protein":number,"carbs":number,"fat":number,"fiber":number,
-  "items":[{"name":string,"amount":string}],"recipe":[string]}]}
+`You plan meals for one man from what is actually in his kitchen. Return ONLY JSON, no prose, no fences:
+{"options":[{"name":string,"method":string,"kind":"ready"|"cooked","kcal":number,"protein":number,"carbs":number,"fat":number,"fiber":number,
+  "items":[{"name":string,"amount":string}],"recipe":[string],"why":string}]}
 
-Give exactly 3 options. Rules:
-- Use ONLY the ingredients listed below. Never introduce something he doesn't have.
-- It is ${slot}. He has about ${room} kcal of room and wants ${proteinLeft} g more protein today.
-- Each option must land under ${room} kcal. Get as close to ${proteinLeft} g protein as the ingredients allow.
-- "method" is how it's cooked: Ninja Crispi air fryer, stovetop, microwave, or no-cook. He prefers the Crispi and hates cleanup.
+Return exactly 3 different options.
+
+HARD RULES
+- Use ONLY what is listed below. Never introduce an ingredient he does not have.
+- It must be a dish a person would actually choose to eat. Two foods being in the same kitchen is not a reason to put them in one bowl. "Boiled egg and canned black beans" is not a meal. If you cannot build three dishes that pass that test, return two, or one. Fewer good ideas beats three bad ones.
+- COMPLETE MEALS are finished trays. Suggest one on its own, kind "ready", items contains only it, recipe is just how to heat it. Add something only if it is clearly short on protein or vegetables, and then say so in "why".
+- BASES are kits: a sauce and a starch, or a marinade, meant to be built on. Pair a base with a protein and one or two extras that genuinely suit it — the way the dish is normally eaten. kind is "cooked".
+- INGREDIENTS combine into a real dish, 2 to 4 of them. kind is "cooked".
+- Make the options genuinely different from each other: not one dish with three garnishes.
+- It is ${slot}. He has about ${room} kcal of room and would like ${proteinLeft} g more protein today.
+- Every option must come in under ${room} kcal.
+- "method" is one of: Ninja Crispi, stovetop, oven, microwave, no-cook. He prefers the Crispi and hates cleanup.
 - "recipe" is 3 to 6 short imperative steps with real temperatures and times.
-- Macros are for the whole dish as described in items.
-- Vary them: don't return three versions of the same plate.
+- "why" is one short sentence on why this fits right now.
+${eaten ? `- He has already eaten: ${eaten}. Do not suggest the same thing again.` : ''}
 
-INGREDIENTS HE HAS
-${stock.map((f) => `${f.name} | ${f.serving_desc} | ${f.kcal}kcal ${f.protein}p ${f.carbs}c ${f.fat}f ${f.fiber}fib`).join('\n')}
-${saved.length ? `\nMEALS HE ALREADY LIKES (vary from these, don't repeat them exactly)\n${saved.map((m) => m.name).join(', ')}` : ''}`;
+COMPLETE MEALS (finished, eat as they are)
+${complete.length ? complete.map((f) => `${f.name} | ${f.serving_desc} | ${f.kcal}kcal ${f.protein}p`).join('\n') : 'none'}
 
-  const raw = grabJSON(await callAI(env, sys, opts.hint || `What should I eat for ${slot}?`));
+BASES (kits and sauces — build a real dish on these with a protein and suitable extras)
+${bases.length ? bases.map((f) => `${f.name} | ${f.serving_desc} | ${f.kcal}kcal ${f.protein}p`).join('\n') : 'none'}
+
+INGREDIENTS (combine these)
+${parts.map((f) => `${f.name} | ${f.category || 'other'} | ${f.serving_desc} | ${f.kcal}kcal ${f.protein}p ${f.carbs}c ${f.fat}f ${f.fiber}fib`).join('\n')}
+${saved.length ? `\nALREADY IN HIS ROTATION (offer something different)\n${saved.map((m) => m.name).join(', ')}` : ''}`;
+
+  const ask = opts.hint
+    ? `${opts.hint}. What should I eat for ${slot}?`
+    : `What should I eat for ${slot}?${opts.again ? ' Give me three completely different ideas from last time.' : ''}`;
+
+  const raw = grabJSON(await callAI(env, sys, ask));
   const list = Array.isArray(raw?.options) ? raw.options : Array.isArray(raw) ? raw : null;
-  if (!list?.length) return { error: 'The suggestion engine is not wired up. Add a Workers AI binding named AI, or an OPENAI_KEY secret.' };
+  if (!list?.length) return { error: 'The suggestion engine did not return anything usable. Try again.' };
 
   return {
     slot, room, protein_left: proteinLeft,
     options: list.slice(0, 3).map((o) => ({
       name: String(o.name || 'Meal').slice(0, 80),
       method: String(o.method || '').slice(0, 40),
+      kind: o.kind === 'ready' ? 'ready' : 'cooked',
+      why: String(o.why || '').slice(0, 160),
       kcal: Math.round(+o.kcal || 0), protein: Math.round(+o.protein || 0),
       carbs: Math.round(+o.carbs || 0), fat: Math.round(+o.fat || 0), fiber: Math.round(+o.fiber || 0),
       items: (o.items || []).slice(0, 12).map((i) => ({

@@ -273,7 +273,7 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
 <div id="app" class="hide">
 <header>
   <h1 id="vtitle">Today</h1>
-  <button id="ver" title="Tap to force a fresh copy">v31</button>
+  <button id="ver" title="Tap to force a fresh copy">v33</button>
   <span style="justify-self:end;display:flex;align-items:center;gap:10px">
     <span class="date" id="vdate"></span>
     <button id="gear" aria-label="Settings" style="width:34px;height:34px;display:grid;place-items:center;color:var(--dim)">
@@ -447,6 +447,7 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
       <button data-brange="month">Month</button>
     </div>
     <canvas class="chart" id="bChart" style="height:170px;margin-top:12px"></canvas>
+    <div id="bRead" class="tiny" style="text-align:center;margin-top:6px">Drag across to read any point</div>
     <div id="bStats"></div>
     <p class="tiny" style="margin:10px 0 0"><span style="color:var(--acc)">■</span> training ·
       <span style="color:var(--sync)">■</span> walking. Placed by when you logged it.</p>
@@ -710,7 +711,7 @@ const MUSCLES={
 let CHAT=[], CARDIORANGE='day', GUIDE='bright';
 let FOODITEMS=[], INVMANAGE=false, INVSEL=new Set(), INVCACHE=[];
 let TIMER=0, PENDING=null, WSERIES=[], BRANGE='day';
-let PRODUCTS=[], GONE=[], SCANNED=null, SCANIMG=null, MEALS=[], IDEAS=[], OPENCAT=new Set(), CATS=[];
+let PRODUCTS=[], GONE=[], SCANNED=null, SCANIMG=null, MEALS=[], IDEAS=[], OPENCAT=new Set(), CATS=[], BURNSERIES=[], OPENIDEA=null, IDEAMETA=null;
 const TITLES={hub:'Today',food:'Food and water',train:'Training',photos:'Progress',days:'History',settings:'Settings'};
 
 function roll(el,to){const from=+el.dataset.v||0;el.dataset.v=to;
@@ -851,42 +852,60 @@ async function loadMeals(){
 }
 
 function ideaCard(o,i){
-  return `<div class="card" style="margin-bottom:10px">
+  const open = OPENIDEA===i;
+  if(!open) return `<button class="prod" data-openidea="${i}">
+      <span class="thumb" style="display:grid;place-items:center;font-family:var(--display);font-size:18px;color:var(--acc)">${o.kcal}</span>
+      <span class="meta"><b>${esc(o.name)}</b>
+        <span>${o.protein}P${o.method?' · '+esc(o.method).toUpperCase():''}${o.kind==='ready'?' · READY':''}</span></span>
+      <span style="color:var(--faint);font-size:17px">›</span></button>`;
+
+  return `<div class="card" style="margin:10px 0">
     <div style="display:flex;align-items:baseline;gap:10px">
-      <b style="font-family:var(--display);font-size:21px;text-transform:uppercase;line-height:1.05">${esc(o.name)}</b>
-      <span class="tiny" style="margin-left:auto;text-align:right;white-space:nowrap">${o.kcal} kcal<br>${o.protein}g protein</span>
+      <b style="font-family:var(--display);font-size:22px;text-transform:uppercase;line-height:1.05">${esc(o.name)}</b>
+      <button class="tiny" data-closeidea="1" style="margin-left:auto;color:var(--dim)">close</button>
     </div>
-    ${o.method?`<p class="tiny" style="margin:6px 0 0">${esc(o.method)}</p>`:''}
-    ${o.items?.length?`<div style="margin-top:12px">${o.items.map(x=>
-      `<div class="line" style="padding:6px 0"><span style="color:var(--ink);font-size:14px">${esc(x.name)}</span>
-       <b style="font-size:13px;font-weight:500">${esc(x.amount||'')}</b></div>`).join('')}</div>`:''}
-    ${o.recipe?.length?`<p class="tiny" style="margin:14px 0 6px">How to make it</p>
+    <p class="tiny" style="margin:6px 0 0">${o.kcal} kcal · ${o.protein}g protein · ${o.fiber}g fibre${o.method?' · '+esc(o.method):''}</p>
+    ${o.why?`<p class="tiny" style="margin:8px 0 0;color:var(--acc)">${esc(o.why)}</p>`:''}
+    ${o.items?.length?`<p class="tiny" style="margin:16px 0 4px">What goes in it</p>
+      ${o.items.map(x=>`<div class="line" style="padding:7px 0"><span style="color:var(--ink);font-size:14px">${esc(x.name)}</span>
+        <b style="font-size:13px;font-weight:500">${esc(x.amount||'')}</b></div>`).join('')}`:''}
+    ${o.recipe?.length?`<p class="tiny" style="margin:16px 0 6px">How to make it</p>
       <ol style="margin:0;padding-left:20px">${o.recipe.map(r=>
-        `<li style="font-size:14px;line-height:1.55;margin-bottom:6px">${esc(r)}</li>`).join('')}</ol>`:''}
-    <div class="row" style="margin-top:14px">
-      <button class="btn primary" data-eatidea="${i}">I ate this</button>
+        `<li style="font-size:14.5px;line-height:1.6;margin-bottom:8px">${esc(r)}</li>`).join('')}</ol>`:''}
+    <div class="row" style="margin-top:16px">
+      <button class="btn primary" data-eatidea="${i}">I made this</button>
       <button class="btn ghost" data-saveidea="${i}" style="flex:0 0 74px">Save</button>
-      <button class="btn ghost" data-dropidea="${i}" style="flex:0 0 62px">No</button>
+      <button class="btn ghost" data-dropidea="${i}" style="flex:0 0 62px">Hide</button>
     </div>
   </div>`;
+}
+
+function renderIdeas(meta){
+  if(!IDEAS.length){ $('#meal').innerHTML='<p class="empty">Nothing left. Ask again for fresh ideas.</p>'; return; }
+  $('#meal').innerHTML =
+    `<div style="display:flex;align-items:baseline;gap:10px;margin-bottom:8px">
+       <p class="tiny" style="margin:0">${meta?`About ${meta.room} kcal of room, ${meta.protein_left} g protein wanted.`:'Tap one to see the recipe.'}</p>
+       <button class="tiny" id="ideaAgain" style="margin-left:auto;color:var(--acc)">try again</button>
+       <button class="tiny" id="ideaClear" style="color:var(--dim)">clear</button>
+     </div>` + IDEAS.map((o,i)=>ideaCard(o,i)).join('');
 }
 
 // A guess is better than always landing on the first option in the list.
 function guessCat(name){
   const t=String(name||'').toLowerCase(), has=(...w)=>w.some(x=>t.includes(x));
-  if(has('chicken','beef','salmon','shrimp','turkey','steak','pork','tuna','patty','sausage','bacon'))return 'meat';
-  if(has('yogurt','milk','cheese','egg','butter','cottage','cream'))return 'dairy';
-  if(has('broccoli','bean','asparagus','brussels','vegetable','banana','apple','berr','spinach','salad','tomato','onion'))return 'produce';
-  if(has('rice','bread','wrap','potato','oatmeal','pasta','fries','crinkle','tortilla','bagel','cereal'))return 'carbs';
-  if(has('gelato','sorbet','chocolate','cookie','candy','ice cream','talenti','dessert'))return 'treats';
   if(has('canned','can of','tinned','jarred','paste','in syrup','in juice'))return 'canned';
   if(has('frozen'))return 'frozen';
   if(has('seasoning','spice','paprika','cumin','oregano','basil','cinnamon','cajun','garlic powder','onion powder','herb','salt'))return 'seasoning';
   if(has('pasta','spaghetti','penne','noodle','macaroni','lasagn','ramen','orzo'))return 'pasta';
+  if(has('chicken','beef','salmon','shrimp','turkey','steak','pork','tuna','patty','sausage','bacon'))return 'meat';
+  if(has('yogurt','milk','cheese','egg','butter','cottage','cream'))return 'dairy';
+  if(has('broccoli','bean','asparagus','brussels','vegetable','banana','apple','berr','spinach','salad','tomato','onion','lettuce','carrot'))return 'produce';
+  if(has('rice','bread','wrap','potato','oatmeal','fries','crinkle','tortilla','bagel','cereal','quinoa'))return 'carbs';
+  if(has('gelato','sorbet','chocolate','cookie','candy','ice cream','talenti','dessert','brownie'))return 'treats';
   if(has('sauce','salsa','tzatziki','dressing','spread','mayo','mustard','ketchup','syrup','vinegar','hummus'))return 'sauces';
   if(has('oil','flour','sugar','baking','extract','yeast'))return 'baking';
   if(has('shake','juice','soda','coffee','tea','water','drink','seltzer'))return 'drinks';
-  if(has('nut','pistachio','almond','chip','cracker','bar','raisin','cranberr','seed','popcorn','jerky'))return 'snacks';
+  if(has('nut','pistachio','almond','chip','cracker','bar','raisin','cranberr','seed','popcorn','jerky','pretzel'))return 'snacks';
   if(has(' + ','tray','entree','bowl','frozen meal'))return 'meals';
   return 'other';
 }
@@ -926,6 +945,12 @@ function prodForm(p, img){
     ${img?`<img src="${img}" style="width:100%;max-height:180px;object-fit:cover;border-radius:12px;margin-top:10px">`:''}
     <input id="pfName" value="${esc(v('name'))}" placeholder="Product name" style="width:100%;margin-top:10px">
     <input id="pfServ" value="${esc(v('serving_desc','1 serving'))}" placeholder="Serving, e.g. 2/3 cup (55g)" style="width:100%;margin-top:8px">
+    <select id="pfRole" style="width:100%;margin-top:8px">
+      ${[['ingredient','An ingredient — combines with other things'],
+         ['base','A base or kit — needs a protein and extras'],
+         ['complete','A complete meal — eat it as it is']].map(([k,l])=>
+        `<option value="${k}" ${(p&&p.role?p.role:(p&&p.category==='meals'?'complete':'ingredient'))===k?'selected':''}>${l}</option>`).join('')}
+    </select>
     <select id="pfCat" style="width:100%;margin-top:8px">
       ${CATS.map(c=>
         `<option value="${c.key}" ${(p&&p.category?p.category:guessCat(p&&p.name))===c.key?'selected':''}>${esc(c.label)}</option>`).join('')}
@@ -1183,6 +1208,43 @@ function paintChat(waiting){
   el.scrollTop=el.scrollHeight;
 }
 
+/* ───────── scrubbing any chart ───────── */
+// One handler for every canvas. Each chart registers its series and a formatter.
+const SCRUB={};
+function registerScrub(canvasId, readoutId, series, unit, mode, fmt){
+  SCRUB[canvasId]={readoutId,series,unit,mode,fmt};
+}
+function scrubAt(canvasId, ev){
+  const cfg=SCRUB[canvasId]; if(!cfg||!cfg.series.length)return;
+  const c=$('#'+canvasId), rect=c.getBoundingClientRect();
+  const cx=(ev.touches?ev.touches[0].clientX:ev.clientX)-rect.left;
+  const n=cfg.series.length;
+  const i=Math.max(0,Math.min(n-1,Math.round((cx/Math.max(1,rect.width))*(n-1))));
+  drawChart(c,cfg.series,cfg.unit,cfg.mode,cfg.target,i);
+  const r=cfg.series[i];
+  const out=$('#'+cfg.readoutId);
+  if(out)out.innerHTML=cfg.fmt?cfg.fmt(r):
+    `<b style="color:var(--acc);font-size:15px">${Math.round(r.value).toLocaleString()}</b> · ${esc(r.label||shortD(r.d))}`;
+  if(ev.cancelable)ev.preventDefault();
+}
+function endScrub(canvasId){
+  const cfg=SCRUB[canvasId]; if(!cfg)return;
+  const c=$('#'+canvasId); if(!c)return;
+  drawChart(c,cfg.series,cfg.unit,cfg.mode,cfg.target);
+  const out=$('#'+cfg.readoutId);
+  if(out)out.innerHTML=cfg.idle||'Drag across to read any point';
+}
+['touchstart','touchmove','mousemove'].forEach(ev=>
+  document.addEventListener(ev,e=>{
+    const id=e.target&&e.target.id;
+    if(id&&SCRUB[id])scrubAt(id,e);
+  },{passive:false}));
+['touchend','mouseleave'].forEach(ev=>
+  document.addEventListener(ev,e=>{
+    const id=e.target&&e.target.id;
+    if(id&&SCRUB[id])endScrub(id);
+  }));
+
 /* ───────── weight and waist trend ───────── */
 function drawWeight(hoverIdx){
   const c=$('#wChart'); if(!c||!WSERIES.length)return;
@@ -1314,6 +1376,7 @@ async function loadCardio(){
           <button class="pill ${CHARTMODE==='line'?'on':''}" data-cm2="line" style="margin:0">Line</button>
         </div>
         <canvas class="chart" id="cChart" style="height:186px"></canvas>
+        <div id="cRead" class="tiny" style="text-align:center;margin-top:6px">Drag across to read any point</div>
       </div>
     </div>
 
@@ -1344,6 +1407,10 @@ async function loadCardio(){
   const series=s2.map(r=>({d:r.d,value:r.value!=null?r.value:r.steps,label:r.label}));
   LASTSERIES={series,unit:'steps'};
   drawChart($('#cChart'),series,'steps',CHARTMODE,c.target_steps);
+  registerScrub('cChart','cRead',series,'steps',CHARTMODE,r=>
+    `<b style="color:var(--acc);font-size:15px">${Math.round(r.value).toLocaleString()}</b> steps · ${esc(r.label||shortD(r.d))}`);
+  SCRUB.cChart.target=c.target_steps;
+  SCRUB.cChart.idle='Drag across to read any '+(roll?'hour':'day');
 }
 
 async function loadBurn(){
@@ -1367,11 +1434,17 @@ async function loadBurn(){
     if(wh>0.5){x.fillStyle=hexA(cyan,.8);rr(x,xx,bot-wh,bw,wh,r);x.fill();}
     if(th>0.5){x.fillStyle=acc;rr(x,xx,bot-wh-th,bw,th,r);x.fill();}
   });
+  BURNSERIES=s2;
   x.fillStyle='rgba(255,255,255,.34)';x.font='10px ui-monospace,Menlo,monospace';
   const lab=q=>q.label||shortD(q.d);
   x.fillText(lab(s2[0]),0,H-6);
   const last=lab(s2[n-1]); x.fillText(last,W-x.measureText(last).width,H-6);
   x.fillStyle=hexA(acc,.85);x.fillText(Math.round(max)+' kcal',0,11);
+  registerScrub('bChart','bRead',s2,'kcal','bar',r=>
+    `<b style="color:var(--acc);font-size:15px">${Math.round(r.value).toLocaleString()}</b> kcal`
+    + (r.training?` · ${Math.round(r.training)} training`:'')
+    + (r.walk?` · ${Math.round(r.walk)} walking`:'')
+    + ` · ${esc(r.label||shortD(r.d))}`);
   $('#bStats').innerHTML = BRANGE==='day'
     ? `<div class="line" style="margin-top:10px"><span>Burned through movement today</span><b>${s2.reduce((a,q)=>a+q.value,0).toLocaleString()} kcal</b></div>`
     : `<div class="line" style="margin-top:10px"><span>Daily average</span><b>${(b.avg||0).toLocaleString()} kcal</b></div>
@@ -1459,6 +1532,7 @@ async function openExercise(id){
         <button class="pill ${CHARTMODE==='line'?'on':''}" data-cm="line" style="margin:0">Line</button>
       </div>
       <canvas class="chart" id="exChart"></canvas>
+      <div id="exRead" class="tiny" style="text-align:center;margin-top:6px">Drag across to read any point</div>
       <div class="line" style="margin-top:10px"><span>Sessions</span><b>${st.sessions}</b></div>
       <div class="line"><span>Total</span><b>${val}</b></div>
       ${st.total_volume?`<div class="line"><span>Volume moved</span><b>${st.total_volume.toLocaleString()} lb</b></div>`:''}
@@ -1468,12 +1542,15 @@ async function openExercise(id){
     </div>`;
   LASTSERIES={series:st.series,unit:u};
   drawChart($('#exChart'), st.series, u, CHARTMODE);
+  registerScrub('exChart','exRead',st.series,u,CHARTMODE,r=>
+    `<b style="color:var(--acc);font-size:15px">${Math.round(r.value).toLocaleString()}</b>${
+      u==='distance'?' mi':u==='time'?' min':(r.volume?' lb of volume':' reps')} · ${esc(r.label||shortD(r.d))}`);
   $('#exDetail').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
 const cssVar=n=>getComputedStyle(document.body).getPropertyValue(n).trim();
 
-function drawChart(c, series, unit, mode='bar', target){
+function drawChart(c, series, unit, mode='bar', target, hoverIdx){
   const dpr=devicePixelRatio||1, W=c.clientWidth||300, H=c.clientHeight||158;
   c.width=W*dpr; c.height=H*dpr;
   const x=c.getContext('2d'); x.scale(dpr,dpr); x.clearRect(0,0,W,H);
@@ -1508,13 +1585,17 @@ function drawChart(c, series, unit, mode='bar', target){
     series.forEach((s,i)=>i?x.lineTo(px(i),py(s.value||0)):x.moveTo(px(i),py(s.value||0)));
     x.strokeStyle=g; x.lineWidth=2.5; x.lineJoin='round'; x.lineCap='round';
     x.shadowColor=hexA(acc,.55); x.shadowBlur=12; x.stroke(); x.shadowBlur=0;
-    x.beginPath(); x.arc(px(n-1),py(vals[n-1]),4.5,0,7); x.fillStyle=acc; x.fill();
-    x.beginPath(); x.arc(px(n-1),py(vals[n-1]),8,0,7); x.strokeStyle=hexA(acc,.35); x.lineWidth=1.5; x.stroke();
+    const hi = hoverIdx==null ? n-1 : hoverIdx;
+    if(hoverIdx!=null){
+      x.strokeStyle=hexA(acc,.4);x.beginPath();x.moveTo(px(hi),top);x.lineTo(px(hi),bot);x.stroke();
+    }
+    x.beginPath(); x.arc(px(hi),py(vals[hi]),4.5,0,7); x.fillStyle=acc; x.fill();
+    x.beginPath(); x.arc(px(hi),py(vals[hi]),8,0,7); x.strokeStyle=hexA(acc,.35); x.lineWidth=1.5; x.stroke();
   }else{
     const gap=n>28?2:4, bw=Math.max(3,(W-gap*(n-1))/n), r=Math.min(bw/2,5);
     series.forEach((s,i)=>{
       const h=Math.max(3,((s.value||0)/max)*plot);
-      x.fillStyle=i===n-1?g:hexA(acc,.34);
+      x.fillStyle = i===hoverIdx ? '#fff' : i===n-1 ? g : hexA(acc,.34);
       rr(x, i*(bw+gap), bot-h, bw, h, r); x.fill();
     });
   }
@@ -1655,19 +1736,16 @@ document.addEventListener('click',async e=>{
   if(b.dataset.wdel){await post('workout/delete',{id:+b.dataset.wdel});toast('Deleted.');return refresh();}
 
 
-  if(b.id==='eat'||b.id==='eatHint'){
+  if(b.id==='eat'||b.id==='eatHint'||b.id==='ideaAgain'){
     let hint=null;
     if(b.id==='eatHint'){ hint=prompt('Anything in mind? e.g. "something quick" or "high protein, no cooking"'); if(hint===null)return; }
+    const again=b.id==='ideaAgain';
     b.disabled=true;
     $('#meal').innerHTML='<p class="empty">Working out what fits…</p>';
     try{
-      const r=await post('ideas',{hint});
+      const r=await post('ideas',{hint,again});
       if(r.error){ $('#meal').innerHTML=`<p class="empty" style="color:var(--over)">${esc(r.error)}</p>`; }
-      else{
-        IDEAS=r.options;
-        $('#meal').innerHTML=`<p class="tiny" style="margin:0 0 10px">About ${r.room} kcal of room, ${r.protein_left} g of protein still wanted.</p>`
-          + IDEAS.map((o,i)=>ideaCard(o,i)).join('');
-      }
+      else{ IDEAS=r.options; OPENIDEA=null; IDEAMETA=r; renderIdeas(r); }
     }catch(e){ $('#meal').innerHTML=`<p class="empty" style="color:var(--over)">${esc(e.message||e)}</p>`; }
     b.disabled=false;return;
   }
@@ -1675,7 +1753,7 @@ document.addEventListener('click',async e=>{
     const o=IDEAS[+b.dataset.eatidea]; if(!o)return;
     b.disabled=true;
     await post('meal/log',{meal:o});
-    b.disabled=false;$('#meal').innerHTML='';IDEAS=[];
+    b.disabled=false;$('#meal').innerHTML='';IDEAS=[];OPENIDEA=null;
     toast(`Logged ${o.kcal} kcal. Saved for next time.`);
     loadMeals();return refresh();
   }
@@ -1684,10 +1762,12 @@ document.addEventListener('click',async e=>{
     await post('meals',{...o,source:'ai'});
     toast('Saved to your meals.');return loadMeals();
   }
+  if(b.dataset.openidea!=null){ OPENIDEA=+b.dataset.openidea; return renderIdeas(IDEAMETA); }
+  if(b.dataset.closeidea!=null){ OPENIDEA=null; return renderIdeas(IDEAMETA); }
+  if(b.id==='ideaClear'){ IDEAS=[];OPENIDEA=null;$('#meal').innerHTML=''; return; }
   if(b.dataset.dropidea!=null){
-    IDEAS.splice(+b.dataset.dropidea,1);
-    $('#meal').innerHTML=IDEAS.length?IDEAS.map((o,i)=>ideaCard(o,i)).join(''):'<p class="empty">All dismissed.</p>';
-    return;
+    IDEAS.splice(+b.dataset.dropidea,1); OPENIDEA=null;
+    return renderIdeas(IDEAMETA);
   }
   if(b.dataset.meal){
     const m=MEALS.find(x=>x.id==b.dataset.meal); if(!m)return;
@@ -1741,6 +1821,7 @@ document.addEventListener('click',async e=>{
       fat:+$('#pfFat').value||0, fiber:+$('#pfFib').value||0,
       serving_g:$('#pfGram').value?+$('#pfGram').value:null,
       category:$('#pfCat').value,
+      role:$('#pfRole').value,
       servings_per_container:$('#pfPack').value?+$('#pfPack').value:1,
       packs:$('#pfQty').value?+$('#pfQty').value:1
     };
@@ -1776,7 +1857,9 @@ document.addEventListener('click',async e=>{
       <div class="line"><span>Fibre</span><b>${Math.round(p.fiber||0)} g</b></div>
       ${p.sugar?`<div class="line"><span>Sugar</span><b>${Math.round(p.sugar)} g</b></div>`:''}
       ${p.sodium?`<div class="line"><span>Sodium</span><b>${Math.round(p.sodium)} mg</b></div>`:''}
-      ${p.packs>1?`<div class="line" style="margin-top:8px"><span>Packs</span><b>${Math.round(p.packs)}</b></div>`:''}
+      ${p.role&&p.role!=='ingredient'?`<div class="line" style="margin-top:8px"><span>Kind</span>
+        <b style="font-size:14px">${p.role==='complete'?'Complete meal':'Base to build on'}</b></div>`:''}
+      ${p.packs>1?`<div class="line"><span>Packs</span><b>${Math.round(p.packs)}</b></div>`:''}
       ${p.remaining!=null?`
       <div class="line"><span>Servings left</span>
         <b style="color:${p.remaining<=0?'var(--over)':p.remaining<=(p.low_at??1)?'var(--acc)':'var(--ink)'}">${Math.round(p.remaining*10)/10}${p.servings_per_container?` of ${p.servings_per_container}`:''}</b></div>`:''}

@@ -533,7 +533,7 @@ export async function onRequest(ctx) {
         }
 
         const f = ['name','brand','serving_desc','serving_g','servings_per_container',
-                   'kcal','protein','carbs','fat','fiber','sugar','sodium','category','packs'];
+                   'kcal','protein','carbs','fat','fiber','sugar','sodium','category','packs','role'];
         if (body.id) {
           const set = f.filter((k) => body[k] !== undefined && body[k] !== null);
           if (set.length)
@@ -559,8 +559,8 @@ export async function onRequest(ctx) {
         }
         const res = await env.FIT_DB.prepare(
           `INSERT INTO products (name,brand,serving_desc,serving_g,servings_per_container,
-             kcal,protein,carbs,fat,fiber,sugar,sodium,okey,barcode,in_stock,created,category,remaining,packs)
-           VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,1,?15,?16,?17,?18)`
+             kcal,protein,carbs,fat,fiber,sugar,sodium,okey,barcode,in_stock,created,category,remaining,packs,role)
+           VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,1,?15,?16,?17,?18,?19)`
         ).bind(
           String(body.name || 'Unnamed').slice(0, 90), body.brand || null,
           body.serving_desc || '1 serving', body.serving_g ?? null, body.servings_per_container ?? null,
@@ -569,7 +569,8 @@ export async function onRequest(ctx) {
           okey, body.barcode || null, dayStr(),
           body.category || guessCategory(body.name),
           (Number(body.packs) || 1) * (Number(body.servings_per_container) || 1),
-          Number(body.packs) || 1
+          Number(body.packs) || 1,
+          body.role || ((body.category || guessCategory(body.name)) === 'meals' ? 'complete' : 'ingredient')
         ).run();
         return json({ ok: true, id: res.meta?.last_row_id ?? null });
       }
@@ -724,7 +725,7 @@ export async function onRequest(ctx) {
       }
 
       case 'POST ideas':
-        return json(await mealIdeas(env, { hint: body.hint }));
+        return json(await mealIdeas(env, { hint: body.hint, again: body.again }));
 
       case 'GET inventory':
         return json(await all(env, 'SELECT id,name,kcal,protein,fiber,serving,kind,in_stock FROM foods ORDER BY kind,name'));
