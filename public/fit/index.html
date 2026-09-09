@@ -280,7 +280,7 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
 <div id="app" class="hide">
 <header>
   <h1 id="vtitle">Today</h1>
-  <button id="ver" title="Tap to force a fresh copy">v38</button>
+  <button id="ver" title="Tap to force a fresh copy">v40</button>
   <span style="justify-self:end;display:flex;align-items:center;gap:10px">
     <span class="date" id="vdate"></span>
     <button id="gear" aria-label="Settings" style="width:34px;height:34px;display:grid;place-items:center;color:var(--dim)">
@@ -407,6 +407,8 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
   <div id="meal" style="margin-top:12px"></div>
 
   <h2>Saved meals</h2>
+  <button class="btn primary" id="buildBtn" style="width:100%;margin-bottom:10px">Build a meal from my groceries</button>
+  <div id="builder" class="hide"></div>
   <div id="meals"></div>
 
   <h2>Eaten today</h2>
@@ -414,6 +416,7 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
   <div id="fEdit" class="hide" style="margin-top:12px"></div>
 
   <h2>Groceries</h2>
+  <input id="prodSearch" placeholder="Search groceries" style="width:100%;margin-bottom:10px" enterkeyhint="search">
   <div id="prods"></div>
   <div class="row" style="margin-top:10px">
     <button class="btn primary" id="scanBtn">Scan a label</button>
@@ -739,6 +742,7 @@ const MUSCLES={
 let CHAT=[], CARDIORANGE='day', GUIDE='bright';
 let FOODITEMS=[], INVMANAGE=false, INVSEL=new Set(), INVCACHE=[];
 let TIMER=0, PENDING=null, WSERIES=[], BRANGE='day';
+let PRODQ='', BUILD=[], BUILDQ='';
 let ONION=true, ONIONOP=32, ONIONGREY=true, ONIONBLEND='normal', GHOSTPICK='last', MIRROR=true;
 try{
   const st=JSON.parse(localStorage.getItem('onion')||'{}');
@@ -917,6 +921,66 @@ function ideaCard(o,i){
   </div>`;
 }
 
+function buildTotals(){
+  const t={kcal:0,protein:0,carbs:0,fat:0,fiber:0};
+  BUILD.forEach(b=>{
+    const p=PRODUCTS.find(x=>x.id===b.id); if(!p)return;
+    t.kcal+=(p.kcal||0)*b.servings; t.protein+=(p.protein||0)*b.servings;
+    t.carbs+=(p.carbs||0)*b.servings; t.fat+=(p.fat||0)*b.servings; t.fiber+=(p.fiber||0)*b.servings;
+  });
+  Object.keys(t).forEach(k=>t[k]=Math.round(t[k]));
+  return t;
+}
+
+function renderBuilder(){
+  const t=buildTotals();
+  const q=BUILDQ.toLowerCase();
+  const pool=PRODUCTS.filter(p=>!BUILD.some(b=>b.id===p.id))
+    .filter(p=>!q || (p.name||'').toLowerCase().includes(q))
+    .slice(0, q?20:10);
+
+  $('#builder').classList.remove('hide');
+  $('#builder').innerHTML=`<div class="card">
+    <div style="display:flex;align-items:baseline;gap:10px">
+      <b style="font-family:var(--display);font-size:21px;text-transform:uppercase">Build a meal</b>
+      <button class="tiny" id="buildClose" style="margin-left:auto;color:var(--dim)">close</button>
+    </div>
+
+    ${BUILD.length?`<div style="margin-top:14px">${BUILD.map((b,i)=>{
+      const p=PRODUCTS.find(x=>x.id===b.id); if(!p)return '';
+      return `<div class="line" style="padding:9px 0">
+        <span style="color:var(--ink);font-size:14px;flex:1">${esc(p.name)}
+          <span style="display:block;font:10px/1.5 var(--mono);color:var(--faint)">${Math.round((p.kcal||0)*b.servings)} KCAL · ${Math.round((p.protein||0)*b.servings)}P</span></span>
+        <button class="pill g" data-bminus="${i}" style="margin:0;padding:4px 11px">−</button>
+        <b style="min-width:38px;text-align:center;font-size:15px">${Math.round(b.servings*100)/100}</b>
+        <button class="pill g" data-bplus="${i}" style="margin:0;padding:4px 11px">+</button>
+        <button class="m" data-bdrop="${i}" style="color:var(--over);margin-left:8px">×</button></div>`;
+    }).join('')}</div>
+
+    <div class="card acc" style="margin-top:14px;padding:14px">
+      <div style="display:flex;align-items:baseline;gap:9px">
+        <span style="font-family:var(--display);font-size:38px;font-weight:600;line-height:1">${t.kcal}</span>
+        <span class="tiny">kcal</span>
+        <span class="tiny" style="margin-left:auto;text-align:right">${t.protein}g protein · ${t.fiber}g fibre</span>
+      </div>
+    </div>
+
+    <input id="buildName" placeholder="Call it something, e.g. Turkey pesto croissant" style="width:100%;margin-top:12px">
+    <div class="row" style="margin-top:10px">
+      <button class="btn primary" id="buildLog">I ate this</button>
+      <button class="btn ghost" id="buildSave" style="flex:0 0 84px">Save only</button>
+    </div>
+    <p class="tiny" style="margin-top:9px">Logging it takes each item out of your stock too.</p>
+    `:'<p class="empty">Add what went into it.</p>'}
+
+    <p class="tiny" style="margin:16px 0 6px">Add an ingredient</p>
+    <input id="buildSearch" value="${esc(BUILDQ)}" placeholder="Search groceries" style="width:100%;margin-bottom:8px">
+    <div>${pool.length?pool.map(p=>
+      `<button class="pill g" data-badd="${p.id}">${esc(p.name.slice(0,28))}</button>`).join('')
+      :'<p class="tiny" style="margin:0">Nothing matches.</p>'}</div>
+  </div>`;
+}
+
 function renderIdeas(meta){
   if(!IDEAS.length){ $('#meal').innerHTML='<p class="empty">Nothing left. Ask again for fresh ideas.</p>'; return; }
   $('#meal').innerHTML =
@@ -954,6 +1018,26 @@ async function loadProducts(){
     GONE = Array.isArray(r) ? [] : (r.gone||[]);
   }catch(e){ PRODUCTS=[]; GONE=[]; }
   if(!CATS.length){ try{ CATS=await api('categories'); }catch(e){ CATS=[{key:'other',label:'Everything else'}]; } }
+
+  const row=p=>`<button class="itemrow ${p.remaining!=null&&p.remaining<=0?'out':''}" data-prod="${p.id}">
+      <span>${esc(p.name)}</span>
+      <span class="q">${p.remaining==null?'' : p.remaining<=0?'out'
+        : p.remaining<=(p.low_at??1)?`<span style="color:var(--acc)">${Math.round(p.remaining*10)/10} left</span>`
+        : `${Math.round(p.remaining*10)/10}${(p.packs>1)?` · ${Math.round(p.packs)} packs`:''}`}</span></button>`;
+
+  // Searching should flatten everything into one list of matches, not leave them
+  // buried inside collapsed sections.
+  if(PRODQ){
+    const q=PRODQ.toLowerCase();
+    const hits=PRODUCTS.filter(p=>(p.name||'').toLowerCase().includes(q)
+      || (p.brand||'').toLowerCase().includes(q));
+    $('#prods').innerHTML = hits.length
+      ? `<p class="tiny" style="margin:0 0 6px">${hits.length} match${hits.length>1?'es':''}</p>`
+        + hits.map(row).join('')
+      : `<p class="empty">Nothing matches "${esc(PRODQ)}".</p>`;
+    return;
+  }
+
   const byCat={};
   PRODUCTS.forEach(p=>{const c=p.category||'other';(byCat[c]=byCat[c]||[]).push(p);});
 
@@ -964,12 +1048,7 @@ async function loadProducts(){
         <span>${label}</span>
         <span class="n">${list.length}${low?` · <span style="color:var(--acc)">${low} low</span>`:''}</span>
         <span class="chev" style="transform:rotate(${open?90:0}deg)">›</span></button>
-      ${open?`<div class="catbody">${list.map(p=>`
-        <button class="itemrow ${p.remaining!=null&&p.remaining<=0?'out':''}" data-prod="${p.id}">
-          <span>${esc(p.name)}</span>
-          <span class="q">${p.remaining==null?'' 
-            : p.remaining<=(p.low_at??1)?`<span style="color:var(--acc)">${Math.round(p.remaining*10)/10} left</span>`
-            : `${Math.round(p.remaining*10)/10}${(p.packs>1)?` · ${Math.round(p.packs)} packs`:''}`}</span></button>`).join('')}</div>`:''}`;
+      ${open?`<div class="catbody">${list.map(row).join('')}</div>`:''}`;
   }).join('') : '<p class="empty">Nothing saved yet. Scan a label and it lives here.</p>';
 }
 
@@ -1019,7 +1098,7 @@ async function loadInv(){
   const goneRows = GONE.length ? `<p class="tiny" style="margin:0 0 6px">Run out — tap when you've bought more</p>`
     + GONE.map(p=>`<div class="item"><span>${esc(p.name)}</span>
         <button class="m" data-prestock2="${p.id}" style="color:var(--acc);margin-left:auto">bought it</button>
-        <button class="m" data-pdel2="${p.id}" style="color:var(--over);margin-left:10px">×</button></div>`).join('')
+        <button class="m" data-pdismiss="${p.id}" style="color:var(--dim);margin-left:12px">not needed</button></div>`).join('')
     : '';
   $('#grocery').innerHTML=goneRows+(gr.list.length?gr.list.map(g=>
     `<div class="item"><button data-todo="${g.id}" style="text-align:left;text-decoration:${g.done?'line-through':'none'};opacity:${g.done?.5:1}">${esc(g.text)}</button><button class="m" data-del="${g.id}">remove</button></div>`).join('')
@@ -1801,6 +1880,29 @@ document.addEventListener('click',async e=>{
   if(b.dataset.wdel){await post('workout/delete',{id:+b.dataset.wdel});toast('Deleted.');return refresh();}
 
 
+  if(b.id==='buildBtn'){ BUILD=[]; BUILDQ=''; return renderBuilder(); }
+  if(b.id==='buildClose'){ $('#builder').classList.add('hide'); BUILD=[]; return; }
+  if(b.dataset.badd){ BUILD.push({id:+b.dataset.badd,servings:1}); BUILDQ=''; return renderBuilder(); }
+  if(b.dataset.bplus!=null){ BUILD[+b.dataset.bplus].servings+=0.5; return renderBuilder(); }
+  if(b.dataset.bminus!=null){
+    const i=+b.dataset.bminus;
+    BUILD[i].servings=Math.max(0.25,BUILD[i].servings-0.5); return renderBuilder();
+  }
+  if(b.dataset.bdrop!=null){ BUILD.splice(+b.dataset.bdrop,1); return renderBuilder(); }
+  if(b.id==='buildLog'||b.id==='buildSave'){
+    if(!BUILD.length)return toast('Add something first.');
+    const name=$('#buildName').value.trim();
+    b.disabled=true;
+    const r=await post('meal/build',{
+      name:name||undefined, parts:BUILD, log:b.id==='buildLog', save:true
+    });
+    b.disabled=false;
+    $('#builder').classList.add('hide'); BUILD=[];
+    toast(b.id==='buildLog'
+      ? `Logged ${r.kcal} kcal${r.ran_out?.length?`. Ran out of ${r.ran_out.join(', ')}`:''}`
+      : 'Saved to your meals.');
+    await loadProducts(); loadMeals(); loadInv(); return refresh();
+  }
   if(b.id==='eat'||b.id==='eatHint'||b.id==='ideaAgain'){
     let hint=null;
     if(b.id==='eatHint'){ hint=prompt('Anything in mind? e.g. "something quick" or "high protein, no cooking"'); if(hint===null)return; }
@@ -1906,7 +2008,7 @@ document.addEventListener('click',async e=>{
     return loadProducts();
   }
   if(b.dataset.prod){
-    const p=PRODUCTS.find(x=>x.id==b.dataset.prod); if(!p)return;
+    const p=PRODUCTS.find(x=>x.id==b.dataset.prod)||GONE.find(x=>x.id==b.dataset.prod); if(!p)return;
     $('#prodLog').classList.remove('hide');
     $('#prodLog').innerHTML=`<div class="card">
       <div style="display:flex;align-items:baseline;gap:10px">
@@ -1979,12 +2081,14 @@ document.addEventListener('click',async e=>{
   if(b.dataset.prestock2){
     const q=prompt('How many packs did you buy?','1'); if(q===null)return;
     await post('product',{id:+b.dataset.prestock2,restock:true,packs:+q||1});
-    toast('Back in stock.');loadProducts();return loadInv();
+    await loadProducts();          // must finish before the list redraws
+    toast('Back in stock.');return loadInv();
   }
-  if(b.dataset.pdel2){
-    if(!confirm('Remove this product entirely?'))return;
-    await post('product',{delete:+b.dataset.pdel2});
-    toast('Removed.');loadProducts();return loadInv();
+  if(b.dataset.pdismiss){
+    // Off the shopping list, but I still own the product.
+    await post('product',{id:+b.dataset.pdismiss,snooze:1});
+    await loadProducts();
+    toast('Off the list. It comes back when you use it again.');return loadInv();
   }
   if(b.dataset.pset){
     const p=PRODUCTS.find(x=>x.id==b.dataset.pset);
@@ -2218,6 +2322,16 @@ document.addEventListener('click',async e=>{
 });
 
 $('#scrub').addEventListener('input',e=>{PLAYING=false;$('#play').textContent='Play';PI=+e.target.value;paint();});
+document.addEventListener('input',e=>{
+  if(e.target&&e.target.id==='buildSearch'){ BUILDQ=e.target.value.trim(); renderBuilder();
+    const f=$('#buildSearch'); if(f){f.focus();f.setSelectionRange(f.value.length,f.value.length);} }
+});
+
+$('#prodSearch').addEventListener('input',e=>{
+  PRODQ=e.target.value.trim();
+  loadProducts();
+});
+
 $('#onionOp').addEventListener('input',e=>{
   ONIONOP=+e.target.value;
   $('#onionVal').textContent=ONIONOP+'%';

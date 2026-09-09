@@ -503,6 +503,15 @@ export async function onRequest(ctx) {
           await run(env, 'DELETE FROM products WHERE id=?1', [body.delete]);
           return json({ ok: true });
         }
+        // "Not needed right now" — off the shopping list, still a product I own.
+        if (body.snooze != null && body.id) {
+          const p4 = await one(env, 'SELECT name FROM products WHERE id=?1', [body.id]);
+          await run(env, 'UPDATE products SET snoozed=?1 WHERE id=?2', [body.snooze ? 1 : 0, body.id]);
+          if (body.snooze && p4?.name)
+            await run(env, "DELETE FROM todos WHERE kind='grocery' AND done=0 AND text=?1", [p4.name]);
+          return json({ ok: true });
+        }
+
         if (body.stock != null && body.id) {
           await run(env, 'UPDATE products SET in_stock=?1 WHERE id=?2', [body.stock ? 1 : 0, body.id]);
           if (!body.stock) await run(env, 'UPDATE products SET remaining=0 WHERE id=?1', [body.id]).catch(() => {});
@@ -525,7 +534,7 @@ export async function onRequest(ctx) {
           const per = Number(body.servings_per_container) || p3?.servings_per_container || 1;
           const packs = Number(body.packs) || 1;
           await run(env,
-            'UPDATE products SET remaining=?1, packs=?2, servings_per_container=?3, in_stock=1, auto_listed=0 WHERE id=?4',
+            'UPDATE products SET remaining=?1, packs=?2, servings_per_container=?3, in_stock=1, auto_listed=0, snoozed=0 WHERE id=?4',
             [per * packs, packs, per, body.id]);
           if (p3?.name)
             await run(env, "DELETE FROM todos WHERE kind='grocery' AND done=0 AND text=?1", [p3.name]);
@@ -602,8 +611,9 @@ export async function onRequest(ctx) {
 
       case 'GET products': {
         const rows = await all(env, `SELECT * FROM products ORDER BY last_used DESC, name`);
-        const have = rows.filter((r) => r.remaining == null ? r.in_stock : r.remaining > 0);
-        const gone = rows.filter((r) => !(r.remaining == null ? r.in_stock : r.remaining > 0));
+        const inStock = (r) => r.remaining == null ? r.in_stock : r.remaining > 0;
+        const have = rows.filter(inStock);
+        const gone = rows.filter((r) => !inStock(r) && !r.snoozed);
         return json(url.searchParams.get('all') ? rows : { have, gone });
       }
 
@@ -618,7 +628,7 @@ export async function onRequest(ctx) {
         let out = [];
         try {
           out = await all(env,
-            'SELECT name FROM products WHERE remaining IS NOT NULL AND remaining <= 0');
+            'SELECT name FROM products WHERE remaining IS NOT NULL AND remaining <= 0 AND COALESCE(snoozed,0)=0');
         } catch (e) { if (!missingColumn(e)) throw e; }
         const names = [...new Set([...manual.map((m) => m.text), ...low.map((l) => l.name), ...out.map((o) => o.name)])];
         return json({
@@ -687,6 +697,65 @@ export async function onRequest(ctx) {
            VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11)`
         ).bind(...vals, dayStr()).run();
         return json({ ok: true, id: res.meta?.last_row_id ?? null });
+      }
+
+      // Build a meal out of things already in the kitchen: sum the macros, save the
+      // recipe, log it, and take each component out of stock in one go.
+      case 'POST meal/build': {
+        const parts = Array.isArray(body.parts) ? body.parts : [];
+        if (!parts.length) return json({ error: 'nothing selected' }, 400);
+
+        const rows = [];
+        for (const sel of parts) {
+          const pr = await one(env, 'SELECT * FROM products WHERE id=?1', [sel.id]);
+          if (!pr) continue;
+          const mult = Number(sel.servings) || 1;
+          rows.push({ product: pr, mult });
+        }
+        if (!rows.length) return json({ error: 'nothing found' }, 404);
+
+        const sum = (k) => Math.round(rows.reduce((a, r) => a + (r.product[k] || 0) * r.mult, 0) * 10) / 10;
+        const items = rows.map((r) => ({
+          name: r.product.name,
+          amount: r.mult === 1 ? (r.product.serving_desc || '1 serving')
+                               : `${Math.round(r.mult * 100) / 100} × ${r.product.serving_desc || 'serving'}`,
+          kcal: Math.round((r.product.kcal || 0) * r.mult),
+          protein: Math.round((r.product.protein || 0) * r.mult),
+          carbs: Math.round((r.product.carbs || 0) * r.mult),
+          fat: Math.round((r.product.fat || 0) * r.mult),
+          fiber: Math.round((r.product.fiber || 0) * r.mult)
+        }));
+
+        const name = String(body.name || items.map((i) => i.name.split(',')[0]).slice(0, 3).join(' + ')).slice(0, 80);
+        const macros = { kcal: sum('kcal'), protein: sum('protein'), carbs: sum('carbs'), fat: sum('fat'), fiber: sum('fiber') };
+
+        let mealId = null;
+        if (body.save !== false) {
+          const res = await env.FIT_DB.prepare(
+            `INSERT INTO meals (name,method,recipe,items,kcal,protein,carbs,fat,fiber,source,times_used,last_used,created)
+             VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,'built',?10,?11,?11)`
+          ).bind(name, body.method || null, JSON.stringify(body.recipe || []),
+                 JSON.stringify(items), macros.kcal, macros.protein, macros.carbs,
+                 macros.fat, macros.fiber, body.log === false ? 0 : 1, dayStr()).run();
+          mealId = res.meta?.last_row_id ?? null;
+        }
+
+        const stock = [];
+        if (body.log !== false) {
+          await insertFood(env, d, {
+            item: name, ...macros, src: 'built',
+            parts: items.map(({ name: n, amount, kcal, protein, carbs, fat, fiber }) =>
+              ({ item: `${n}, ${amount}`, kcal, protein, carbs, fat, fiber }))
+          });
+          // Using it means it leaves the cupboard.
+          for (const r of rows) {
+            const note = await depleteProduct(env, r.product, r.mult);
+            if (note?.added_to_list) stock.push(r.product.name);
+          }
+        }
+
+        return json({ ok: true, meal_id: mealId, name, ...macros, items,
+          ran_out: stock, today: await today(env, d) });
       }
 
       case 'POST meal/log': {
