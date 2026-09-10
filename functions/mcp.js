@@ -5,7 +5,7 @@
 import {
   json, authed, dayStr, nowStr, run, all,
   today, trends, contextDoc, checkin, suggestMeal, parseFood, parseWorkout, dayRange,
-  coachBrief, exerciseStats, trainingOverview, matchExercise
+  coachBrief, exerciseStats, trainingOverview, matchExercise, kitchenDoc
 } from './_lib.js';
 
 const S = (props, required = []) => ({ type: 'object', properties: props, required });
@@ -38,6 +38,12 @@ const TOOLS = [
     name: 'log_weight',
     description: 'Record morning weight in pounds and/or waist in inches.',
     inputSchema: S({ lb: num('Weight in pounds'), waist: num('Waist in inches'), date: str('YYYY-MM-DD, optional') })
+  },
+  {
+    name: 'get_kitchen',
+    description:
+      "Everything in Shaun's kitchen: every product with its per-serving nutrition, how much is left, whether it is an ingredient, a base kit or a complete meal, plus his saved meals with recipes and the current shopping list. Read this before suggesting anything he should cook or buy.",
+    inputSchema: S({})
   },
   {
     name: 'suggest_meal',
@@ -185,6 +191,9 @@ export async function onRequest({ request, env }) {
           `One reading doesn't mean anything on its own.`
         ));
       }
+
+      case 'get_kitchen':
+        return ok(id, out(await kitchenDoc(env)));
 
       case 'suggest_meal': {
         const s = await suggestMeal(env);

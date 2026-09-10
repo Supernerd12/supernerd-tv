@@ -3,7 +3,7 @@ import {
   all, one, run, profile, currentTarget, trends, today, decide,
   suggestMeal, parseFood, parseWorkout, contextDoc, checkin,
   dayRange, grocery, icsFeed, coachBrief, exerciseStats, trainingOverview, ensureExercise, matchExercise,
-  rangeStart, parseTrace, estimateBurn, bodyWeightLb, TZ, energyToday, energyRange, readLabel, lookupProduct, mealIdeas
+  rangeStart, parseTrace, estimateBurn, bodyWeightLb, TZ, energyToday, energyRange, readLabel, lookupProduct, mealIdeas, kitchenDoc
 } from '../_lib.js';
 
 export async function onRequest(ctx) {
@@ -582,6 +582,21 @@ export async function onRequest(ctx) {
           body.role || ((body.category || guessCategory(body.name)) === 'meals' ? 'complete' : 'ingredient')
         ).run();
         return json({ ok: true, id: res.meta?.last_row_id ?? null });
+      }
+
+      case 'GET kitchen':
+        return txt(await kitchenDoc(env));
+
+      case 'GET kitchen.json': {
+        const rows = await all(env, 'SELECT * FROM products ORDER BY category, name');
+        const meals = await all(env, 'SELECT * FROM meals ORDER BY last_used DESC').catch(() => []);
+        return json({
+          generated: nowStr(),
+          products: rows,
+          meals: meals.map((m) => ({ ...m,
+            items: (() => { try { return JSON.parse(m.items || '[]'); } catch { return []; } })(),
+            recipe: (() => { try { return JSON.parse(m.recipe || '[]'); } catch { return []; } })() }))
+        });
       }
 
       case 'GET categories':

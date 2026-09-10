@@ -1,7 +1,7 @@
 // Fitness Hub — shared library (Cloudflare Pages Functions)
 // Underscore prefix = not routed, importable only.
 
-export const VERSION = 'v41';
+export const VERSION = 'v42';
 export const TZ = 'America/New_York';
 
 export const dayStr = (offset = 0) =>
@@ -984,6 +984,79 @@ export async function lookupProduct(env, name) {
     q);
   const j = grabJSON(t);
   return j ? { ...j, source: 'estimate' } : null;
+}
+
+/* ---------------- the kitchen, written out ---------------- */
+// Everything owned, in plain text, so it can be pasted into any conversation.
+
+export async function kitchenDoc(env) {
+  let rows;
+  try {
+    rows = await all(env,
+      `SELECT name, brand, category, role, serving_desc, serving_g, servings_per_container,
+              packs, remaining, kcal, protein, carbs, fat, fiber, sugar, sodium, in_stock, times_used, last_used
+         FROM products ORDER BY category, name`);
+  } catch (e) {
+    rows = await all(env, 'SELECT * FROM products ORDER BY name');
+  }
+  const cats = await all(env, 'SELECT key, label FROM categories ORDER BY sort, label').catch(() => []);
+  const label = Object.fromEntries(cats.map((c) => [c.key, c.label]));
+  const meals = await all(env,
+    'SELECT name, method, items, recipe, kcal, protein, carbs, fat, fiber, times_used FROM meals ORDER BY last_used DESC')
+    .catch(() => []);
+  const shopping = await all(env, "SELECT text FROM todos WHERE kind='grocery' AND done=0").catch(() => []);
+  const p = await profile(env);
+
+  const stockOf = (r) => {
+    if (r.remaining == null) return r.in_stock ? 'in stock' : 'out';
+    if (r.remaining <= 0) return 'OUT';
+    return `${Math.round(r.remaining * 10) / 10} servings left${r.packs > 1 ? ` across ${Math.round(r.packs)} packs` : ''}`;
+  };
+  const roleOf = (r) => r.role === 'complete' ? ' [complete meal, eat as is]'
+    : r.role === 'base' ? ' [base — needs a protein and extras]' : '';
+
+  const groups = {};
+  rows.forEach((r) => { const c = r.category || 'other'; (groups[c] = groups[c] || []).push(r); });
+
+  const body = Object.entries(groups).map(([c, list]) =>
+    `### ${label[c] || c}
+` + list.map((r) =>
+      `- **${r.name}**${r.brand && r.brand !== 'pantry' ? ` (${r.brand})` : ''}${roleOf(r)} — ` +
+      `per ${r.serving_desc || 'serving'}${r.serving_g ? ` / ${r.serving_g}g` : ''}: ` +
+      `${Math.round(r.kcal)} kcal, ${Math.round(r.protein)}g protein, ${Math.round(r.carbs || 0)}g carbs, ` +
+      `${Math.round(r.fat || 0)}g fat, ${Math.round(r.fiber || 0)}g fibre` +
+      `${r.sodium ? `, ${Math.round(r.sodium)}mg sodium` : ''}. ${stockOf(r)}.` +
+      `${r.times_used ? ` Used ${r.times_used}×.` : ''}`
+    ).join('\n')
+  ).join('\n\n');
+
+  const mealBlock = meals.length ? '\n\n## Meals I make\n' + meals.map((m) => {
+    const items = (() => { try { return JSON.parse(m.items || '[]'); } catch { return []; } })();
+    const steps = (() => { try { return JSON.parse(m.recipe || '[]'); } catch { return []; } })();
+    return `### ${m.name}${m.method ? ` (${m.method})` : ''}
+` +
+      `${Math.round(m.kcal)} kcal, ${Math.round(m.protein)}g protein, ${Math.round(m.fiber || 0)}g fibre` +
+      `${m.times_used ? ` — made ${m.times_used}×` : ''}
+` +
+      (items.length ? items.map((i) => `- ${i.name}${i.amount ? `, ${i.amount}` : ''}`).join('\n') + '\n' : '') +
+      (steps.length ? steps.map((r, i) => `${i + 1}. ${r}`).join('\n') : '');
+  }).join('\n\n') : '';
+
+  const shopBlock = shopping.length
+    ? `\n\n## On the shopping list\n${shopping.map((x) => `- ${x.text}`).join('\n')}` : '';
+
+  return `# What's in ${p.name}'s kitchen — ${dayStr()}
+
+Cooking: ${p.constraints || ''}
+Food philosophy: ${p.philosophy || ''}
+${rows.length} products, ${meals.length} saved meals.
+
+## Groceries
+${body || 'Nothing recorded.'}${mealBlock}${shopBlock}
+
+Notes for whoever reads this: quantities are servings, not packages, unless a pack count is given.
+Items marked "complete meal" are finished trays and need nothing added. Items marked "base" are
+kits meant to be built on with a protein and extras.`;
 }
 
 /* ---------------- what to eat, with a recipe ---------------- */

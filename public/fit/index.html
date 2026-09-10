@@ -280,7 +280,7 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
 <div id="app" class="hide">
 <header>
   <h1 id="vtitle">Today</h1>
-  <button id="ver" title="Tap to force a fresh copy">v41</button>
+  <button id="ver" title="Tap to force a fresh copy">v42</button>
   <span style="justify-self:end;display:flex;align-items:center;gap:10px">
     <span class="date" id="vdate"></span>
     <button id="gear" aria-label="Settings" style="width:34px;height:34px;display:grid;place-items:center;color:var(--dim)">
@@ -416,6 +416,10 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
   <div id="fEdit" class="hide" style="margin-top:12px"></div>
 
   <h2>Groceries</h2>
+  <div class="row" style="margin-bottom:10px">
+    <button class="btn ghost" id="kitShare">Send my kitchen to AI</button>
+    <button class="btn ghost" id="kitCopy" style="flex:0 0 68px">Copy</button>
+  </div>
   <input id="prodSearch" placeholder="Search groceries" style="width:100%;margin-bottom:10px" enterkeyhint="search">
   <div id="prods"></div>
   <div class="row" style="margin-top:10px">
@@ -2110,6 +2114,18 @@ document.addEventListener('click',async e=>{
       servings_per_container:p?.servings_per_container||1});
     $('#prodLog').classList.add('hide');toast('Restocked, and off the list.');
     loadInv();return loadProducts();
+  }
+  if(b.id==='kitShare'||b.id==='kitCopy'){
+    b.disabled=true;
+    let text; try{ text=await api('kitchen'); }catch(e){ b.disabled=false; return toast('Could not build it.'); }
+    b.disabled=false;
+    if(b.id==='kitShare'&&navigator.share){
+      try{ await navigator.share({title:'My kitchen',text}); }catch(e){}
+    } else {
+      try{ await navigator.clipboard.writeText(text); toast('Copied — paste it anywhere.'); }
+      catch(e){ toast('Could not copy.'); }
+    }
+    return;
   }
   if(b.id==='gShare'||b.id==='gCopy'){
     const g=await api('grocery/export');
