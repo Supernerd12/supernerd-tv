@@ -1,3 +1,36 @@
+# ============================================================================
+#  supernerd.tv — cache policy
+#  Goal: fast site, but a change (or a fix during an outage) shows up quickly
+#  instead of lingering stale in caches. Order matters — later matching rules
+#  override earlier ones for the same header, so the never-cache app rules sit
+#  at the bottom and always win.
+# ============================================================================
+
+# Baseline for everything: cache briefly, then refresh in the background.
+# Images and static files load fast from cache, but any replacement propagates
+# within the hour instead of being stuck for days.
+/*
+  Cache-Control: public, max-age=3600, stale-while-revalidate=86400
+
+# Build assets have a content hash in their filename and never change in place,
+# so they're safe to cache forever.
+/_astro/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# HTML pages must always revalidate, so a fresh deploy is visible immediately
+# and a broken page can never get pinned in a cache.
+/
+  Cache-Control: public, max-age=0, must-revalidate
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
+/*.html
+  Cache-Control: public, max-age=0, must-revalidate
+
+# The client review portal — shell always revalidates (you deploy it often).
+/r/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+# ---- Fitness app + API + MCP: never cache (unchanged from before) ----
 # The app shell must never be cached — a stale index.html is indistinguishable
 # from a failed deploy. The API is no-store for the same reason.
 /fit/*
