@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v51';  // v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
+  const VERSION = 'v52';  // v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   const items    = (await getCollection('reviewItems')).filter(i => i.data.published !== false);
@@ -2726,6 +2726,14 @@ async function exportNotesAE(proj, sec, it){
   if(btn){ btn.disabled=false; btn.innerHTML=orig; }
   if(!ok){ alert('Could not start the download.'); return; }
   if(skipped>0) setTimeout(function(){ alert(notes.length+' note'+(notes.length===1?'':'s')+' exported.\n\n'+skipped+' note'+(skipped===1?'':'s')+' had no timecode, so '+(skipped===1?'it was':'they were')+' left out \u2014 only timecoded notes can become markers.'); },300);
+}
+function triggerDownload(url, fn){
+  // No target="_blank": after an await the browser sees no user gesture, so a new
+  // tab gets popup-blocked. The Stream/Storage URLs are served as attachments, so a
+  // plain anchor click downloads them in place. (Restored — was missing in v51,
+  // which caused "triggerDownload is not defined" on every download.)
+  var a=document.createElement('a'); a.href=url; if(fn) a.download=fn; a.rel='noopener';
+  document.body.appendChild(a); a.click(); setTimeout(function(){ try{ a.remove(); }catch(e){} }, 1200);
 }
 async function videoDownload(btn){
   var uid=btn.dataset.uid, fn=btn.dataset.fn||'video';
