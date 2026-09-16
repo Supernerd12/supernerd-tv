@@ -1,7 +1,7 @@
 // Fitness Hub — shared library (Cloudflare Pages Functions)
 // Underscore prefix = not routed, importable only.
 
-export const VERSION = 'v42';
+export const VERSION = 'v43';
 export const TZ = 'America/New_York';
 
 export const dayStr = (offset = 0) =>
@@ -113,7 +113,12 @@ export async function trends(env) {
   );
   const strength = await all(env, 'SELECT d, COUNT(*) n FROM workout_log WHERE d >= ?1 GROUP BY d', [dayStr(-14)]);
 
-  const startW = Number((await profile(env)).start_weight_lb || 0);
+  // The first weight actually recorded beats whatever was typed into the profile
+  // at setup. A stale profile figure quietly skews every "since the start" number.
+  const p = await profile(env);
+  const firstLogged = w.length ? w[w.length - 1] : null;
+  const startW = firstLogged?.lb || Number(p.start_weight_lb || 0);
+  const startDate = firstLogged?.d || p.start_date || null;
 
   return {
     latest_weight: lbs[0] ?? null,
@@ -122,6 +127,8 @@ export async function trends(env) {
     avg7_prev: avgPrev7 == null ? null : r1(avgPrev7),
     rate_lb_per_week: rate,
     total_change_lb: lbs[0] && startW ? r1(lbs[0] - startW) : null,
+    start_weight_lb: startW || null,
+    start_date: startDate,
     logged_weigh_ins: w.length,
     waist_in: waistNow,
     waist_change_in: waistNow != null && waistPrev != null ? r1(waistNow - waistPrev) : null,
@@ -677,7 +684,7 @@ export async function contextDoc(env) {
 
 ## Who / what this is
 ${p.sex}, age ${p.age}, ${p.height_cm} cm. Goal: ${p.goal}
-Started ${p.start_date} at ${p.start_weight_lb} lb. Soft milestone ${p.milestone_lb} lb — not a hard endpoint. Appearance, waist and strength outrank the number.
+Started ${tr.start_date || p.start_date} at ${tr.start_weight_lb || p.start_weight_lb} lb. Soft milestone ${p.milestone_lb} lb — not a hard endpoint. Appearance, waist and strength outrank the number.
 Constraints: ${p.constraints}
 Food philosophy: ${p.philosophy}
 
@@ -727,7 +734,7 @@ export async function checkin(env) {
 Weight now ......... ${tr.latest_weight ?? '—'} lb
 7-day average ...... ${tr.avg7 ?? '—'} lb (prior week ${tr.avg7_prev ?? '—'})
 Weekly rate ........ ${tr.rate_lb_per_week ?? '—'} lb/week
-Since ${p.start_date} ... ${tr.total_change_lb ?? '—'} lb
+Since ${tr.start_date || p.start_date} ... ${tr.total_change_lb ?? '—'} lb
 Waist .............. ${tr.waist_in ?? 'not measured'}${tr.waist_change_in != null ? ` (${tr.waist_change_in} in)` : ''}
 Calories ........... ${tr.avg_kcal_14day ?? '—'}/day avg vs ${t.kcal_low}–${t.kcal_high} target
 Protein ............ ${tr.avg_protein_14day ?? '—'} g/day vs ${t.protein} g target
@@ -1246,7 +1253,8 @@ export async function coachBrief(env) {
   let progress;
   if (tr.total_change_lb != null && Math.abs(tr.total_change_lb) >= 0.4) {
     const dir = tr.total_change_lb < 0 ? 'down' : 'up';
-    const since = new Date(p.start_date + 'T12:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+    const sinceDate = tr.start_date || p.start_date;
+    const since = new Date(sinceDate + 'T12:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
     progress = `You're ${dir} ${Math.abs(tr.total_change_lb)} lb since ${since}`;
     if (tr.waist_change_in != null && tr.waist_change_in <= -0.25)
       progress += `, and the waist is down ${Math.abs(tr.waist_change_in)}"`;
