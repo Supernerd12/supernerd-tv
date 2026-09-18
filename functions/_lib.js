@@ -1,7 +1,7 @@
 // Fitness Hub — shared library (Cloudflare Pages Functions)
 // Underscore prefix = not routed, importable only.
 
-export const VERSION = 'v43';
+export const VERSION = 'v44';
 export const TZ = 'America/New_York';
 
 export const dayStr = (offset = 0) =>
@@ -1332,6 +1332,13 @@ export async function exerciseStats(env, exerciseId, range = 'month') {
   const ex = await one(env, 'SELECT * FROM exercises WHERE id=?1', [exerciseId]);
   if (!ex) return null;
 
+  // Every individual entry, not just the daily roll-up. "4 x 74" is what tells him
+  // whether today beat last time; 296 on its own does not.
+  const entries = await all(env,
+    `SELECT id, d, ts, sets, reps, weight, minutes, distance, rpe, kcal, note
+       FROM workout_log WHERE exercise_id=?1 AND d>=?2 ORDER BY d DESC, id DESC LIMIT 60`,
+    [exerciseId, from]).catch(() => []);
+
   const rows = await all(env,
     `SELECT d, SUM(COALESCE(sets,1)*COALESCE(reps,0)) reps,
             SUM(COALESCE(sets,1)*COALESCE(reps,0)*COALESCE(weight,0)) volume,
@@ -1351,8 +1358,18 @@ export async function exerciseStats(env, exerciseId, range = 'month') {
   const totalReps = sum('reps');
   const prevReps = prev[0]?.reps || 0;
 
+  // The hardest single set in the window, described the way it was entered.
+  let topSet = null;
+  for (const e of entries) {
+    const score = (e.weight || 0) * 1000 + (e.reps || 0);
+    if (!topSet || score > topSet._score) topSet = { ...e, _score: score };
+  }
+
   return {
     exercise: ex, range, from,
+    entries,
+    top_set: topSet ? { d: topSet.d, sets: topSet.sets, reps: topSet.reps,
+                        weight: topSet.weight, minutes: topSet.minutes } : null,
     sessions: rows.length,
     total_reps: Math.round(totalReps),
     total_volume: Math.round(sum('volume')),
