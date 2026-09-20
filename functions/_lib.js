@@ -1,7 +1,7 @@
 // Fitness Hub — shared library (Cloudflare Pages Functions)
 // Underscore prefix = not routed, importable only.
 
-export const VERSION = 'v45';
+export const VERSION = 'v46';
 export const TZ = 'America/New_York';
 
 export const dayStr = (offset = 0) =>
@@ -599,27 +599,87 @@ export async function matchExercise(env, name) {
 }
 
 // Anything unrecognised becomes a new library entry rather than a dead string.
+// Keyword fallback. Used when no model is reachable, and as a sanity net.
+function guessExercise(name) {
+  const t = String(name || '').toLowerCase();
+  const has = (...w) => w.some((x) => t.includes(x));
+
+  // Anything sustained and locomotive is cardio, whatever muscles it happens to use.
+  if (has('walk', 'run', 'jog', 'sprint', 'stair', 'step mill', 'stepper', 'climb',
+          'bike', 'cycl', 'spin', 'row machine', 'erg', 'elliptical', 'treadmill',
+          'swim', 'hike', 'jump rope', 'skip', 'cardio', 'interval'))
+    return { discipline: 'cardio', muscle: 'cardio', unit: 'distance' };
+
+  const muscle =
+    has('curl', 'tricep', 'bicep', 'dip', 'forearm') ? 'arms' :
+    has('squat', 'lunge', 'leg', 'calf', 'quad', 'hamstring') ? 'legs' :
+    has('glute', 'bridge', 'thrust', 'hinge', 'deadlift', 'kickback') ? 'glutes' :
+    has('press', 'bench', 'fly', 'chest', 'push') ? 'chest' :
+    has('row', 'pull', 'lat', 'back', 'superman') ? 'back' :
+    has('shoulder', 'raise', 'delt', 'face pull') ? 'shoulders' :
+    has('plank', 'ab ', 'abs', 'core', 'crunch', 'twist', 'sit up', 'situp', 'sit-up',
+        'dead bug', 'bird dog', 'knee raise') ? 'core' : 'fullbody';
+
+  const discipline =
+    has('dumbbell', 'barbell', 'machine', 'cable', 'kettlebell', 'band', 'weight') ? 'resistance' :
+    'calisthenics';
+
+  const unit = has('plank', 'hold', 'hang', 'wall sit') ? 'time' : 'reps';
+  return { discipline, muscle, unit };
+}
+
+// Ask the model where a new movement belongs. A keyword list will never know what
+// "Stairs" or "Farmer's carry" is, and getting it wrong quietly corrupts the
+// strength-session count the coach reasons from.
+export async function classifyExercise(env, name) {
+  const sys =
+`Classify one exercise. Return ONLY JSON, no prose, no fences:
+{"discipline":"resistance"|"calisthenics"|"cardio","muscle":"arms"|"chest"|"back"|"shoulders"|"legs"|"glutes"|"core"|"fullbody"|"cardio","unit":"reps"|"time"|"distance","cue":string}
+
+discipline:
+- "cardio" for anything sustained and locomotive: walking, running, stairs, cycling, rowing, swimming, elliptical, jump rope, hiking. Climbing stairs is cardio even though the legs work hard.
+- "resistance" for movements loaded with external weight: dumbbells, barbells, machines, cables, kettlebells, bands.
+- "calisthenics" for bodyweight strength: push-ups, pull-ups, planks, sit-ups, dips, burpees.
+
+muscle: the primary mover. Use "cardio" for cardio, "fullbody" only when no single group dominates.
+unit: "distance" for cardio that covers ground, "time" for holds and carries, "reps" for everything else.
+cue: one short sentence of form advice, under 90 characters.`;
+
+  try {
+    const j = grabJSON(await callAI(env, sys, String(name).slice(0, 60)));
+    const D = ['resistance', 'calisthenics', 'cardio'];
+    const M = ['arms', 'chest', 'back', 'shoulders', 'legs', 'glutes', 'core', 'fullbody', 'cardio'];
+    const U = ['reps', 'time', 'distance'];
+    if (j && D.includes(j.discipline) && M.includes(j.muscle)) {
+      return {
+        discipline: j.discipline,
+        muscle: j.muscle,
+        unit: U.includes(j.unit) ? j.unit : (j.discipline === 'cardio' ? 'distance' : 'reps'),
+        cue: j.cue ? String(j.cue).slice(0, 120) : null
+      };
+    }
+  } catch (e) { /* fall through to keywords */ }
+  return { ...guessExercise(name), cue: null };
+}
+
 export async function ensureExercise(env, name, hint = {}) {
   const hit = await matchExercise(env, name);
   if (hit) return hit;
+
   const clean = String(name).trim().replace(/\s+/g, ' ').slice(0, 60);
-  const t = clean.toLowerCase();
-  const muscle = hint.muscle ||
-    (/(curl|tricep|dip|forearm)/.test(t) ? 'arms' :
-     /(squat|lunge|leg|calf|quad|hamstring)/.test(t) ? 'legs' :
-     /(glute|bridge|thrust|hinge|deadlift)/.test(t) ? 'glutes' :
-     /(press|bench|fly|chest|push)/.test(t) ? 'chest' :
-     /(row|pull|lat|back)/.test(t) ? 'back' :
-     /(shoulder|raise|delt)/.test(t) ? 'shoulders' :
-     /(plank|ab|core|crunch|twist)/.test(t) ? 'core' :
-     /(run|jog|walk|sprint|bike|cardio)/.test(t) ? 'cardio' : 'fullbody');
-  const discipline = hint.discipline ||
-    (muscle === 'cardio' ? 'cardio' :
-     /(dumbbell|barbell|machine|cable|weight|lb|kg)/.test(t) ? 'resistance' :
-     ['arms', 'chest', 'back', 'shoulders', 'legs', 'glutes'].includes(muscle) ? 'resistance' : 'calisthenics');
-  const unit = hint.unit || (muscle === 'cardio' ? 'distance' : /plank|hold|hang/.test(t) ? 'time' : 'reps');
-  await run(env, 'INSERT OR IGNORE INTO exercises (name,discipline,muscle,unit,aliases,active) VALUES (?1,?2,?3,?4,?5,1)',
-    [clean, discipline, muscle, unit, t]);
+
+  // An explicit hint from the UI wins. Otherwise let the model place it.
+  const c = (hint.discipline && hint.muscle)
+    ? { discipline: hint.discipline, muscle: hint.muscle, unit: hint.unit || 'reps', cue: null }
+    : await classifyExercise(env, clean);
+
+  const discipline = hint.discipline || c.discipline;
+  const muscle = hint.muscle || c.muscle;
+  const unit = hint.unit || c.unit;
+
+  await run(env,
+    'INSERT OR IGNORE INTO exercises (name,discipline,muscle,unit,aliases,cue,active) VALUES (?1,?2,?3,?4,?5,?6,1)',
+    [clean, discipline, muscle, unit, clean.toLowerCase(), c.cue]);
   return await one(env, 'SELECT id,name,discipline,muscle,unit,cue FROM exercises WHERE name=?1', [clean]);
 }
 
