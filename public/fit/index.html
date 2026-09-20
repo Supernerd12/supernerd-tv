@@ -280,7 +280,7 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
 <div id="app" class="hide">
 <header>
   <h1 id="vtitle">Today</h1>
-  <button id="ver" title="Tap to force a fresh copy">v46</button>
+  <button id="ver" title="Tap to force a fresh copy">v47</button>
   <span style="justify-self:end;display:flex;align-items:center;gap:10px">
     <span class="date" id="vdate"></span>
     <button id="gear" aria-label="Settings" style="width:34px;height:34px;display:grid;place-items:center;color:var(--dim)">
@@ -1470,21 +1470,28 @@ function scrubWeight(ev){
 async function loadTrain(){
   const cardio = DISC==='cardio';
   $('#cardioBox').classList.toggle('hide',!cardio);
+  // Walking gets the Health panel on top, but it still needs its own movements
+  // listed and loggable — stairs, jogs, anything you count yourself.
   $('#muscles').classList.toggle('hide',cardio);
-  $('#addRow').classList.toggle('hide',cardio);
-  $('#strengthOnly').classList.toggle('hide',cardio);
-  if(cardio){ $('#exList').innerHTML=''; return loadCardio(); }
+  $('#addRow').classList.remove('hide');
+  $('#strengthOnly').classList.remove('hide');
+  if(cardio) await loadCardio();
 
-  $('#muscles').innerHTML='<div class="seg sm">'+MUSCLES[DISC].map(([k,l])=>
-    `<button data-muscle="${k}" class="${MUSCLE===k?'on':''}">${l}</button>`).join('')+'</div>';
+  if(!cardio)
+    $('#muscles').innerHTML='<div class="seg sm">'+MUSCLES[DISC].map(([k,l])=>
+      `<button data-muscle="${k}" class="${MUSCLE===k?'on':''}">${l}</button>`).join('')+'</div>';
 
-  const list = await api('exercises?mode=mine&discipline='+DISC+(MUSCLE?'&muscle='+MUSCLE:''));
+  const list = await api('exercises?mode=mine&discipline='+DISC+(cardio||!MUSCLE?'':'&muscle='+MUSCLE));
   $('#exList').innerHTML = list.length ? list.map(e=>`
     <button class="ex ${e.last===S?.today.date?'act':''}" data-ex="${e.id}">
       <span>${esc(e.name)}</span>
       <span class="sub">${e.days?`${e.days} day${e.days>1?'s':''}${e.last?' · '+shortD(e.last):''}`:'ready to log'}</span>
       <span class="chev">›</span></button>`).join('')
     : `<p class="empty">Nothing here yet. Browse the library below, or add your own — whatever you actually do.</p>`;
+
+  if(cardio && list.length)
+    $('#exList').insertAdjacentHTML('afterbegin',
+      '<p class="tiny" style="margin:16px 0 4px">Things you count yourself</p>');
 }
 
 async function loadCardio(){
