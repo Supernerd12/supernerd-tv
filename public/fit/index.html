@@ -245,6 +245,15 @@ nav button.on::before{content:"";position:absolute;top:0;left:50%;transform:tran
   border-radius:99px;background:linear-gradient(90deg,var(--acc),var(--acc2));box-shadow:0 0 16px 1px var(--glowA)}
 nav button.on svg{filter:drop-shadow(0 0 8px var(--glowA))}
 
+#recipeView{position:fixed;inset:0;z-index:30;background:var(--bg);overflow-y:auto;
+  padding:calc(env(safe-area-inset-top) + 20px) var(--pad) calc(40px + env(safe-area-inset-bottom))}
+#recipeView .rv-top{display:flex;align-items:flex-start;gap:12px;margin-bottom:6px}
+#recipeView h3{font-family:var(--display);font-size:clamp(30px,8vw,42px);font-weight:600;
+  text-transform:uppercase;line-height:1;margin:0;letter-spacing:.005em;
+  background:linear-gradient(120deg,var(--ink),var(--acc));-webkit-background-clip:text;
+  background-clip:text;color:transparent}
+#recipeView ol{margin:0;padding-left:22px}
+#recipeView ol li{font-size:16px;line-height:1.65;margin-bottom:14px}
 #toast{position:fixed;left:50%;bottom:calc(var(--nav) + 18px + env(safe-area-inset-bottom));transform:translate(-50%,14px);
   background:linear-gradient(120deg,var(--acc),var(--acc2));color:#0A0A0C;padding:13px 20px;border-radius:99px;
   font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:.22s;max-width:86vw;text-align:center;z-index:20;
@@ -280,7 +289,7 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
 <div id="app" class="hide">
 <header>
   <h1 id="vtitle">Today</h1>
-  <button id="ver" title="Tap to force a fresh copy">v50</button>
+  <button id="ver" title="Tap to force a fresh copy">v51</button>
   <span style="justify-self:end;display:flex;align-items:center;gap:10px">
     <span class="date" id="vdate"></span>
     <button id="gear" aria-label="Settings" style="width:34px;height:34px;display:grid;place-items:center;color:var(--dim)">
@@ -722,6 +731,7 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
 </nav>
 </div>
 
+<div id="recipeView" class="hide"></div>
 <div id="toast"></div>
 
 <script>
@@ -893,6 +903,39 @@ async function shrink(file, max=2000, q=0.92){
   return c.toDataURL('image/jpeg',q);
 }
 
+/* ───────── a recipe, full screen ───────── */
+function openRecipe(r){
+  if(!r)return;
+  const macros=[r.kcal&&`${Math.round(r.kcal)} kcal`,r.protein&&`${Math.round(r.protein)}g protein`,
+                r.fiber&&`${Math.round(r.fiber)}g fibre`].filter(Boolean).join(' · ');
+  $('#recipeView').classList.remove('hide');
+  $('#recipeView').innerHTML=`
+    <div class="rv-top">
+      <h3>${esc(r.name)}</h3>
+      <button class="btn ghost" id="rvClose" style="flex:0 0 66px;margin-left:auto">Close</button>
+    </div>
+    <p class="tiny" style="margin:0 0 2px">${esc(macros)}</p>
+    ${r.method?`<p class="tiny" style="margin:0;color:var(--acc)">${esc(r.method)}</p>`:''}
+    ${r.why?`<p style="margin:16px 0 0;font-size:15px;line-height:1.5;color:var(--dim)">${esc(r.why)}</p>`:''}
+
+    ${r.items?.length?`<h2>What goes in it</h2>
+      <div class="card">${r.items.map(x=>`<div class="line" style="padding:10px 0">
+        <span style="color:var(--ink);font-size:15px">${esc(x.name)}</span>
+        <b style="font-size:14px;font-weight:500">${esc(x.amount||'')}</b></div>`).join('')}</div>`:''}
+
+    ${r.recipe?.length?`<h2>How to make it</h2>
+      <div class="card"><ol>${r.recipe.map(st=>`<li>${esc(st)}</li>`).join('')}</ol></div>`:
+      '<p class="tiny" style="margin-top:20px">No steps saved for this one.</p>'}
+
+    <div class="row" style="margin-top:20px">
+      <button class="btn primary" id="rvAte">I made this</button>
+      <button class="btn ghost" id="rvSave" style="flex:0 0 78px">Save it</button>
+    </div>
+    <p class="tiny" style="margin-top:10px">Saving keeps the recipe so you can cook it again in one tap.</p>`;
+  RECIPE=r;
+  window.scrollTo({top:0});
+}
+
 /* ───────── the day's eating plan ───────── */
 // Lives in the browser, not the database. Plans are throwaway — what matters is
 // what actually got eaten, and that already goes through the normal food log.
@@ -904,7 +947,7 @@ const SLOTS=[
   {k:'dinner',   label:'Dinner',   at:18.5, share:0.28},
   {k:'evening',  label:'Something sweet', at:20.5, share:0.10}
 ];
-let PLAN=null;
+let PLAN=null, RECIPE=null, PLANNING=false;
 
 const planKey=()=>'plan:'+(S?.today?.date||'');
 function loadPlanFromStore(){
@@ -920,7 +963,8 @@ const atLabel=h=>{ const hh=Math.floor(h), mm=Math.round((h-hh)*60);
 // Fill each slot with the best thing in stock for the protein it needs to carry.
 function buildPlan(targetKcal,targetProtein){
   const pool=[
-    ...MEALS.map(m=>({name:m.name,kcal:m.kcal,protein:m.protein,type:'meal',id:m.id})),
+    ...MEALS.map(m=>({name:m.name,kcal:m.kcal,protein:m.protein,fiber:m.fiber,
+      method:m.method,items:m.items,recipe:m.recipe,type:'meal',id:m.id})),
     ...PRODUCTS.filter(p=>p.kcal>0).map(p=>({name:p.name,kcal:p.kcal,protein:p.protein,
       type:'product',id:p.id,category:p.category,role:p.role}))
   ];
@@ -963,7 +1007,9 @@ function renderPlan(){
   if(!PLAN||!PLAN.length){
     $('#plan').innerHTML=`<div class="card">
       <p class="tiny" style="margin:0 0 12px">Lay out the day in advance and the app will nudge you at each meal — and tell you what to do if one gets missed.</p>
-      <button class="btn primary" id="planMake" style="width:100%">Plan today from what I have</button>
+      <button class="btn primary" id="planFresh" style="width:100%">Plan today with new ideas</button>
+      <button class="btn ghost" id="planMake" style="width:100%;margin-top:8px">Just use my saved meals</button>
+      <p class="tiny" style="margin:10px 0 0">New ideas writes three fresh recipes from what's in your kitchen. Saved meals is instant.</p>
     </div>`;
     return;
   }
@@ -987,6 +1033,7 @@ function renderPlan(){
       </div>
       <div class="row" style="margin-top:12px">
         <button class="btn primary" data-planate="${due.k}">I had it</button>
+        ${due.item.recipe?.length?`<button class="btn ghost" data-planrecipe="${due.k}" style="flex:0 0 80px">Recipe</button>`:''}
         <button class="btn ghost" data-planskip="${due.k}" style="flex:0 0 74px">Skipped</button>
       </div>
     </div>`:''}
@@ -1000,7 +1047,8 @@ function renderPlan(){
             ${done?'<span style="color:var(--good)">✓ </span>':''}${esc(s.item.name)}
             <span style="display:block;font:10px/1.5 var(--mono);color:var(--faint)">${Math.round(s.item.kcal)} KCAL · ${Math.round(s.item.protein)}P</span>
           </span>
-          ${s.status==='planned'?`<button class="m" data-planswap="${s.k}" style="color:var(--dim)">swap</button>`:''}
+          ${s.item.recipe?.length?`<button class="m" data-planrecipe="${s.k}" style="color:var(--acc)">recipe</button>`:''}
+          ${s.status==='planned'?`<button class="m" data-planswap="${s.k}" style="color:var(--dim);margin-left:10px">swap</button>`:''}
         </div>`;
       }).join('')}
 
@@ -1048,7 +1096,8 @@ function ideaCard(o,i){
     <div class="row" style="margin-top:16px">
       <button class="btn primary" data-eatidea="${i}">I made this</button>
       <button class="btn ghost" data-saveidea="${i}" style="flex:0 0 74px">Save</button>
-      <button class="btn ghost" data-dropidea="${i}" style="flex:0 0 62px">Hide</button>
+      <button class="btn ghost" data-fullidea="${i}" style="flex:0 0 76px">Full page</button>
+      <button class="btn ghost" data-dropidea="${i}" style="flex:0 0 56px">Hide</button>
     </div>
   </div>`;
 }
@@ -2057,6 +2106,72 @@ document.addEventListener('click',async e=>{
   if(b.dataset.wdel){await post('workout/delete',{id:+b.dataset.wdel});toast('Deleted.');return refresh();}
 
 
+  if(b.id==='planFresh'){
+    if(PLANNING)return;
+    const t=S?.today; if(!t)return;
+    PLANNING=true; b.disabled=true;
+    $('#plan').innerHTML='<p class="empty">Writing three recipes from what you have…</p>';
+    try{
+      // One call per meal so each gets a dish suited to that time of day.
+      const asks=[
+        {k:'breakfast',hint:'for breakfast, quick, high protein'},
+        {k:'lunch',    hint:'for lunch, high protein'},
+        {k:'dinner',   hint:'for dinner, a proper cooked dish'}
+      ];
+      const got={};
+      for(const a of asks){
+        try{
+          const r=await post('ideas',{hint:a.hint});
+          if(r.options?.length) got[a.k]=r.options[0];
+        }catch(e){}
+      }
+      if(!Object.keys(got).length){
+        PLANNING=false;b.disabled=false;
+        $('#plan').innerHTML='';renderPlan();
+        return toast('No ideas came back. Mark some groceries in stock.');
+      }
+
+      // Fresh dishes where we got them; stock fills the snack and the sweet.
+      const fill=buildPlan(t.target.kcal_high,t.target.protein)||[];
+      PLAN=SLOTS.map(sl=>{
+        const idea=got[sl.k];
+        if(idea) return {...sl,status:'planned',item:{
+          name:idea.name,kcal:idea.kcal,protein:idea.protein,fiber:idea.fiber,
+          method:idea.method,items:idea.items,recipe:idea.recipe,why:idea.why,type:'idea'}};
+        const f=fill.find(x=>x.k===sl.k);
+        return f?{...f}:null;
+      }).filter(Boolean);
+      savePlan(); renderPlan();
+      toast('Planned. Tap "recipe" on any of them.');
+    }catch(e){ toast('Could not plan that.'); $('#plan').innerHTML='';renderPlan(); }
+    PLANNING=false; b.disabled=false;
+    return;
+  }
+  if(b.dataset.planrecipe){
+    const sl=PLAN?.find(x=>x.k===b.dataset.planrecipe);
+    return openRecipe(sl?.item);
+  }
+  if(b.id==='rvClose'){ $('#recipeView').classList.add('hide'); RECIPE=null; return; }
+  if(b.id==='rvAte'){
+    if(!RECIPE)return;
+    b.disabled=true;
+    try{
+      if(RECIPE.type==='meal') await post('meal/log',{id:RECIPE.id});
+      else if(RECIPE.type==='product') await post('product/log',{id:RECIPE.id,servings:1});
+      else await post('meal/log',{meal:RECIPE});
+      const sl=PLAN?.find(x=>x.item===RECIPE); if(sl)sl.status='eaten';
+      savePlan();
+      toast(`Logged ${Math.round(RECIPE.kcal||0)} kcal`);
+    }catch(e){ toast('Could not log that.'); }
+    b.disabled=false;
+    $('#recipeView').classList.add('hide'); RECIPE=null;
+    await refresh(); loadProducts(); loadMeals(); return renderPlan();
+  }
+  if(b.id==='rvSave'){
+    if(!RECIPE)return;
+    await post('meals',{...RECIPE,source:'ai'});
+    toast('Saved to your meals.'); return loadMeals();
+  }
   if(b.id==='planMake'){
     const t=S?.today; if(!t)return;
     if(!PRODUCTS.length&&!MEALS.length)return toast('Add some groceries first.');
@@ -2071,7 +2186,8 @@ document.addEventListener('click',async e=>{
     b.disabled=true;
     try{
       if(sl.item.type==='meal') await post('meal/log',{id:sl.item.id});
-      else await post('product/log',{id:sl.item.id,servings:1});
+      else if(sl.item.type==='product') await post('product/log',{id:sl.item.id,servings:1});
+      else await post('meal/log',{meal:sl.item});   // a fresh idea: logs and saves itself
       sl.status='eaten'; savePlan();
       toast(`Logged ${Math.round(sl.item.kcal)} kcal`);
     }catch(e){ toast('Could not log that.'); }
@@ -2092,6 +2208,7 @@ document.addEventListener('click',async e=>{
     const sl=PLAN.find(x=>x.k===b.dataset.planswap); if(!sl)return;
     const pool=[...MEALS.map(m=>({name:m.name,kcal:m.kcal,protein:m.protein,type:'meal',id:m.id})),
                 ...PRODUCTS.filter(p=>p.kcal>0).map(p=>({name:p.name,kcal:p.kcal,protein:p.protein,type:'product',id:p.id}))];
+    if(sl.item.type==='idea'&&!confirm('Swap this out? The recipe goes with it.'))return;
     const i=pool.findIndex(x=>x.type===sl.item.type&&x.id===sl.item.id);
     sl.item=pool[(i+1)%pool.length];
     savePlan(); return renderPlan();
@@ -2146,11 +2263,16 @@ document.addEventListener('click',async e=>{
     toast('Saved to your meals.');return loadMeals();
   }
   if(b.dataset.openidea!=null){ OPENIDEA=+b.dataset.openidea; return renderIdeas(IDEAMETA); }
+  if(b.dataset.fullidea!=null){ return openRecipe(IDEAS[+b.dataset.fullidea]); }
   if(b.dataset.closeidea!=null){ OPENIDEA=null; return renderIdeas(IDEAMETA); }
   if(b.id==='ideaClear'){ IDEAS=[];OPENIDEA=null;$('#meal').innerHTML=''; return; }
   if(b.dataset.dropidea!=null){
     IDEAS.splice(+b.dataset.dropidea,1); OPENIDEA=null;
     return renderIdeas(IDEAMETA);
+  }
+  if(b.dataset.mrecipe){
+    const m=MEALS.find(x=>x.id==b.dataset.mrecipe);
+    return openRecipe(m?{...m,type:'meal'}:null);
   }
   if(b.dataset.meal){
     const m=MEALS.find(x=>x.id==b.dataset.meal); if(!m)return;
@@ -2167,8 +2289,9 @@ document.addEventListener('click',async e=>{
           `<li style="font-size:14px;line-height:1.55;margin-bottom:6px">${esc(r)}</li>`).join('')}</ol>`:''}
       <div class="row" style="margin-top:14px">
         <button class="btn primary" data-mlog="${m.id}">I ate this</button>
-        <button class="btn ghost" data-mlog="${m.id}" data-half="1" style="flex:0 0 68px">Half</button>
-        <button class="btn ghost" data-mdel="${m.id}" style="flex:0 0 62px;color:var(--over)">Delete</button>
+        ${m.recipe?.length?`<button class="btn ghost" data-mrecipe="${m.id}" style="flex:0 0 76px">Recipe</button>`:''}
+        <button class="btn ghost" data-mlog="${m.id}" data-half="1" style="flex:0 0 62px">Half</button>
+        <button class="btn ghost" data-mdel="${m.id}" style="flex:0 0 56px;color:var(--over)">Delete</button>
       </div></div>`;
     $('#meal').scrollIntoView({behavior:'smooth',block:'center'});return;
   }
