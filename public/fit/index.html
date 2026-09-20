@@ -280,7 +280,7 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
 <div id="app" class="hide">
 <header>
   <h1 id="vtitle">Today</h1>
-  <button id="ver" title="Tap to force a fresh copy">v49</button>
+  <button id="ver" title="Tap to force a fresh copy">v50</button>
   <span style="justify-self:end;display:flex;align-items:center;gap:10px">
     <span class="date" id="vdate"></span>
     <button id="gear" aria-label="Settings" style="width:34px;height:34px;display:grid;place-items:center;color:var(--dim)">
@@ -399,6 +399,9 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
     <button class="btn primary" id="logFood">Log food</button>
     <button class="btn ghost" id="undoFood" style="flex:0 0 96px">Undo last</button>
   </div>
+  <h2>Today's plan</h2>
+  <div id="plan"></div>
+
   <h2>What should I eat?</h2>
   <div class="row">
     <button class="btn primary" id="eat">Suggest from what I have</button>
@@ -781,7 +784,7 @@ function go(v){
   if(v==='photos')loadPhotos();
   if(v==='days')drawCal();
   if(v==='settings')loadSettings();
-  if(v==='food'){loadInv();loadProducts();loadMeals();}
+  if(v==='food'){loadInv();loadProducts();loadMeals();loadPlanFromStore();renderPlan();}
   if(v==='train'){loadTrain();loadBurn();}
 }
 
@@ -888,6 +891,126 @@ async function shrink(file, max=2000, q=0.92){
   c.width=Math.round(img.width*sc); c.height=Math.round(img.height*sc);
   c.getContext('2d').drawImage(img,0,0,c.width,c.height);
   return c.toDataURL('image/jpeg',q);
+}
+
+/* ───────── the day's eating plan ───────── */
+// Lives in the browser, not the database. Plans are throwaway — what matters is
+// what actually got eaten, and that already goes through the normal food log.
+
+const SLOTS=[
+  {k:'breakfast',label:'Breakfast',at:8.0,  share:0.22},
+  {k:'lunch',    label:'Lunch',    at:12.5, share:0.28},
+  {k:'snack',    label:'Snack',    at:15.5, share:0.12},
+  {k:'dinner',   label:'Dinner',   at:18.5, share:0.28},
+  {k:'evening',  label:'Something sweet', at:20.5, share:0.10}
+];
+let PLAN=null;
+
+const planKey=()=>'plan:'+(S?.today?.date||'');
+function loadPlanFromStore(){
+  try{ const raw=localStorage.getItem(planKey()); PLAN=raw?JSON.parse(raw):null; }catch(e){ PLAN=null; }
+}
+function savePlan(){ try{ localStorage.setItem(planKey(),JSON.stringify(PLAN)); }catch(e){} }
+
+const nowHour=()=>{ const d=new Date(); return d.getHours()+d.getMinutes()/60; };
+const atLabel=h=>{ const hh=Math.floor(h), mm=Math.round((h-hh)*60);
+  const ap=hh<12?'am':'pm', h12=hh%12===0?12:hh%12;
+  return `${h12}:${String(mm).padStart(2,'0')}${ap}`; };
+
+// Fill each slot with the best thing in stock for the protein it needs to carry.
+function buildPlan(targetKcal,targetProtein){
+  const pool=[
+    ...MEALS.map(m=>({name:m.name,kcal:m.kcal,protein:m.protein,type:'meal',id:m.id})),
+    ...PRODUCTS.filter(p=>p.kcal>0).map(p=>({name:p.name,kcal:p.kcal,protein:p.protein,
+      type:'product',id:p.id,category:p.category,role:p.role}))
+  ];
+  if(!pool.length)return null;
+
+  const used=new Set();
+  const pick=(kcalBudget,wantProtein,prefer)=>{
+    const cands=pool.filter(x=>!used.has(x.type+x.id) && x.kcal<=kcalBudget*1.35)
+      .filter(x=>prefer==='sweet' ? (x.category==='treats') : x.category!=='treats');
+    const list=cands.length?cands:pool.filter(x=>!used.has(x.type+x.id));
+    if(!list.length)return null;
+    // Closest to the calorie budget, with a strong pull toward protein.
+    const best=list.reduce((a,b)=>{
+      const score=x=>Math.abs(x.kcal-kcalBudget)*0.6 - (x.protein||0)*(wantProtein?4:1);
+      return score(b)<score(a)?b:a;
+    });
+    used.add(best.type+best.id);
+    return best;
+  };
+
+  return SLOTS.map(sl=>{
+    const budget=Math.round(targetKcal*sl.share);
+    const item=pick(budget, sl.k!=='evening', sl.k==='evening'?'sweet':null);
+    return { ...sl, item, status:'planned' };
+  }).filter(x=>x.item);
+}
+
+function planTotals(){
+  if(!PLAN)return {kcal:0,protein:0};
+  return PLAN.reduce((a,s)=>({
+    kcal:a.kcal+(s.status==='skipped'?0:s.item.kcal),
+    protein:a.protein+(s.status==='skipped'?0:s.item.protein)
+  }),{kcal:0,protein:0});
+}
+
+function renderPlan(){
+  const t=S?.today; if(!t){ $('#plan').innerHTML=''; return; }
+  const targetK=t.target.kcal_high, targetP=t.target.protein;
+
+  if(!PLAN||!PLAN.length){
+    $('#plan').innerHTML=`<div class="card">
+      <p class="tiny" style="margin:0 0 12px">Lay out the day in advance and the app will nudge you at each meal — and tell you what to do if one gets missed.</p>
+      <button class="btn primary" id="planMake" style="width:100%">Plan today from what I have</button>
+    </div>`;
+    return;
+  }
+
+  const h=nowHour();
+  const eatenK=t.kcal, eatenP=t.protein;
+  const left=PLAN.filter(s=>s.status==='planned');
+  const remK=Math.max(0,targetK-eatenK), remP=Math.max(0,targetP-eatenP);
+  const perK=left.length?Math.round(remK/left.length):0;
+  const perP=left.length?Math.round(remP/left.length):0;
+
+  // The next thing due, or the one already overdue.
+  const due=left.find(s=>h>=s.at-0.5)||left[0];
+
+  $('#plan').innerHTML=`
+    ${due?`<div class="card acc" style="margin-bottom:10px">
+      <p class="tiny" style="margin:0 0 4px">${h>=due.at?'Due now':'Next up'} · ${atLabel(due.at)}</p>
+      <div style="display:flex;align-items:baseline;gap:9px">
+        <b style="font-family:var(--display);font-size:24px;text-transform:uppercase;line-height:1.1">${esc(due.item.name)}</b>
+        <span class="tiny" style="margin-left:auto;text-align:right;white-space:nowrap">${Math.round(due.item.kcal)} kcal<br>${Math.round(due.item.protein)}g</span>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn primary" data-planate="${due.k}">I had it</button>
+        <button class="btn ghost" data-planskip="${due.k}" style="flex:0 0 74px">Skipped</button>
+      </div>
+    </div>`:''}
+
+    <div class="card">
+      ${PLAN.map(s=>{
+        const done=s.status==='eaten', skip=s.status==='skipped';
+        return `<div class="line" style="padding:11px 0;opacity:${skip?.45:1}">
+          <span style="color:var(--dim);font:10px/1 var(--mono);flex:0 0 58px">${atLabel(s.at)}</span>
+          <span style="flex:1;font-size:14px;color:var(--ink);text-decoration:${skip?'line-through':'none'}">
+            ${done?'<span style="color:var(--good)">✓ </span>':''}${esc(s.item.name)}
+            <span style="display:block;font:10px/1.5 var(--mono);color:var(--faint)">${Math.round(s.item.kcal)} KCAL · ${Math.round(s.item.protein)}P</span>
+          </span>
+          ${s.status==='planned'?`<button class="m" data-planswap="${s.k}" style="color:var(--dim)">swap</button>`:''}
+        </div>`;
+      }).join('')}
+
+      <p class="tiny" style="margin:14px 0 0">
+        ${left.length
+          ? `${eatenK} eaten of ${targetK}. ${remK} kcal and ${remP}g protein left across ${left.length} more ${left.length>1?'meals':'meal'} — about <b style="color:var(--acc)">${perK} kcal and ${perP}g each</b>.`
+          : `Plan finished. ${eatenK} eaten of ${targetK}, ${eatenP}g of ${targetP}g protein.`}
+      </p>
+      <button class="btn ghost" id="planReset" style="width:100%;margin-top:12px">Start the plan over</button>
+    </div>`;
 }
 
 async function loadMeals(){
@@ -1934,6 +2057,45 @@ document.addEventListener('click',async e=>{
   if(b.dataset.wdel){await post('workout/delete',{id:+b.dataset.wdel});toast('Deleted.');return refresh();}
 
 
+  if(b.id==='planMake'){
+    const t=S?.today; if(!t)return;
+    if(!PRODUCTS.length&&!MEALS.length)return toast('Add some groceries first.');
+    PLAN=buildPlan(t.target.kcal_high,t.target.protein);
+    if(!PLAN)return toast('Nothing in stock to plan with.');
+    savePlan(); renderPlan();
+    return toast('Planned. It will nudge you at each meal.');
+  }
+  if(b.id==='planReset'){ PLAN=null; savePlan(); localStorage.removeItem(planKey()); return renderPlan(); }
+  if(b.dataset.planate){
+    const sl=PLAN.find(x=>x.k===b.dataset.planate); if(!sl)return;
+    b.disabled=true;
+    try{
+      if(sl.item.type==='meal') await post('meal/log',{id:sl.item.id});
+      else await post('product/log',{id:sl.item.id,servings:1});
+      sl.status='eaten'; savePlan();
+      toast(`Logged ${Math.round(sl.item.kcal)} kcal`);
+    }catch(e){ toast('Could not log that.'); }
+    b.disabled=false;
+    await refresh(); loadProducts(); return renderPlan();
+  }
+  if(b.dataset.planskip){
+    const sl=PLAN.find(x=>x.k===b.dataset.planskip); if(!sl)return;
+    sl.status='skipped'; savePlan(); renderPlan();
+    const left=PLAN.filter(x=>x.status==='planned');
+    const t=S.today;
+    const remK=Math.max(0,t.target.kcal_high-t.kcal), remP=Math.max(0,t.target.protein-t.protein);
+    return toast(left.length
+      ? `Skipped. ${Math.round(remK/left.length)} kcal and ${Math.round(remP/left.length)}g protein per remaining meal now.`
+      : `Skipped. ${remK} kcal and ${remP}g protein still to go today.`);
+  }
+  if(b.dataset.planswap){
+    const sl=PLAN.find(x=>x.k===b.dataset.planswap); if(!sl)return;
+    const pool=[...MEALS.map(m=>({name:m.name,kcal:m.kcal,protein:m.protein,type:'meal',id:m.id})),
+                ...PRODUCTS.filter(p=>p.kcal>0).map(p=>({name:p.name,kcal:p.kcal,protein:p.protein,type:'product',id:p.id}))];
+    const i=pool.findIndex(x=>x.type===sl.item.type&&x.id===sl.item.id);
+    sl.item=pool[(i+1)%pool.length];
+    savePlan(); return renderPlan();
+  }
   if(b.id==='buildBtn'){ BUILD=[]; BUILDQ=''; return renderBuilder(); }
   if(b.id==='buildClose'){ $('#builder').classList.add('hide'); BUILD=[]; return; }
   if(b.dataset.badd){ BUILD.push({id:+b.dataset.badd,servings:1}); BUILDQ=''; return renderBuilder(); }
@@ -2453,7 +2615,8 @@ if(SR){const rec=new SR();rec.continuous=false;rec.interimResults=true;rec.lang=
 }else $('#mic').classList.add('hide');
 
 async function boot(){
-  await refresh(); loadInv(); loadProducts(); loadMeals(); rcPaint(); paintChat();
+  await refresh(); loadInv(); loadProducts(); await loadMeals(); rcPaint(); paintChat();
+  loadPlanFromStore(); renderPlan();
   const want=(location.hash||'').replace('#','');
   if(want && TITLES[want] && want!=='hub') go(want);
   document.querySelector('.stage').dataset.g=GUIDE;
