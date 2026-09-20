@@ -280,7 +280,7 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
 <div id="app" class="hide">
 <header>
   <h1 id="vtitle">Today</h1>
-  <button id="ver" title="Tap to force a fresh copy">v47</button>
+  <button id="ver" title="Tap to force a fresh copy">v49</button>
   <span style="justify-self:end;display:flex;align-items:center;gap:10px">
     <span class="date" id="vdate"></span>
     <button id="gear" aria-label="Settings" style="width:34px;height:34px;display:grid;place-items:center;color:var(--dim)">
@@ -448,6 +448,7 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
   <div class="seg" id="discSeg">
     <button data-disc="resistance" class="on">Weights</button>
     <button data-disc="calisthenics">Bodyweight</button>
+    <button data-disc="conditioning">Conditioning</button>
     <button data-disc="cardio">Walking</button>
   </div>
 
@@ -514,6 +515,8 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
   <h2>Logged today</h2>
   <div id="tLog"></div>
   <p class="tiny" id="tBurn" style="margin-top:8px"></p>
+
+  <p class="tiny" id="discNote" style="margin-top:10px"></p>
 
   <h2>Watch the Achilles</h2>
   <div class="card">
@@ -741,6 +744,7 @@ let CHARTMODE='bar', LASTSERIES=null;
 const MUSCLES={
   resistance:[['legs','Legs'],['glutes','Glutes'],['chest','Chest'],['back','Back'],['shoulders','Shoulders'],['arms','Arms'],['core','Core']],
   calisthenics:[['fullbody','Full body'],['core','Core'],['chest','Chest'],['back','Back'],['arms','Arms'],['legs','Legs']],
+  conditioning:[['legs','Legs'],['fullbody','Full body'],['core','Core']],
   cardio:[]
 };
 let CHAT=[], CARDIORANGE='day', GUIDE='bright';
@@ -1470,8 +1474,6 @@ function scrubWeight(ev){
 async function loadTrain(){
   const cardio = DISC==='cardio';
   $('#cardioBox').classList.toggle('hide',!cardio);
-  // Walking gets the Health panel on top, but it still needs its own movements
-  // listed and loggable — stairs, jogs, anything you count yourself.
   $('#muscles').classList.toggle('hide',cardio);
   $('#addRow').classList.remove('hide');
   $('#strengthOnly').classList.remove('hide');
@@ -1491,7 +1493,7 @@ async function loadTrain(){
 
   if(cardio && list.length)
     $('#exList').insertAdjacentHTML('afterbegin',
-      '<p class="tiny" style="margin:16px 0 4px">Things you count yourself</p>');
+      '<p class="tiny" style="margin:16px 0 4px">Jogs and runs you log by hand</p>');
 }
 
 async function loadCardio(){

@@ -1,7 +1,7 @@
 // Fitness Hub — shared library (Cloudflare Pages Functions)
 // Underscore prefix = not routed, importable only.
 
-export const VERSION = 'v47';
+export const VERSION = 'v49';
 export const TZ = 'America/New_York';
 
 export const dayStr = (offset = 0) =>
@@ -111,7 +111,15 @@ export async function trends(env) {
     'SELECT d, SUM(kcal) k, SUM(protein) p, SUM(fiber) f FROM food_log WHERE d >= ?1 AND d < ?2 GROUP BY d',
     [since, dayStr()]
   );
-  const strength = await all(env, 'SELECT d, COUNT(*) n FROM workout_log WHERE d >= ?1 GROUP BY d', [dayStr(-14)]);
+  // Only loaded and bodyweight strength counts toward recovery. Stair repeats and
+  // jumping jacks are conditioning — hard, but you can do them again tomorrow.
+  const strength = await all(env,
+    `SELECT d, COUNT(*) n FROM workout_log
+      WHERE d >= ?1 AND COALESCE(discipline,'calisthenics') IN ('resistance','calisthenics')
+      GROUP BY d`, [dayStr(-14)]);
+  const conditioning = await all(env,
+    "SELECT d, COUNT(*) n FROM workout_log WHERE d >= ?1 AND discipline='conditioning' GROUP BY d",
+    [dayStr(-14)]).catch(() => []);
 
   // The first weight actually recorded beats whatever was typed into the profile
   // at setup. A stale profile figure quietly skews every "since the start" number.
@@ -138,7 +146,8 @@ export async function trends(env) {
     avg_protein_14day: intake.length ? Math.round(mean(intake.map((r) => r.p))) : null,
     avg_fiber_14day: intake.length ? Math.round(mean(intake.map((r) => r.f))) : null,
     days_logged_14: intake.length,
-    strength_sessions_14: strength.length
+    strength_sessions_14: strength.length,
+    conditioning_sessions_14: conditioning.length
   };
 }
 
@@ -604,11 +613,17 @@ function guessExercise(name) {
   const t = String(name || '').toLowerCase();
   const has = (...w) => w.some((x) => t.includes(x));
 
-  // Anything sustained and locomotive is cardio, whatever muscles it happens to use.
-  if (has('walk', 'run', 'jog', 'sprint', 'stair', 'step mill', 'stepper', 'climb',
-          'bike', 'cycl', 'spin', 'row machine', 'erg', 'elliptical', 'treadmill',
-          'swim', 'hike', 'jump rope', 'skip', 'cardio', 'interval'))
+  // Steady-state, measured in distance or time.
+  if (has('walk', 'jog', 'run ', 'running', 'bike', 'cycl', 'spin class',
+          'elliptical', 'treadmill', 'swim', 'hike', 'row machine', 'erg'))
     return { discipline: 'cardio', muscle: 'cardio', unit: 'distance' };
+
+  // Counted and breathless. Trains the engine, recovers overnight.
+  if (has('stair', 'climb', 'jump rope', 'skip rope', 'burpee', 'mountain climber',
+          'jumping jack', 'jack', 'shuttle', 'sprint', 'battle rope', 'interval', 'circuit'))
+    return { discipline: 'conditioning',
+             muscle: has('jack', 'burpee', 'climber', 'battle') ? 'fullbody' : 'legs',
+             unit: 'reps' };
 
   const muscle =
     has('curl', 'tricep', 'bicep', 'dip', 'forearm') ? 'arms' :
@@ -636,13 +651,20 @@ export async function classifyExercise(env, name) {
 `Classify one exercise. Return ONLY JSON, no prose, no fences:
 {"discipline":"resistance"|"calisthenics"|"cardio","muscle":"arms"|"chest"|"back"|"shoulders"|"legs"|"glutes"|"core"|"fullbody"|"cardio","unit":"reps"|"time"|"distance","cue":string}
 
+The deciding question is WHAT THE WORK ADAPTS, because that decides how long it needs to recover.
+
 discipline:
-- "cardio" for anything sustained and locomotive: walking, running, stairs, cycling, rowing, swimming, elliptical, jump rope, hiking. Climbing stairs is cardio even though the legs work hard.
-- "resistance" for movements loaded with external weight: dumbbells, barbells, machines, cables, kettlebells, bands.
-- "calisthenics" for bodyweight strength: push-ups, pull-ups, planks, sit-ups, dips, burpees.
+- "resistance" — loaded with external weight: dumbbells, barbells, machines, cables, kettlebells, bands. Needs a day or two before the same muscle is trained again.
+- "calisthenics" — bodyweight STRENGTH taken near failure in sets: push-ups, pull-ups, dips, sit-ups, planks, glute bridges. Same recovery cost as resistance.
+- "conditioning" — counted, repeated, breathless work that trains the engine rather than a muscle: stair repeats, jumping jacks, burpees, mountain climbers, jump rope, shuttle runs, intervals, battle ropes. It is counted in reps like strength work, but it can be repeated the next day.
+- "cardio" — ambient or steady-state movement measured in distance or elapsed time with no sets: walking about, a treadmill session, a jog, a bike ride, a swim.
+
+The test that separates "conditioning" from "calisthenics": would he stop because the muscle failed, or because he was out of breath? Out of breath means conditioning.
+
+Stairs run up and down for a count is "conditioning", muscle "legs". A slow weighted step-up is "resistance". A stair machine for 20 minutes is "cardio".
 
 muscle: the primary mover. Use "cardio" for cardio, "fullbody" only when no single group dominates.
-unit: "distance" for cardio that covers ground, "time" for holds and carries, "reps" for everything else.
+unit: "distance" for cardio that covers ground, "time" for holds, carries and steady-state sessions, "reps" for anything counted.
 cue: one short sentence of form advice, under 90 characters.`;
 
   try {
@@ -1329,7 +1351,8 @@ export async function coachBrief(env) {
 
   // 2 — what today's training is
   const [sessions7, lastByMuscle] = await Promise.all([
-    all(env, "SELECT DISTINCT d FROM workout_log WHERE d >= ?1 AND discipline!='running'", [dayStr(-6)]),
+    all(env, `SELECT DISTINCT d FROM workout_log WHERE d >= ?1
+                AND COALESCE(discipline,'calisthenics') IN ('resistance','calisthenics')`, [dayStr(-6)]),
     all(env, 'SELECT muscle, MAX(d) last FROM workout_log WHERE muscle IS NOT NULL GROUP BY muscle')
   ]);
   const seen = Object.fromEntries(lastByMuscle.map((r) => [r.muscle, r.last]));
@@ -1342,7 +1365,7 @@ export async function coachBrief(env) {
   if (trainedToday) {
     plan = `Today's already logged — ${td.workouts.map((w) => w.exercise).slice(0, 3).join(', ')}. Walk if you've got it in you, otherwise that's the day.`;
   } else if (sessions7.length >= 3) {
-    plan = `Three strength sessions in already this week. Today can be a walk and nothing else — recovery is where the muscle actually shows up.`;
+    plan = `Three strength sessions in already this week. Conditioning is still fine — stairs, jacks, a walk — but leave the loaded work alone today. Recovery is where the muscle shows up.`;
   } else if (dow === 0) {
     plan = `Sunday. Waist measurement, a photo, and an easy walk. No strength needed.`;
   } else {
