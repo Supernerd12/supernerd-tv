@@ -289,7 +289,7 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
 <div id="app" class="hide">
 <header>
   <h1 id="vtitle">Today</h1>
-  <button id="ver" title="Tap to force a fresh copy">v51</button>
+  <button id="ver" title="Tap to force a fresh copy">v52</button>
   <span style="justify-self:end;display:flex;align-items:center;gap:10px">
     <span class="date" id="vdate"></span>
     <button id="gear" aria-label="Settings" style="width:34px;height:34px;display:grid;place-items:center;color:var(--dim)">
@@ -375,7 +375,7 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
 <section class="view hide" id="v-food">
   <div class="card acc">
     <div style="display:flex;align-items:baseline;gap:9px">
-      <span class="big" id="fLeft">—</span><span class="tiny">kcal left</span>
+      <span class="big" id="fLeft">—</span><span class="tiny" id="fUnit">kcal of room</span>
       <span class="tiny" id="fSub" style="margin-left:auto;text-align:right"></span>
     </div>
     <div class="bar" id="fBar"><i></i></div>
@@ -858,11 +858,27 @@ async function refresh(){
     ? `${t.workouts.length} logged${t.burn_kcal?` · ≈${t.burn_kcal} kcal`:''}` : 'nothing yet';
   $('#hPhoto').textContent=t.has_photo?'taken':'not taken';
 
-  const left=t.kcal_remaining, fl=$('#fLeft');
-  fl.classList.toggle('over',left<0); roll(fl,Math.abs(left));
-  $('#fSub').innerHTML=`${t.kcal} eaten<br>of ${g.kcal_low}–${g.kcal_high}`+(left<0?'<br>over — watch the week':'');
-  $('#fBar').classList.toggle('over',left<0);
-  $('#fBar').firstElementChild.style.width=Math.min(100,t.kcal/g.kcal_high*100)+'%';
+  // Room is measured against what you burned, not a fixed intake ceiling. The Hub
+  // counts deficit; this card used to count against 1,750, and the two disagreed.
+  api('energy').then(e=>{
+    const room = e.out - e.target - e.intake;
+    const fl=$('#fLeft');
+    fl.classList.toggle('over', room<0);
+    roll(fl, Math.abs(Math.round(room)));
+    $('#fUnit').textContent = room<0 ? 'kcal past your deficit target' : 'kcal of room';
+    $('#fSub').innerHTML = `${e.intake.toLocaleString()} eaten<br>of ~${e.out.toLocaleString()} burned`
+      + (room<0
+          ? (e.deficit>=0 ? `<br>still ${e.deficit} under maintenance` : `<br>${Math.abs(e.deficit)} over maintenance`)
+          : `<br>keeps you ${e.target} under`);
+    const cap = Math.max(1, e.out - e.target);
+    $('#fBar').classList.toggle('over', room<0);
+    $('#fBar').firstElementChild.style.width = Math.min(100, e.intake/cap*100)+'%';
+  }).catch(()=>{
+    const left=t.kcal_remaining, fl=$('#fLeft');
+    fl.classList.toggle('over',left<0); roll(fl,Math.abs(left));
+    $('#fUnit').textContent = left<0 ? 'kcal over' : 'kcal left';
+    $('#fSub').innerHTML=`${t.kcal} eaten<br>of ${g.kcal_low}–${g.kcal_high}`;
+  });
   $('#fProt').textContent=`${t.protein} / ${g.protein} g`;
   $('#fFib').textContent=`${t.fiber} g`;
   $('#wNum').textContent=t.water_oz;
