@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v53';  // v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
+  const VERSION = 'v54';  // v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   const items    = (await getCollection('reviewItems')).filter(i => i.data.published !== false);
@@ -27,11 +27,18 @@ export async function getStaticPaths() {
     return '';
   };
 
-  return reviews.map((review) => {
+  // Every published review record is a COMPANY. Build a lookup for names/logos.
+  const companyByKey = new Map();
+  for (const r of reviews) companyByKey.set(r.data.key, { key: r.data.key, name: r.data.name, logo: r.data.logo || '' });
+  // Only ONE page is generated: the Studio hub. It aggregates every company and
+  // every project. Companies live INSIDE it (opened from the company grid), not as
+  // separate /r/ URLs — one place, one comment namespace, admin sees all.
+  const hubReview = reviews.find(r => r.data.url_slug === 'studio' || r.data.key === 'studio') || reviews[0];
+
+  return [hubReview].map((review) => {
     const co = review.data;
 
     const PROJECTS = projects
-      .filter(p => p.data.company_key === co.key)
       .sort((a, b) => (a.data.order ?? 100) - (b.data.order ?? 100))
       .map((p) => {
         const mine = items
@@ -85,17 +92,28 @@ export async function getStaticPaths() {
           return { id: sName, name: sName, stacks };
         });
 
+        // Company this project belongs to: prefer the legacy per-project client
+        // tag (how TRRP was set up), else the company_key relation.
+        const ck = p.data.client || p.data.company_key || co.key;
+        const comp = companyByKey.get(ck) || {};
         return { id: p.data.key, title: p.data.title, tagline: p.data.tagline || '', sections,
-                 client: p.data.company_key || p.data.client || co.key,
-                 client_name: p.data.client_name || co.name,
-                 client_logo: p.data.client_logo || co.logo || '' };
+                 client: ck,
+                 client_name: p.data.client_name || comp.name || ck,
+                 client_logo: p.data.client_logo || comp.logo || '' };
       });
 
-    // Group projects into CLIENTS (companies) for the Studio company grid.
+    // Companies for the Studio grid. Seed from every published company (review)
+    // so an onboarded company shows even before it has a project, then attach
+    // projects. The hub record itself is not a company card.
     const cOrder = []; const cMap = new Map();
+    for (const r of reviews) {
+      const k = r.data.key;
+      if (r.data.url_slug === 'studio' || k === 'studio') continue;
+      if (!cMap.has(k)) { cMap.set(k, { key: k, name: r.data.name, logo: r.data.logo || '', projects: [] }); cOrder.push(k); }
+    }
     for (const pr of PROJECTS) {
       const ck = pr.client || co.key;
-      if (!cMap.has(ck)) { cMap.set(ck, { key: ck, name: pr.client_name || co.name || ck, logo: pr.client_logo || co.logo || '', projects: [] }); cOrder.push(ck); }
+      if (!cMap.has(ck)) { cMap.set(ck, { key: ck, name: pr.client_name || ck, logo: pr.client_logo || '', projects: [] }); cOrder.push(ck); }
       const cl = cMap.get(ck);
       if (!cl.logo && pr.client_logo) cl.logo = pr.client_logo;
       cl.projects.push(pr.id);
@@ -2007,8 +2025,10 @@ function visibleProjectIds(){
     var allow={}; inv.project_keys.forEach(function(k){ allow[k]=1; });
     base=CONFIG.PROJECTS.filter(function(p){ return allow[p.id]; }).map(function(p){ return p.id; });
   } else {
-    // no explicit grant yet -> show all current projects (safe while one client; tighten by granting)
-    base=CONFIG.PROJECTS.map(p=>p.id);
+    // no explicit grant yet -> see NOTHING until granted. This keeps companies
+    // isolated on the shared /r/studio/ hub: a client only sees a company once
+    // they've been given access to one of its projects (Project Partners).
+    base=[];
   }
   return base.filter(function(id){ return !isHidden(visKeyProject(id)); });
 }
