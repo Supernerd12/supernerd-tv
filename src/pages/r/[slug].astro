@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v52';  // v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
+  const VERSION = 'v53';  // v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   const items    = (await getCollection('reviewItems')).filter(i => i.data.published !== false);
@@ -86,16 +86,16 @@ export async function getStaticPaths() {
         });
 
         return { id: p.data.key, title: p.data.title, tagline: p.data.tagline || '', sections,
-                 client: p.data.client || 'studio',
-                 client_name: p.data.client_name || (p.data.client ? p.data.client : co.name),
-                 client_logo: p.data.client_logo || '' };
+                 client: p.data.company_key || p.data.client || co.key,
+                 client_name: p.data.client_name || co.name,
+                 client_logo: p.data.client_logo || co.logo || '' };
       });
 
     // Group projects into CLIENTS (companies) for the Studio company grid.
     const cOrder = []; const cMap = new Map();
     for (const pr of PROJECTS) {
-      const ck = pr.client || 'studio';
-      if (!cMap.has(ck)) { cMap.set(ck, { key: ck, name: pr.client_name || ck, logo: pr.client_logo || '', projects: [] }); cOrder.push(ck); }
+      const ck = pr.client || co.key;
+      if (!cMap.has(ck)) { cMap.set(ck, { key: ck, name: pr.client_name || co.name || ck, logo: pr.client_logo || co.logo || '', projects: [] }); cOrder.push(ck); }
       const cl = cMap.get(ck);
       if (!cl.logo && pr.client_logo) cl.logo = pr.client_logo;
       cl.projects.push(pr.id);
