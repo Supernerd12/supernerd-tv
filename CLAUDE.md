@@ -29,6 +29,12 @@ alter or break the others. Read this before editing anything.
   Companies are NOT separate URLs. Do not reintroduce per-company /r/ pages.
 - Backend: Supabase (comments, approvals, tasks, activity, access) + a
   `stream-dl` Edge Function for video downloads. Runtime is Supabase, not files.
+- Onboarding (v55+): admin "Add company" / "Add project" in /r/studio/ calls the
+  `portal-onboard` Edge Function (source: `supabase/functions/portal-onboard/`),
+  which commits the same review JSON files Sveltia writes (+ logo in
+  `public/work/uploads/`) straight to main. So the portal itself commits — always
+  `git pull` first. Deploy the function with
+  `supabase functions deploy portal-onboard --project-ref wvtokocjhtpjrkojxaia`.
 - Standing rule: bump the footer version `const VERSION = 'vN'` on every change
   to this file, and say the new number.
 
@@ -43,7 +49,7 @@ alter or break the others. Read this before editing anything.
   `_redirects`. Only ever add/edit the specific files or subfolder that change.
 - A change scoped to one product must touch ONLY that product's paths above.
   Fitness work touches `public/fit/` and `functions/` only. Portal work touches
-  `src/pages/r/[slug].astro` and `src/content/review*` only. Portfolio work
+  `src/pages/r/[slug].astro`, `src/content/review*` and `supabase/functions/` only. Portfolio work
   touches `src/pages/`, `src/content/work/`, and specific files in `public/`.
 - Never delete files outside the product you're working on. If a change seems to
   require touching another product's files, STOP and ask first.

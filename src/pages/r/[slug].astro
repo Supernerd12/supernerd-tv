@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v54';  // v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
+  const VERSION = 'v55';  // v55: Add company / Add project from the Studio (portal-onboard fn commits CMS files). (v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   const items    = (await getCollection('reviewItems')).filter(i => i.data.published !== false);
@@ -1835,6 +1835,108 @@ select.nl-i option{background:#15161a; color:var(--bone)}
   .so-item,.so-c{page-break-inside:avoid}
   .so-sec{page-break-after:avoid}
 }
+
+/* ===== v55 — onboard a company / add a project from the Studio (admin) ===== */
+.ccard-add,.card-add{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:240px;border:1.5px dashed rgba(186,192,30,.45);border-radius:16px;background:rgba(186,192,30,.025);color:var(--green);cursor:pointer;font:inherit;transition:border-color .16s var(--ease),background .16s var(--ease),transform .16s var(--ease)}
+.card-add{min-height:150px;border-radius:10px}
+.ccard-add:hover,.card-add:hover{border-color:var(--green);background:rgba(186,192,30,.07);transform:translateY(-2px)}
+.add-plus{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--green);color:#0c0d0e;font-size:26px;font-weight:700;line-height:1}
+.add-lbl{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase}
+.add-sub{font-family:var(--mono);font-size:11px;color:var(--dim)}
+.nb{position:fixed;inset:0;z-index:130;overflow-y:auto;background:rgba(4,5,4,.94);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);animation:nbIn .22s var(--ease)}
+@keyframes nbIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.nb-wrap{max-width:1120px;margin:0 auto;padding:34px 24px 120px}
+.nb-top{display:flex;align-items:flex-start;gap:16px;margin-bottom:26px}
+.nb-top h1{font-family:var(--disp);font-weight:800;font-size:clamp(30px,4.4vw,46px);line-height:1.02;letter-spacing:-.02em;margin:8px 0 6px}
+.nb-top p{margin:0;color:var(--dim);font-size:15px;max-width:560px}
+.nb-x{margin-left:auto;flex:0 0 40px;height:40px;border-radius:50%;border:1px solid var(--hair-2,rgba(255,255,255,.14));background:none;color:var(--bone);font-size:20px;cursor:pointer}
+.nb-x:hover{border-color:var(--green);color:var(--green)}
+.nb-grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:28px;align-items:start}
+.nb-grid > *{min-width:0}
+.nb-sec{border:1px solid var(--hair);border-radius:16px;background:rgba(255,255,255,.018);padding:22px 22px 20px;margin-bottom:16px}
+.nb-sh{display:flex;align-items:baseline;gap:12px;margin-bottom:14px}
+.nb-num{font-family:var(--mono);font-size:11px;color:var(--green);letter-spacing:.1em}
+.nb-sh h3{margin:0;font-size:19px;font-weight:700;letter-spacing:-.01em}
+.nb-opt{margin-left:auto;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.nb-l{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin:0 0 6px}
+.nb-i{width:100%;font-family:var(--disp);font-size:15px;color:var(--bone);background:#000;border:1px solid var(--line);border-radius:9px;padding:11px 13px;transition:border-color .15s var(--ease)}
+.nb-i:focus{outline:none;border-color:rgba(186,192,30,.7)}
+.nb-i.bad{border-color:#e5484d}
+.nb-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.nb-row.one{grid-template-columns:1fr}
+.nb-key{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:7px;font-family:var(--mono);font-size:11px;color:var(--dim)}
+.nb-key input{font-family:var(--mono);font-size:11px;color:var(--green-hi);background:transparent;border:none;border-bottom:1px dashed rgba(186,192,30,.4);padding:1px 2px;flex:1;min-width:140px;max-width:330px}
+.nb-key input:focus{outline:none;border-bottom-color:var(--green)}
+.nb-key .err{color:#ff8a8d}
+.nb-drop{display:flex;align-items:center;gap:16px;padding:14px;border:1.5px dashed var(--line);border-radius:12px;cursor:pointer;transition:border-color .15s var(--ease),background .15s var(--ease)}
+.nb-drop:hover,.nb-drop.over{border-color:var(--green);background:rgba(186,192,30,.05)}
+.nb-drop-prev{flex:0 0 120px;height:72px;border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center;padding:8px;overflow:hidden}
+.nb-drop-prev img{max-width:100%;max-height:100%;object-fit:contain}
+.nb-drop-prev.empty{background:linear-gradient(150deg,#1a1c0f,#0c0d07);color:var(--green);font-weight:800;font-size:30px}
+.nb-drop-t b{display:block;font-size:14px;font-weight:600}
+.nb-drop-t span{font-family:var(--mono);font-size:11px;color:var(--dim)}
+.nb-co{display:flex;align-items:center;gap:14px}
+.nb-co .nb-drop-prev{flex-basis:96px;height:58px}
+.nb-co b{font-size:18px}
+.nb-ph{display:flex;align-items:center;gap:10px;padding:7px 8px 7px 10px;border:1px solid var(--hair);border-radius:10px;margin-bottom:7px;background:#000}
+.nb-ph.cur{border-color:rgba(186,192,30,.6)}
+.nb-ph input[type=color]{flex:0 0 22px;width:22px;height:22px;border:none;border-radius:50%;padding:0;background:none;cursor:pointer}
+.nb-ph input[type=color]::-webkit-color-swatch-wrapper{padding:0}
+.nb-ph input[type=color]::-webkit-color-swatch{border:none;border-radius:50%}
+.nb-ph .nb-phn{flex:1;min-width:0;font-family:var(--disp);font-size:14.5px;color:var(--bone);background:transparent;border:none;padding:4px 0}
+.nb-ph .nb-phn:focus{outline:none}
+.nb-cur{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:5px 9px;border-radius:999px;border:1px solid var(--line);background:none;color:var(--dim);cursor:pointer;white-space:nowrap}
+.nb-ph.cur .nb-cur{background:var(--green);border-color:var(--green);color:#0c0d0e;font-weight:700}
+.nb-del{flex:0 0 28px;height:28px;border-radius:50%;border:none;background:none;color:var(--dim);cursor:pointer;font-size:14px}
+.nb-del:hover{color:#ff8a8d;background:rgba(229,72,77,.1)}
+.nb-add{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--green-hi);background:rgba(186,192,30,.07);border:1px dashed rgba(186,192,30,.45);border-radius:9px;padding:9px 14px;cursor:pointer;margin-top:4px}
+.nb-add:hover{background:rgba(186,192,30,.13)}
+.nb-skip{display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none}
+.nb-sw{flex:0 0 40px;height:23px;border-radius:999px;background:rgba(255,255,255,.12);position:relative;transition:background .15s var(--ease)}
+.nb-sw:after{content:'';position:absolute;top:3px;left:3px;width:17px;height:17px;border-radius:50%;background:var(--bone);transition:transform .18s var(--ease)}
+.nb-skip.on .nb-sw{background:var(--green)}
+.nb-skip.on .nb-sw:after{transform:translateX(17px);background:#0c0d0e}
+.nb-skip span{font-size:14px;color:var(--dim)}
+.nb-cal{margin-top:14px}
+.nb-ev{display:grid;grid-template-columns:minmax(0,1fr) 150px 130px 28px;gap:8px;align-items:center;margin-bottom:7px}
+.nb-ev .nb-i{padding:9px 11px;font-size:14px}
+.nb-ev select.nb-i{font-family:var(--mono);font-size:12px}
+.nb-side{position:sticky;top:24px}
+.nb-prev-l{font-family:var(--mono);font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);margin:0 0 10px}
+.nb-side .ccard{pointer-events:none;margin-bottom:18px}
+.nb-side .card{pointer-events:none;margin-bottom:18px}
+.nb-files{border:1px solid var(--hair);border-radius:12px;padding:14px 16px;font-family:var(--mono);font-size:11px;color:var(--dim);line-height:1.8}
+.nb-files b{color:var(--bone);font-weight:400}
+.nb-foot{position:fixed;left:0;right:0;bottom:0;z-index:131;display:flex;justify-content:center;background:linear-gradient(180deg,rgba(4,5,4,0),rgba(4,5,4,.96) 40%);padding:28px 24px 20px;pointer-events:none}
+.nb-foot-in{width:100%;max-width:1120px;display:flex;align-items:center;gap:14px;pointer-events:auto}
+.nb-msg{font-family:var(--mono);font-size:12px;color:var(--dim)}
+.nb-msg.err{color:#ff8a8d}
+.nb-go{margin-left:auto;font-family:var(--mono);font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:#0c0d0e;background:var(--green);border:none;border-radius:10px;padding:14px 26px;cursor:pointer;font-weight:700;transition:background .15s var(--ease)}
+.nb-go:hover{background:var(--green-hi)}
+.nb-go:disabled{opacity:.5;cursor:default}
+.nb-ghost{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);background:none;border:1px solid var(--line);border-radius:10px;padding:13px 20px;cursor:pointer}
+.nb-steps{max-width:560px;margin:10px 0 0}
+.nb-step{display:flex;align-items:center;gap:14px;padding:15px 0;border-bottom:1px solid var(--hair);font-size:15px}
+.nb-step .ic{flex:0 0 26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;border:1px solid var(--line);color:var(--dim)}
+.nb-step.ok .ic{background:var(--green);border-color:var(--green);color:#0c0d0e;font-weight:700}
+.nb-step.bad .ic{background:#e5484d;border-color:#e5484d;color:#fff}
+.nb-step.run .ic{border-color:var(--green);border-top-color:transparent;animation:nbSpin .8s linear infinite}
+.nb-step small{display:block;font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:2px}
+.nb-step small a{color:var(--green-hi)}
+@keyframes nbSpin{to{transform:rotate(360deg)}}
+.nb-done{margin-top:26px;display:flex;gap:12px;flex-wrap:wrap}
+@media (max-width:900px){
+  .nb-grid{grid-template-columns:1fr}
+  .nb-side{position:static}
+  .nb-side .ccard,.nb-side .card{max-width:340px}
+}
+@media (max-width:600px){
+  .nb-wrap{padding:22px 16px 130px}
+  .nb-row{grid-template-columns:1fr}
+  .nb-ev{grid-template-columns:1fr 1fr 28px}
+  .nb-ev .nb-evt{grid-column:1 / -1}
+  .nb-sec{padding:18px 16px}
+}
 </style>
 </head>
 <body>
@@ -2297,7 +2399,9 @@ function renderCompanyGrid(clients){
       +'<div class="cc-body"><div class="c-eye">Company</div><h3>'+esc(cl.name)+'</h3>'
       +'<div class="c-foot"><span class="c-count">'+np+' project'+(np===1?'':'s')+'</span><span class="c-go">Open →</span></div></div></a>';
   }).join('');
-  app.innerHTML='<section class="landing"><div class="eyebrow">Studio</div><h1 class="co-name">Companies</h1><p class="lead">Open a company to review its projects.</p><div class="cgrid">'+(cards||'<p class="sec-empty">No companies yet. Add a project and tag it with a client.</p>')+'</div></section>';
+  const add = ADMIN ? '<button type="button" class="ccard-add" id="nbAddCo"><span class="add-plus">+</span><span class="add-lbl">Add company</span><span class="add-sub">Logo, first project, phases</span></button>' : '';
+  app.innerHTML='<section class="landing"><div class="eyebrow">Studio</div><h1 class="co-name">Companies</h1><p class="lead">Open a company to review its projects.</p><div class="cgrid">'+((cards+add)||'<p class="sec-empty">No companies yet. Add a project and tag it with a client.</p>')+'</div></section>';
+  const ab=document.getElementById('nbAddCo'); if(ab) ab.onclick=function(){ nbOpen(null); };
 }
 function renderNoAccess(){
   const app=document.getElementById('app');
@@ -2321,8 +2425,9 @@ function renderClientProjects(cl, allow){
   const nProj=CONFIG.PROJECTS.filter(function(p){ return p.client===cl.key && allow[p.id]; }).length;
   const reorderBtn=(owner && nProj>1) ? '<button class="ca-btn ghost porg-enter" id="porgEnter">\u283f Reorder</button>' : '';
   const onboard = ADMIN ? onboardSectionHTML(cl) : '';
-  app.innerHTML='<section class="landing">'+back+'<div class="eyebrow">Company</div><h1 class="co-name">'+esc(cl.name)+'</h1><div class="lead-row"><p class="lead">Open a project to review its work. Leave a note, a voice note, or pin a comment right onto an image.</p>'+reorderBtn+'</div>'+onboard+'<div class="grid">'+(cards||'<p class="sec-empty">No projects yet.</p>')+'</div></section>';
-  if(ADMIN){ const b=document.getElementById('ob-send'); if(b) b.addEventListener('click', ()=>sendOnboarding(cl.key)); renderOnboardList(); }
+  const addProj = ADMIN ? '<button type="button" class="card-add" id="nbAddProj"><span class="add-plus">+</span><span class="add-lbl">Add project</span></button>' : '';
+  app.innerHTML='<section class="landing">'+back+'<div class="eyebrow">Company</div><h1 class="co-name">'+esc(cl.name)+'</h1><div class="lead-row"><p class="lead">Open a project to review its work. Leave a note, a voice note, or pin a comment right onto an image.</p>'+reorderBtn+'</div>'+onboard+'<div class="grid">'+((cards+addProj)||'<p class="sec-empty">No projects yet.</p>')+'</div></section>';
+  if(ADMIN){ const b=document.getElementById('ob-send'); if(b) b.addEventListener('click', ()=>sendOnboarding(cl.key)); renderOnboardList(); const ap=document.getElementById('nbAddProj'); if(ap) ap.onclick=function(){ nbOpen(cl); }; }
   if(owner){
     const pe=document.getElementById('porgEnter'); if(pe) pe.onclick=function(){ reorderStart(cl.key); };
     document.querySelectorAll('.grid .card-wrap').forEach(function(w){
@@ -2333,6 +2438,215 @@ function renderClientProjects(cl, allow){
     });
   }
 }
+/* ---------- v55: onboard a company / add a project (admin) ----------
+   One page instead of Sveltia. The portal-onboard Edge Function commits the
+   same JSON files the CMS writes (reviews/, reviewProjects/, logo) to main;
+   phases + calendar go straight to Supabase. The new card appears once
+   Cloudflare finishes rebuilding (~90s), so we poll the page until it does. */
+var NB=null;
+var NB_RESERVED={studio:1,admin:1,r:1,fit:1,api:1,mcp:1};
+function nbSlug(s){ return String(s||'').toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g,'').replace(/&/g,' and ').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40).replace(/-+$/,''); }
+function nbKeyOk(k){ return /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/.test(k) && !NB_RESERVED[k]; }
+function nbCoTaken(k){ return (CONFIG.CLIENTS||[]).some(function(c){ return c.key===k; }); }
+function nbProjTaken(k){ return CONFIG.PROJECTS.some(function(p){ return p.id===k; }); }
+function nbProjKeyFor(title){
+  var b=nbSlug(title); if(!b) return '';
+  if(!nbProjTaken(b) && !NB_RESERVED[b]) return b;
+  var ck=NB.co?NB.co.key:NB.coKey;
+  var c=nbSlug((ck?ck+'-':'')+b); if(c && !nbProjTaken(c)) return c;
+  for(var i=2;i<50;i++){ var k=(c||b).slice(0,36)+'-'+i; if(!nbProjTaken(k)) return k; }
+  return c||b;
+}
+function nbOpen(company){
+  if(!ADMIN) return;
+  NB={ co:company||null, name:'', coKey:'', coKeyTouched:false, logo:null, title:'', tagline:'', pKey:'', pKeyTouched:false,
+       phases:PSTAT_DEFAULTS.map(function(p){ return {name:p.name,color:p.color}; }), cur:PSTAT_DEFAULTS[0].name,
+       calOn:false, ev:[{title:'Kickoff',date:'',type:'milestone'},{title:'Final delivery',date:'',type:'delivery'}],
+       types:CAL_DEFAULT_TYPES.map(function(d){ return {key:d[0],label:d[1]}; }), busy:false };
+  try{ sb.from('calendar_types').select('key,label,sort').eq('review_slug',CONFIG.REVIEW_SLUG).order('sort',{ascending:true}).then(function(r){ if(r&&r.data&&r.data.length&&NB){ NB.types=r.data.map(function(t){ return {key:t.key,label:t.label}; }); nbFixEvTypes(); nbRenderCal(); } },function(){}); }catch(e){}
+  var ov=document.createElement('div'); ov.className='nb'; ov.id='nbOv';
+  document.body.appendChild(ov); document.body.style.overflow='hidden';
+  nbRenderForm();
+  document.addEventListener('keydown', nbEsc);
+}
+// Studio calendar types are custom per portal; point the starter dates at real ones.
+function nbFixEvTypes(){
+  var has=function(k){ return NB.types.some(function(t){ return t.key===k; }); };
+  var byLabel=function(re){ var t=NB.types.find(function(t){ return re.test(t.label||'')||re.test(t.key); }); return t&&t.key; };
+  NB.ev.forEach(function(e){ if(has(e.type)) return;
+    e.type=(/deliver|final/i.test(e.title)?byLabel(/deliver|final/i):byLabel(/kick|milestone|meeting/i))||(NB.types[0]&&NB.types[0].key)||e.type; });
+}
+function nbEsc(e){ if(e.key==='Escape' && NB && !NB.busy && !NB.sent) nbClose(); }
+function nbClose(){ var o=document.getElementById('nbOv'); if(o) o.remove(); var f=document.getElementById('nbFoot'); if(f) f.remove(); document.body.style.overflow=''; document.removeEventListener('keydown', nbEsc); if(NB&&NB.poll) clearTimeout(NB.poll); NB=null; }
+function nbRenderForm(){
+  var ov=document.getElementById('nbOv'); var co=NB.co; var n=0; function num(){ n++; return '0'+n; }
+  var coSec = co
+    ? '<div class="nb-sec"><div class="nb-sh"><span class="nb-num">'+num()+'</span><h3>Company</h3></div><div class="nb-co"><div class="nb-drop-prev'+(co.logo?'':' empty')+'">'+(co.logo?'<img src="'+esc(co.logo)+'" alt="">':esc((co.name||'?').charAt(0).toUpperCase()))+'</div><b>'+esc(co.name)+'</b></div></div>'
+    : '<div class="nb-sec"><div class="nb-sh"><span class="nb-num">'+num()+'</span><h3>Company</h3></div>'
+      +'<div class="nb-row one"><div><label class="nb-l" for="nbName">Company name</label><input class="nb-i" id="nbName" placeholder="e.g. The Reproductive Reality Project" autocomplete="off"><div class="nb-key">id <input id="nbCoKey" spellcheck="false"><span class="err" id="nbCoKeyErr"></span></div></div></div>'
+      +'<label class="nb-l">Logo</label><label class="nb-drop" id="nbDrop"><div class="nb-drop-prev empty" id="nbLogoPrev">?</div><div class="nb-drop-t"><b id="nbLogoT">Drop a logo or click to choose</b><span>PNG, JPG, WEBP or SVG · shown on a white card · max 4 MB</span></div><input type="file" id="nbLogo" accept=".png,.jpg,.jpeg,.webp,.svg,image/png,image/jpeg,image/webp,image/svg+xml" hidden></label></div>';
+  var projSec='<div class="nb-sec"><div class="nb-sh"><span class="nb-num">'+num()+'</span><h3>'+(co?'Project':'First project')+'</h3></div>'
+    +'<div class="nb-row"><div><label class="nb-l" for="nbTitle">Project title</label><input class="nb-i" id="nbTitle" placeholder="e.g. Animated PSA" autocomplete="off"><div class="nb-key">id <input id="nbPKey" spellcheck="false"><span class="err" id="nbPKeyErr"></span></div></div>'
+    +'<div><label class="nb-l" for="nbTag">Tagline <span style="opacity:.6">(optional)</span></label><input class="nb-i" id="nbTag" placeholder="e.g. PSA · 13-day schedule" autocomplete="off"></div></div></div>';
+  var phSec='<div class="nb-sec"><div class="nb-sh"><span class="nb-num">'+num()+'</span><h3>Project phases</h3><span class="nb-opt">What the client sees as status</span></div><div id="nbPhases"></div><button type="button" class="nb-add" id="nbPhAdd">+ Add phase</button></div>';
+  var calSec='<div class="nb-sec"><div class="nb-sh"><span class="nb-num">'+num()+'</span><h3>Calendar</h3><span class="nb-opt">Optional</span></div><div class="nb-skip" id="nbCalTog"><span class="nb-sw"></span><span id="nbCalTogT">Skip for now — add dates later from the project calendar</span></div><div class="nb-cal" id="nbCal" hidden></div></div>';
+  ov.innerHTML='<div class="nb-wrap"><div class="nb-top"><div><div class="eyebrow">Studio · Admin</div><h1>'+(co?'Add a project':'Onboard a company')+'</h1><p>'+(co?'Adds a new project under '+esc(co.name)+'. It goes live on the portal about 90 seconds after you create it.':'Everything the portal needs, on one page. No Sveltia. It goes live about 90 seconds after you create it — then invite people from the company page.')+'</p></div><button class="nb-x" id="nbX" aria-label="Close">×</button></div>'
+    +'<div class="nb-grid"><div>'+coSec+projSec+phSec+calSec+'</div><aside class="nb-side"><div class="nb-prev-l">Preview</div><div id="nbPrev"></div><div class="nb-prev-l">Will be created</div><div class="nb-files" id="nbFiles"></div></aside></div></div>';
+  var foot=document.createElement('div'); foot.className='nb-foot'; foot.id='nbFoot';
+  foot.innerHTML='<div class="nb-foot-in"><button class="nb-ghost" id="nbCancel">Cancel</button><span class="nb-msg" id="nbMsg"></span><button class="nb-go" id="nbGo">'+(co?'Create project':'Create company')+'</button></div>';
+  document.body.appendChild(foot);
+  document.getElementById('nbX').onclick=nbClose; document.getElementById('nbCancel').onclick=nbClose; document.getElementById('nbGo').onclick=nbSubmit;
+  var nm=document.getElementById('nbName'), ck=document.getElementById('nbCoKey'), ti=document.getElementById('nbTitle'), pk=document.getElementById('nbPKey'), tg=document.getElementById('nbTag');
+  if(nm){ nm.oninput=function(){ NB.name=nm.value; if(!NB.coKeyTouched){ NB.coKey=nbSlug(nm.value); ck.value=NB.coKey; } if(!NB.pKeyTouched){ NB.pKey=nbProjKeyFor(NB.title); pk.value=NB.pKey; } nbSync(); };
+    ck.oninput=function(){ NB.coKeyTouched=!!ck.value; NB.coKey=nbSlug(ck.value)||''; nbSync(); }; ck.onblur=function(){ ck.value=NB.coKey; }; setTimeout(function(){ nm.focus(); },60); }
+  else setTimeout(function(){ ti.focus(); },60);
+  ti.oninput=function(){ NB.title=ti.value; if(!NB.pKeyTouched){ NB.pKey=nbProjKeyFor(ti.value); pk.value=NB.pKey; } nbSync(); };
+  pk.oninput=function(){ NB.pKeyTouched=!!pk.value; NB.pKey=nbSlug(pk.value)||''; nbSync(); }; pk.onblur=function(){ pk.value=NB.pKey; };
+  tg.oninput=function(){ NB.tagline=tg.value; nbSync(); };
+  var drop=document.getElementById('nbDrop'), lf=document.getElementById('nbLogo');
+  if(drop){
+    lf.onchange=function(){ if(lf.files&&lf.files[0]) nbTakeLogo(lf.files[0]); };
+    ['dragenter','dragover'].forEach(function(t){ drop.addEventListener(t,function(e){ e.preventDefault(); drop.classList.add('over'); }); });
+    ['dragleave','drop'].forEach(function(t){ drop.addEventListener(t,function(e){ e.preventDefault(); drop.classList.remove('over'); }); });
+    drop.addEventListener('drop',function(e){ var f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0]; if(f) nbTakeLogo(f); });
+  }
+  document.getElementById('nbPhAdd').onclick=function(){ NB.phases.push({name:'',color:'#BAC01E'}); nbRenderPhases(); var ins=document.querySelectorAll('#nbPhases .nb-phn'); if(ins.length) ins[ins.length-1].focus(); };
+  document.getElementById('nbCalTog').onclick=function(){ NB.calOn=!NB.calOn; nbRenderCal(); };
+  nbRenderPhases(); nbRenderCal(); nbSync();
+}
+function nbTakeLogo(file){
+  var ext=(file.name.split('.').pop()||'').toLowerCase();
+  var t=document.getElementById('nbLogoT');
+  if(['png','jpg','jpeg','webp','svg'].indexOf(ext)<0){ t.textContent='That file type won’t work — use PNG, JPG, WEBP or SVG.'; return; }
+  if(file.size>4*1024*1024){ t.textContent='That logo is over 4 MB — try a smaller export.'; return; }
+  var rd=new FileReader();
+  rd.onload=function(){ NB.logo={ext:ext, dataUrl:rd.result, name:file.name}; var pv=document.getElementById('nbLogoPrev'); pv.classList.remove('empty'); pv.innerHTML='<img src="'+rd.result+'" alt="">'; t.textContent=file.name; nbSync(); };
+  rd.readAsDataURL(file);
+}
+function nbRenderPhases(){
+  var box=document.getElementById('nbPhases'); if(!box) return;
+  box.innerHTML=NB.phases.map(function(p,i){ var on=p.name&&p.name===NB.cur; return '<div class="nb-ph'+(on?' cur':'')+'"><input type="color" data-i="'+i+'" value="'+esc(p.color)+'"><input class="nb-phn" data-i="'+i+'" value="'+esc(p.name)+'" placeholder="Phase name"><button type="button" class="nb-cur" data-i="'+i+'">'+(on?'Current':'Set current')+'</button><button type="button" class="nb-del" data-i="'+i+'" aria-label="Remove">✕</button></div>'; }).join('');
+  box.querySelectorAll('input[type=color]').forEach(function(c){ c.oninput=function(){ NB.phases[+c.dataset.i].color=c.value; }; });
+  box.querySelectorAll('.nb-phn').forEach(function(c){ c.oninput=function(){ var ph=NB.phases[+c.dataset.i]; var wasCur=ph.name===NB.cur; ph.name=c.value; if(wasCur) NB.cur=c.value; }; });
+  box.querySelectorAll('.nb-cur').forEach(function(b){ b.onclick=function(){ var ph=NB.phases[+b.dataset.i]; if(!ph.name.trim()) return; NB.cur=ph.name; nbRenderPhases(); }; });
+  box.querySelectorAll('.nb-del').forEach(function(b){ b.onclick=function(){ var ph=NB.phases.splice(+b.dataset.i,1)[0]; if(ph&&ph.name===NB.cur){ var f=NB.phases.find(function(x){ return x.name.trim(); }); NB.cur=f?f.name:''; } nbRenderPhases(); }; });
+}
+function nbRenderCal(){
+  var tog=document.getElementById('nbCalTog'), box=document.getElementById('nbCal'); if(!tog||!box) return;
+  tog.classList.toggle('on',NB.calOn);
+  document.getElementById('nbCalTogT').textContent=NB.calOn?'Add these dates to the project calendar':'Skip for now — add dates later from the project calendar';
+  box.hidden=!NB.calOn; if(!NB.calOn) return;
+  var opts=function(sel){ return NB.types.map(function(t){ return '<option value="'+esc(t.key)+'"'+(t.key===sel?' selected':'')+'>'+esc(t.label)+'</option>'; }).join(''); };
+  box.innerHTML=NB.ev.map(function(e,i){ return '<div class="nb-ev"><input class="nb-i nb-evt" data-i="'+i+'" data-f="title" value="'+esc(e.title)+'" placeholder="What’s happening"><input class="nb-i" type="date" data-i="'+i+'" data-f="date" value="'+esc(e.date)+'"><select class="nb-i" data-i="'+i+'" data-f="type">'+opts(e.type)+'</select><button type="button" class="nb-del" data-i="'+i+'" aria-label="Remove">✕</button></div>'; }).join('')
+    +'<button type="button" class="nb-add" id="nbEvAdd">+ Add date</button>';
+  box.querySelectorAll('[data-f]').forEach(function(el){ el.oninput=el.onchange=function(){ NB.ev[+el.dataset.i][el.dataset.f]=el.value; }; });
+  box.querySelectorAll('.nb-del').forEach(function(b){ b.onclick=function(){ NB.ev.splice(+b.dataset.i,1); nbRenderCal(); }; });
+  document.getElementById('nbEvAdd').onclick=function(){ NB.ev.push({title:'',date:'',type:(NB.types.find(function(t){return t.key==='milestone';})||NB.types[0]||{key:'milestone'}).key}); nbRenderCal(); };
+}
+function nbCheck(){
+  var e={};
+  if(!NB.co){
+    if(!NB.name.trim()) e.name='Add the company name.';
+    else if(!nbKeyOk(NB.coKey)) e.coKey='Use lowercase letters, numbers and dashes.';
+    else if(nbCoTaken(NB.coKey)) e.coKey='Already used by another company.';
+  }
+  if(!NB.title.trim()) e.title='Add a project title.';
+  else if(!nbKeyOk(NB.pKey)) e.pKey='Use lowercase letters, numbers and dashes.';
+  else if(nbProjTaken(NB.pKey)) e.pKey='Already used by another project.';
+  return e;
+}
+function nbSync(){
+  var e=nbCheck();
+  var ce=document.getElementById('nbCoKeyErr'); if(ce) ce.textContent=(NB.coKey&&e.coKey)?' — '+e.coKey:'';
+  var pe=document.getElementById('nbPKeyErr'); if(pe) pe.textContent=(NB.pKey&&e.pKey)?' — '+e.pKey:'';
+  var co=NB.co||{name:NB.name.trim()||'Company name', logo:NB.logo?NB.logo.dataUrl:''};
+  var hero=co.logo?'<div class="cc-hero"><img src="'+esc(co.logo)+'" alt=""></div>':'<div class="cc-hero cc-hero-empty"><span>'+esc((co.name||'?').trim().charAt(0).toUpperCase())+'</span></div>';
+  var np=NB.co?(NB.co.projects||[]).length+1:1;
+  var pv=document.getElementById('nbPrev');
+  if(pv) pv.innerHTML=(NB.co?'':'<div class="ccard">'+hero+'<div class="cc-body"><div class="c-eye">Company</div><h3>'+esc(co.name)+'</h3><div class="c-foot"><span class="c-count">'+np+' project'+(np===1?'':'s')+'</span><span class="c-go">Open →</span></div></div></div>')
+    +'<div class="card"><div class="c-eye">Project</div><h3>'+esc(NB.title.trim()||'Project title')+'</h3><div class="c-tag">'+esc(NB.tagline)+'</div><div class="c-foot"><span class="c-count">0 sections · 0 items</span><span class="c-go">Open →</span></div></div>';
+  var fl=document.getElementById('nbFiles');
+  if(fl) fl.innerHTML=(NB.co?'':'<div>reviews/<b>'+esc(NB.coKey||'…')+'</b>.json</div>'+(NB.logo?'<div>work/uploads/<b>'+esc(NB.coKey||'…')+'-logo.'+esc(NB.logo.ext)+'</b></div>':''))
+    +'<div>reviewProjects/<b>'+esc(NB.pKey||'…')+'</b>.json</div><div style="margin-top:6px;opacity:.8">Also editable later in Sveltia.</div>';
+}
+async function nbSubmit(){
+  if(NB.busy) return;
+  var msg=document.getElementById('nbMsg'), go=document.getElementById('nbGo');
+  var e=nbCheck(); var first=e.name||e.coKey||e.title||e.pKey;
+  ['nbName','nbTitle'].forEach(function(id){ var el=document.getElementById(id); if(el) el.classList.remove('bad'); });
+  if(first){ msg.className='nb-msg err'; msg.textContent=first; var bad=document.getElementById((e.name||e.coKey)?'nbName':'nbTitle'); if(bad){ bad.classList.add('bad'); bad.focus(); } return; }
+  var phases=NB.phases.filter(function(p){ return p.name.trim(); }).map(function(p){ return {name:p.name.trim(), color:p.color}; });
+  var cur=phases.some(function(p){ return p.name===NB.cur.trim(); })?NB.cur.trim():(phases[0]?phases[0].name:'');
+  var evs=NB.calOn?NB.ev.filter(function(x){ return x.title.trim()&&x.date; }):[];
+  if(NB.calOn && NB.ev.some(function(x){ return (x.title.trim()&&!x.date)||(!x.title.trim()&&x.date); })){ msg.className='nb-msg err'; msg.textContent='Each calendar date needs a title and a day — or remove it.'; return; }
+  NB.busy=true; go.disabled=true; go.textContent='Creating…'; msg.className='nb-msg'; msg.textContent='';
+  var body={ project:{ key:NB.pKey, title:NB.title.trim(), tagline:NB.tagline.trim(), company_key:NB.co?NB.co.key:NB.coKey } };
+  if(!NB.co){ body.company={ key:NB.coKey, name:NB.name.trim() }; if(NB.logo) body.logo={ ext:NB.logo.ext, base64:NB.logo.dataUrl }; }
+  var res;
+  try{
+    var r=await sb.functions.invoke('portal-onboard',{ body:body });
+    if(r.error){ var detail=''; try{ detail=(await r.error.context.json()).error; }catch(_){} throw new Error(detail||r.error.message||'Could not create.'); }
+    res=r.data;
+  }catch(err){ var m=(err&&err.message)||'Could not create.'; if(/Failed to send a request/i.test(m)) m='Couldn\u2019t reach the onboarding service \u2014 check your connection (or that portal-onboard is deployed).'; NB.busy=false; go.disabled=false; go.textContent=NB.co?'Create project':'Create company'; msg.className='nb-msg err'; msg.textContent=m; return; }
+  NB.sent=true; NB.res=res; NB.phasesOut=phases; NB.curOut=cur; NB.evOut=evs;
+  nbRenderProgress();
+}
+function nbStep(id,state,label,sub){ return '<div class="nb-step '+state+'" id="'+id+'"><span class="ic">'+(state==='ok'?'✓':state==='bad'?'!':'')+'</span><div>'+label+(sub?'<small>'+sub+'</small>':'')+'</div></div>'; }
+function nbSetStep(id,state,label,sub){ var el=document.getElementById(id); if(el) el.outerHTML=nbStep(id,state,label,sub); }
+async function nbRenderProgress(){
+  // Keep our own copy: closing the sheet clears NB, but the writes below still finish.
+  var st=NB, ov=document.getElementById('nbOv'), f=document.getElementById('nbFoot'); if(f) f.remove();
+  var res=st.res, pk=res.project_key, title=st.title.trim(), coName=st.co?st.co.name:st.name.trim(), sha=(res.commit||'').slice(0,7);
+  var link='<a href="https://github.com/Supernerd12/supernerd-tv/commit/'+esc(res.commit||'')+'" target="_blank" rel="noopener">commit '+esc(sha)+'</a>';
+  ov.innerHTML='<div class="nb-wrap"><div class="nb-top"><div><div class="eyebrow">Studio \u00b7 Admin</div><h1>'+(st.co?'Adding '+esc(title):'Onboarding '+esc(coName))+'</h1><p>Safe to close \u2014 the site keeps publishing either way.</p></div><button class="nb-x" id="nbX" aria-label="Close">\u00d7</button></div><div class="nb-steps">'
+    +nbStep('nbS1','ok',(st.co?'Project':'Company and project')+' saved to the CMS',link)
+    +nbStep('nbS2','run','Setting project phases','')
+    +nbStep('nbS3',st.evOut.length?'run':'ok',st.evOut.length?'Adding '+st.evOut.length+' calendar date'+(st.evOut.length===1?'':'s'):'Calendar skipped','')
+    +nbStep('nbS4','run','Publishing to the portal','Cloudflare is rebuilding the site \u2014 usually about 90 seconds')
+    +'</div><div class="nb-done" id="nbDone"></div></div>';
+  document.getElementById('nbX').onclick=nbClose;
+  if(!st.phasesOut.length) nbSetStep('nbS2','ok','Phases left at the defaults','');
+  else{
+    try{
+      var r=await sb.from('project_status').upsert({ review_slug:CONFIG.REVIEW_SLUG, project_key:pk, phase:st.curOut, phases:st.phasesOut, updated_at:new Date().toISOString() },{ onConflict:'review_slug,project_key' });
+      if(r.error) throw r.error;
+      nbSetStep('nbS2','ok','Project phases set',st.phasesOut.length+' phases \u00b7 current: '+esc(st.curOut));
+    }catch(e){ nbSetStep('nbS2','bad','Couldn\u2019t set phases',esc((e&&e.message)||'')+' \u2014 set them from the project page instead.'); }
+  }
+  if(st.evOut.length){
+    try{
+      var rows=st.evOut.map(function(x){ return { review_slug:CONFIG.REVIEW_SLUG, project_id:pk, date:x.date, type:x.type, title:x.title.trim(), kind:'major', time:null, notes:null }; });
+      var rc=await sb.from('calendar_events').insert(rows); if(rc.error) throw rc.error;
+      nbSetStep('nbS3','ok','Calendar dates added',st.evOut.map(function(x){ return esc(x.title.trim()); }).join(' \u00b7 '));
+    }catch(e){ nbSetStep('nbS3','bad','Couldn\u2019t add calendar dates',esc((e&&e.message)||'')+' \u2014 add them from the project calendar.'); }
+  }
+  if(NB===st) nbPollLive(pk, res.company_key, Date.now());
+}
+function nbPollLive(pk, ck, started){
+  if(!NB) return;
+  fetch(location.pathname+'?nb='+Date.now(),{cache:'no-store'}).then(function(r){ return r.text(); }).then(function(html){
+    if(!NB) return;
+    if(html.indexOf('"id":"'+pk+'"')>=0){
+      nbSetStep('nbS4','ok','Live on the portal','');
+      var d=document.getElementById('nbDone'); if(!d) return;
+      d.innerHTML='<button class="nb-go" id="nbOpenCo" style="margin-left:0">Open '+esc(NB.co?NB.title.trim():(NB.name.trim()))+' →</button>'
+        +'<p class="nb-msg" style="flex-basis:100%;margin-top:6px">Next: invite people from the company page once it looks right.</p>';
+      var hash=NB.co?'#p='+encodeURIComponent(pk):'#c='+encodeURIComponent(ck);
+      document.getElementById('nbOpenCo').onclick=function(){ location.href=location.pathname+location.search+hash; location.reload(); };
+      return;
+    }
+    nbPollAgain(pk, ck, started);
+  }).catch(function(){ nbPollAgain(pk, ck, started); });
+}
+function nbPollAgain(pk, ck, started){
+  if(!NB) return;
+  if(Date.now()-started>6*60*1000){
+    nbSetStep('nbS4','bad','Still publishing after 6 minutes','The files are saved. Check the Cloudflare Pages deploy, then refresh this page.');
+    return;
+  }
+  NB.poll=setTimeout(function(){ nbPollLive(pk, ck, started); }, 8000);
+}
+
 function onboardSectionHTML(cl){
   var projs=CONFIG.PROJECTS.filter(function(p){ return p.client===cl.key; });
   var checks=projs.map(function(p){ return '<label class="ob-proj"><input type="checkbox" class="ob-proj-cb" value="'+esc(p.id)+'" checked> '+esc(p.title)+'</label>'; }).join('');
