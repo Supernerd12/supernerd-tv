@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v55';  // v55: Add company / Add project from the Studio (portal-onboard fn commits CMS files). (v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
+  const VERSION = 'v56';  // v56: route only after sign-in resolves (owner no longer auto-jumped into a lone project). v55: Add company / Add project from the Studio (portal-onboard fn commits CMS files). (v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   const items    = (await getCollection('reviewItems')).filter(i => i.data.published !== false);
@@ -3604,7 +3604,10 @@ document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeOverlay();
 chrome();
 (function(){ var b=document.getElementById('buildStamp'); if(b && CONFIG.VERSION) b.textContent=CONFIG.VERSION; })();
 window.addEventListener('hashchange', route);
-loadInvites().finally(route);
+// v56: never route before sign-in resolves. Routing early (before we know you're the owner)
+// treated the owner like a one-company client and auto-jumped into that project.
+var INVITES_READY=loadInvites();
+INVITES_READY.finally(function(){ if(AUTH.ready) route(); });
 
 /* ===================== CALENDAR ===================== */
 var CAL = { view:'month', cursor:null, filter:'all', day:null, editing:false, pendingDel:null, TYPES:{}, ORDER:[], EV:[], projId:null };
@@ -4249,6 +4252,7 @@ async function authInit(){
   } else { gateClear(); }
   if(AUTH.profile && AUTH.profile.owner) ADMIN=true;
   await visLoad(); await porderLoad();
+  try{ if(INVITES_READY) await INVITES_READY; }catch(e){}
   AUTH.ready=true; renderAuthSlot(); startPresence(); try{ route(); }catch(e){}
   try{ track('open',{label:'Opened the portal'}); }catch(e){}
   var _authUid = (AUTH.user && AUTH.user.id) || null;
