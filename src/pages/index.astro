@@ -27,13 +27,59 @@ for (const e of entries) {
   };
 }
 const WORK_JSON = JSON.stringify({ ORDER, PROJECTS });
+
+// ---- SEO: what crawlers, link previews and AI answer engines read ----
+const SITE = 'https://supernerd.tv';
+const SEO_TITLE = 'Supernerd — Shaun Harrison | Art Direction & Creative Production, NYC';
+const SEO_DESC = 'NYC design & production studio of art director Shaun Harrison. Stage design, motion graphics, tours and live experiences for MTV, BET, Cardi B and more.';
+const SAME_AS = ['https://www.instagram.com/supernerd_', 'https://www.linkedin.com/in/shaunharrison/', 'https://x.com/shaun_harrison'];
+const SERVICES = ['Art Direction', 'Creative Production', 'Live Experiences', 'Motion Design', 'Brand Activations', 'Stage Design', 'Touring', 'Emerging Tech (AR & AI)'];
+const LD = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    { '@type': 'WebSite', '@id': SITE + '/#website', url: SITE + '/', name: 'Supernerd', publisher: { '@id': SITE + '/#studio' }, inLanguage: 'en' },
+    { '@type': 'ProfessionalService', '@id': SITE + '/#studio', name: 'Supernerd', url: SITE + '/', logo: SITE + '/apple-touch-icon.png', image: SITE + '/og.jpg',
+      description: SEO_DESC, email: 'shaun@supernerd.tv', founder: { '@id': SITE + '/#shaun' },
+      address: { '@type': 'PostalAddress', addressLocality: 'New York', addressRegion: 'NY', addressCountry: 'US' },
+      areaServed: 'Worldwide', knowsAbout: SERVICES, sameAs: SAME_AS },
+    { '@type': 'Person', '@id': SITE + '/#shaun', name: 'Shaun Harrison', url: SITE + '/', jobTitle: 'Art Director & Creative Producer',
+      worksFor: { '@id': SITE + '/#studio' }, knowsAbout: SERVICES, sameAs: SAME_AS },
+    { '@type': 'ItemList', name: 'Selected work', numberOfItems: entries.length,
+      itemListElement: entries.map((e, i) => ({ '@type': 'ListItem', position: i + 1, name: e.data.title })) },
+  ],
+};
+const LD_JSON = JSON.stringify(LD).replace(/</g, '\\u003c');
+const WORK_TAGS = [];
+for (const id of ORDER) for (const t of PROJECTS[id].tags) if (t !== 'Art Direction' && !WORK_TAGS.includes(t)) WORK_TAGS.push(t);
 ---
 <!doctype html>
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>supernerd.tv</title>
+<title>{SEO_TITLE}</title>
+<meta name="description" content={SEO_DESC}/>
+<link rel="canonical" href={SITE + '/'}/>
+<meta name="robots" content="index, follow, max-image-preview:large"/>
+<meta name="author" content="Shaun Harrison"/>
+<meta name="theme-color" content="#050505"/>
+<meta property="og:type" content="website"/>
+<meta property="og:site_name" content="Supernerd"/>
+<meta property="og:url" content={SITE + '/'}/>
+<meta property="og:title" content={SEO_TITLE}/>
+<meta property="og:description" content={SEO_DESC}/>
+<meta property="og:image" content={SITE + '/og.jpg'}/>
+<meta property="og:image:width" content="1200"/>
+<meta property="og:image:height" content="630"/>
+<meta property="og:image:alt" content="Supernerd — glowing flask logo"/>
+<meta property="og:locale" content="en_US"/>
+<meta name="twitter:card" content="summary_large_image"/>
+<meta name="twitter:site" content="@shaun_harrison"/>
+<meta name="twitter:title" content={SEO_TITLE}/>
+<meta name="twitter:description" content={SEO_DESC}/>
+<meta name="twitter:image" content={SITE + '/og.jpg'}/>
+<link rel="sitemap" href="/sitemap.xml"/>
+<script type="application/ld+json" set:html={LD_JSON}></script>
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png"/>
 <link rel="icon" type="image/png" sizes="48x48" href="/favicon.png"/>
 <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png"/>
@@ -628,8 +674,13 @@ const WORK_JSON = JSON.stringify({ ORDER, PROJECTS });
     <h2>Work</h2>
     <div class="meta">Productions · tours · activations<br>across <b>16+ years</b></div>
   </div>
-  <div class="wfilter" id="wfilter"></div>
-  <div class="wgrid" id="wgrid"></div>
+  <div class="wfilter" id="wfilter"><button class="wf on" data-tag="">All</button>{WORK_TAGS.map((t) => <button class="wf" data-tag={t}>{t}</button>)}</div>
+  <div class="wgrid" id="wgrid">{ORDER.map((pid) => { const d = PROJECTS[pid]; return (
+    <button class={'wcard' + (d.hero ? '' : ' noimg')} data-proj={pid} data-tags={'|' + d.tags.join('|') + '|'}>
+      <span class="wc-bg" style={d.hero ? `background-image:url('${d.hero}')` : ''}></span>
+      <span class="wc-top"><span class="wc-title">{d.title}</span><span class="wc-count">{d.pieces.length}</span></span>
+      <span class="wc-tags" set:html={d.tags.filter((t) => t !== 'Art Direction').join(' &middot; ')}></span>
+    </button>); })}</div>
   <script type="application/json" id="work-data" set:html={WORK_JSON}></script>
 
   </div>

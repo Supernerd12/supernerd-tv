@@ -1,0 +1,12 @@
+# supernerd.tv — public portfolio is open to all search and AI crawlers.
+# Private tools (client portal, CMS, fitness app, APIs) stay out of indexes.
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /portal
+Disallow: /r/
+Disallow: /fit/
+Disallow: /api/
+Disallow: /mcp
+
+Sitemap: https://supernerd.tv/sitemap.xml
