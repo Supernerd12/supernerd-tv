@@ -283,6 +283,16 @@ for (const id of ORDER) for (const t of PROJECTS[id].tags) if (t !== 'Art Direct
     display:flex; align-items:baseline; justify-content:space-between; gap:18px; pointer-events:none}
   .reelcap .rce{font-family:var(--mono); font-size:11px; letter-spacing:.24em; text-transform:uppercase; color:var(--green-hi)}
   .reelcap .reelhint{font-family:var(--mono); font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--dim)}
+  .reel{cursor:pointer}
+  .reelplay{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); display:flex; align-items:center; gap:12px;
+    padding:14px 22px; border-radius:999px; background:rgba(5,5,5,.55); border:1px solid rgba(255,255,255,.18); backdrop-filter:blur(6px);
+    font-family:var(--mono); font-size:12px; letter-spacing:.2em; text-transform:uppercase; color:#fff; pointer-events:none;
+    opacity:.85; transition:opacity .25s, transform .25s}
+  .reelplay svg{width:14px; height:14px; fill:var(--green-hi)}
+  .reel:hover .reelplay, .reel:focus-visible .reelplay{opacity:1; transform:translate(-50%,-50%) scale(1.04)}
+  .reel:focus-visible{outline:2px solid var(--green-hi); outline-offset:-2px}
+  .reelv:fullscreen{object-fit:contain; background:#000}
+  .reelv:-webkit-full-screen{object-fit:contain; background:#000}
   .work .head{display:flex; align-items:flex-end; justify-content:space-between; gap:24px;
     flex-wrap:wrap; margin-bottom:clamp(32px,6vh,68px)}
   .work .head h2{font-family:var(--disp); font-weight:800; font-size:clamp(46px,9vw,128px);
@@ -702,11 +712,12 @@ for (const id of ORDER) for (const t of PROJECTS[id].tags) if (t !== 'Art Direct
   <!-- REEL: when your Cloudflare Stream video is ready, paste its HLS URL into data-hls=""
        (https://customer-XXXX.cloudflarestream.com/<VIDEO_UID>/manifest/video.m3u8).
        Until then it plays the bundled /work/reel.mp4 fallback. -->
-  <div class="reel" id="reel">
+  <div class="reel" id="reel" role="button" tabindex="0" aria-label="Play showreel full screen with sound">
     <video class="reelv" id="reelv" autoplay muted loop playsinline preload="auto" poster="/work/reel-poster.webp" data-hls="https://customer-jo6j16htmygzl1y3.cloudflarestream.com/d0dc8c487a18d04d83410e52b3677535/manifest/video.m3u8">
       <source src="/work/reel.mp4" type="video/mp4">
     </video>
     <div class="reelveil"></div>
+    <div class="reelplay" aria-hidden="true"><svg viewBox="0 0 12 14"><path d="M0 0l12 7-12 7z"/></svg>Watch with sound</div>
     <div class="reelcap"><span class="rce">Showreel</span><span class="reelhint">selected work below &darr;</span></div>
   </div>
 
@@ -932,6 +943,25 @@ for (const id of ORDER) for (const t of PROJECTS[id].tags) if (t !== 'Art Direct
     }
     rv.muted=true; const pr=rv.play&&rv.play(); if(pr&&pr.catch) pr.catch(()=>{});
     if('IntersectionObserver' in window){ new IntersectionObserver(es=>es.forEach(e=>{ e.isIntersecting?(rv.play&&rv.play().catch(()=>{})):(rv.pause&&rv.pause()); }),{threshold:.05}).observe(rv); }
+    // Click/tap/Enter: restart the reel full screen with sound; leaving full screen drops back to the muted background loop.
+    const reel=document.getElementById('reel');
+    const fsEl=()=>document.fullscreenElement||document.webkitFullscreenElement;
+    function backToLoop(){ rv.muted=true; rv.controls=false; rv.play&&rv.play().catch(()=>{}); }
+    function watch(){
+      rv.currentTime=0; rv.muted=false; rv.volume=1;
+      const pr=rv.play&&rv.play(); if(pr&&pr.catch) pr.catch(()=>{});
+      if(rv.requestFullscreen){ rv.requestFullscreen().catch(()=>{}); }
+      else if(rv.webkitRequestFullscreen){ rv.webkitRequestFullscreen(); }
+      else if(rv.webkitEnterFullscreen){ rv.webkitEnterFullscreen(); } // iPhone: native player
+    }
+    // If full screen was refused (e.g. embedded browser) the reel plays inline with sound; a second click mutes it back.
+    function toggle(){ if(fsEl()) return; rv.muted ? watch() : backToLoop(); }
+    reel.addEventListener('click',toggle);
+    reel.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); toggle(); } });
+    function onFs(){ if(fsEl()===rv){ rv.controls=true; } else if(!fsEl()){ backToLoop(); } }
+    document.addEventListener('fullscreenchange',onFs);
+    document.addEventListener('webkitfullscreenchange',onFs);
+    rv.addEventListener('webkitendfullscreen',backToLoop);
   })();
 
   /* ===== WORK GRID + PROJECT MODAL =====
