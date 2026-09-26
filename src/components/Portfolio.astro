@@ -67,11 +67,11 @@ if (OPEN) {
     title: `${OPEN.title} — Supernerd | Shaun Harrison`,
     desc: d ? (d.length > 158 ? d.slice(0, 155).replace(/\s+\S*$/, '') + '\u2026' : d) : auto,
     url: SITE + '/work/' + OPEN.slug + '/',
-    image: absUrl(OPEN.hero || (OPEN.pieces[0] && OPEN.pieces[0].hero)) || SITE + '/og.jpg',
+    // 1200x630 JPEG built by src/pages/og/[slug].jpg.js (heroes are WebP, which LinkedIn won't preview)
+    image: SITE + '/og/' + OPEN.slug + '.jpg',
     imageAlt: OPEN.title + ' — Supernerd',
-    fixedSize: false,
+    fixedSize: true,
   };
-  if (PAGE.image === SITE + '/og.jpg') PAGE.fixedSize = true;
   LD['@graph'].push({
     '@type': 'CreativeWork', '@id': PAGE.url + '#work', name: OPEN.title, url: PAGE.url, image: PAGE.image,
     description: PAGE.desc, genre: OPEN.tags, creator: { '@id': SITE + '/#shaun' }, publisher: { '@id': SITE + '/#studio' },
@@ -1097,7 +1097,7 @@ for (const id of ORDER) for (const t of PROJECTS[id].tags) if (t !== 'Art Direct
     var shareBtn=document.getElementById('pmShare'), shareT=document.getElementById('pmShareT'), shareTimer=null;
     function shareFlash(txt){ shareT.textContent=txt; shareBtn.classList.add('done'); clearTimeout(shareTimer); shareTimer=setTimeout(function(){ shareT.textContent='Share'; shareBtn.classList.remove('done'); },2200); }
     shareBtn.addEventListener('click',function(){ if(!curPid) return; var d=PROJECTS[curPid], url=location.origin+projUrl(curPid);
-      var data={ title:d.title+' \u2014 Supernerd', text:d.title+' by Supernerd', url:url };
+      var data={ title:d.title+' \u2014 Supernerd', url:url }; // no `text`: the share sheet's Copy would paste it after the URL
       function legacyCopy(){ var t=document.createElement('textarea'); t.value=url; t.setAttribute('readonly',''); t.style.cssText='position:fixed;top:0;left:0;opacity:0'; document.body.appendChild(t); t.select(); var ok=false; try{ ok=document.execCommand('copy'); }catch(e){} t.remove(); shareFlash(ok?'Link copied':'Copy failed'); }
       // System share sheet everywhere it exists (AirDrop, Messages, Mail, Copy… on Mac and phones);
       // browsers without it (e.g. Firefox desktop) fall back to copying the link.
