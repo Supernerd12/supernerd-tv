@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v56';  // v56: route only after sign-in resolves (owner no longer auto-jumped into a lone project). v55: Add company / Add project from the Studio (portal-onboard fn commits CMS files). (v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
+  const VERSION = 'v57';  // v57: partners get the Studio company grid too (no auto-jump), counts show only their projects. v56: route only after sign-in resolves (owner no longer auto-jumped into a lone project). v55: Add company / Add project from the Studio (portal-onboard fn commits CMS files). (v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   const items    = (await getCollection('reviewItems')).filter(i => i.data.published !== false);
@@ -2358,16 +2358,10 @@ function route(){
   routeHome();
 }
 function routeHome(){
-  const clients=visibleClients(); const pids=visibleProjectIds();
-  if(accessIsOwner() || clients.length>1){ updateTopbar(null); renderCompanyGrid(clients); try{ window.scrollTo(0,0); }catch(e){} return; }
-  if(clients.length===1){
-    const cl=clients[0];
-    const mine=(cl.projects||[]).filter(function(pid){ return pids.indexOf(pid)>=0; });
-    if(mine.length===1){ location.hash='p='+encodeURIComponent(mine[0]); return; }
-    const allow={}; pids.forEach(function(id){ allow[id]=1; });
-    updateTopbar(cl.key); renderClientProjects(cl, allow); try{ window.scrollTo(0,0); }catch(e){}
-    return;
-  }
+  // Everyone gets the same Studio home: owner sees every company, a partner sees only the
+  // companies they've been granted (producers/animators can span several). No auto-jumping.
+  const clients=visibleClients();
+  if(accessIsOwner() || clients.length){ updateTopbar(null); renderCompanyGrid(clients); try{ window.scrollTo(0,0); }catch(e){} return; }
   updateTopbar(null); renderNoAccess();
 }
 
@@ -2390,8 +2384,9 @@ function updateTopbar(clientKey){
 /* ---------- company grid (Studio home) ---------- */
 function renderCompanyGrid(clients){
   const app=document.getElementById('app');
+  const vis={}; visibleProjectIds().forEach(function(id){ vis[id]=1; });
   const cards=(clients||[]).map(function(cl){
-    const np=(cl.projects||[]).length;
+    const np=(cl.projects||[]).filter(function(id){ return vis[id]; }).length;
     const hero = cl.logo
       ? '<div class="cc-hero"><img src="'+esc(cl.logo)+'" alt=""></div>'
       : '<div class="cc-hero cc-hero-empty"><span>'+esc((cl.name||'?').trim().charAt(0).toUpperCase())+'</span></div>';
@@ -2411,8 +2406,8 @@ function renderNoAccess(){
 /* ---------- a company\u2019s projects ---------- */
 function renderClientProjects(cl, allow){
   const app=document.getElementById('app');
-  const owner=accessIsOwner(); const multiCompany=visibleClients().length>1;
-  const back=(owner||multiCompany)?'<a class="crumb" href="#">\u2190 Companies</a>':'';
+  const owner=accessIsOwner();
+  const back='<a class="crumb" href="#">\u2190 Companies</a>';
   const cards=sortProjects(CONFIG.PROJECTS.filter(function(p){ return p.client===cl.key && allow[p.id]; })).map(function(p){
     const secCount = owner ? p.sections.length : visSectionsOf(p).length;
     const items = owner ? p.sections.reduce((n,sec)=>n+sec.stacks.reduce((m,st)=>m+st.versions.length,0),0) : projVisibleItemCount(p);
@@ -3513,7 +3508,13 @@ async function sendOnboarding(clientKey){
   if(!pk.length){ msg.className='msg err'; msg.textContent='Tick at least one project to grant access to.'; return; }
   btn.disabled=true; btn.textContent='Sending…';
   try{
-    const rows=parsed.map(r=>({ email:r.email, name:r.name||null, review_slug:CONFIG.REVIEW_SLUG, project_keys:pk }));
+    // Add to (never replace) existing access: one person can work across several companies.
+    await loadInvites();
+    const rows=parsed.map(function(r){
+      const prev=INVITES.find(function(x){ return (x.email||'').toLowerCase()===r.email.toLowerCase(); });
+      const keys=Array.from(new Set(((prev&&prev.project_keys)||[]).concat(pk)));
+      return { email:prev?prev.email:r.email, name:r.name||(prev&&prev.name)||null, review_slug:CONFIG.REVIEW_SLUG, project_keys:keys };
+    });
     const { error } = await sb.from('invites').upsert(rows, { onConflict:'review_slug,email' });
     if(error) throw error;
     if(emEl) emEl.value=''; if(nameEl) nameEl.value='';
