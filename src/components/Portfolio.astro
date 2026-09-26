@@ -550,7 +550,9 @@ for (const id of ORDER) for (const t of PROJECTS[id].tags) if (t !== 'Art Direct
   .pm-piece:hover .pm-piece-play{opacity:1}
   .pm-piece-lab{font-family:var(--disp); font-weight:600; font-size:13.5px; color:var(--bone); line-height:1.25}
   /* detail screen */
-  .pm-detailbar{display:flex; align-items:center; gap:14px; margin-bottom:16px}
+  .pm-detailbar{display:flex; align-items:center; gap:14px; margin-bottom:16px; padding-right:150px}
+  .pm-overview .pm-title{padding-right:150px}
+  @media (max-width:640px){ .pm-detailbar{padding-right:96px} .pm-overview .pm-title{padding-right:96px} }
   .pm-backbtn{font-family:var(--mono); font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--green-hi); background:none; border:1px solid rgba(186,192,30,.4); border-radius:30px; padding:7px 14px; cursor:pointer; flex:0 0 auto}
   .pm-backbtn:hover{background:rgba(186,192,30,.1)}
   .pm-siblings{display:flex; gap:6px; overflow-x:auto; flex:1; padding-bottom:2px}
@@ -1011,11 +1013,22 @@ for (const id of ORDER) for (const t of PROJECTS[id].tags) if (t !== 'Art Direct
     function renderGallery(imgs){ stopGal(); elGTrack.innerHTML=''; elGTrack.scrollLeft=0; galHalf=0;
       if(!imgs||!imgs.length){ elGallery.hidden=true; curGal=[]; return; }
       curGal=imgs; elGallery.hidden=false; var done=false;
-      function setup(){ if(done)return; if(elGTrack.scrollWidth>elGTrack.clientWidth+4 && imgs.length>1){ done=true; for(var j=0;j<imgs.length;j++) elGTrack.appendChild(makeImg(imgs,j)); requestAnimationFrame(function(){ galHalf=elGTrack.scrollWidth/2; startGal(); }); } }
+      function setup(){ if(done)return; if(elGTrack.scrollWidth>elGTrack.clientWidth+4 && imgs.length>1){ done=true; for(var j=0;j<imgs.length;j++) elGTrack.appendChild(makeImg(imgs,j)); requestAnimationFrame(function(){ galHalf=1; startGal(); }); } }
       for(var i=0;i<imgs.length;i++){ var im=makeImg(imgs,i); im.addEventListener('load',function(){ requestAnimationFrame(setup); }); elGTrack.appendChild(im); }
       requestAnimationFrame(function(){ requestAnimationFrame(setup); }); }
-    function startGal(){ if(galRAF){cancelAnimationFrame(galRAF);galRAF=null;} galPaused=false; var last=null;
-      function step(ts){ if(last===null)last=ts; var dt=ts-last; last=ts; if(!galPaused && galHalf){ elGTrack.scrollLeft+=dt*GAL_SPEED; if(elGTrack.scrollLeft>=galHalf) elGTrack.scrollLeft-=galHalf; } galRAF=requestAnimationFrame(step); } galRAF=requestAnimationFrame(step); }
+    /* Loop length = where the duplicate set starts. Measured every frame because images keep
+       loading (and widening the strip) after the loop starts; a stale value made it snap back. */
+    function galLoopLen(){ var n=curGal.length, k=elGTrack.children; if(!n || k.length<2*n) return 0; return k[n].offsetLeft-k[0].offsetLeft; }
+    function startGal(){ if(galRAF){cancelAnimationFrame(galRAF);galRAF=null;} galPaused=false; var last=null, pos=elGTrack.scrollLeft;
+      function step(ts){ if(last===null)last=ts; var dt=Math.min(ts-last,64); last=ts;
+        if(Math.abs(elGTrack.scrollLeft-pos)>2) pos=elGTrack.scrollLeft; // user scrolled/dragged: continue from there
+        var loop=galLoopLen();
+        if(loop>0){
+          if(!galPaused) pos+=dt*GAL_SPEED; // keep sub-pixel progress ourselves: Safari rounds scrollLeft
+          if(pos>=loop) pos-=loop;
+          if(Math.abs(elGTrack.scrollLeft-pos)>=0.5 || pos<1) elGTrack.scrollLeft=pos;
+        }
+        galRAF=requestAnimationFrame(step); } galRAF=requestAnimationFrame(step); }
     function stopGal(){ if(galRAF){cancelAnimationFrame(galRAF); galRAF=null;} if(galTimer){clearTimeout(galTimer); galTimer=null;} galPaused=false; }
     function galPause(){ galPaused=true; if(galTimer){clearTimeout(galTimer); galTimer=null;} }
     function galResumeSoon(){ if(galTimer)clearTimeout(galTimer); galTimer=setTimeout(function(){ galPaused=false; },1400); }
@@ -1065,7 +1078,7 @@ for (const id of ORDER) for (const t of PROJECTS[id].tags) if (t !== 'Art Direct
       elGTrack.addEventListener('pointermove',function(e){ if(!dn)return; var dx=e.clientX-sx; if(Math.abs(dx)>6) gDragged=true; if(e.pointerType==='mouse'){ elGTrack.scrollLeft=sl-dx; } });
       elGTrack.addEventListener('pointercancel',function(){ if(dn){ dn=false; gDragged=true; gDownImg=null; galResumeSoon(); } });
       window.addEventListener('pointerup',function(){ if(dn){ dn=false; if(!gDragged && gDownImg){ var gi=+gDownImg.getAttribute('data-i'); if(gi>=0 && curGal[gi]!=null) lbOpen(curGal,gi); } gDownImg=null; galResumeSoon(); } });
-      elGTrack.addEventListener('wheel',function(e){ if(Math.abs(e.deltaY)>Math.abs(e.deltaX)){ galPause(); elGTrack.scrollLeft+=e.deltaY; e.preventDefault(); galResumeSoon(); } },{passive:false});
+      elGTrack.addEventListener('wheel',function(e){ galPause(); if(Math.abs(e.deltaY)>Math.abs(e.deltaX)){ elGTrack.scrollLeft+=e.deltaY; e.preventDefault(); } galResumeSoon(); },{passive:false});
       elGallery.addEventListener('mouseenter',function(){ galPause(); });
       elGallery.addEventListener('mouseleave',function(){ if(galTimer){clearTimeout(galTimer);galTimer=null;} galPaused=false; }); })();
     document.getElementById('lbPrev').addEventListener('click',function(e){ e.stopPropagation(); lbStep(-1); });
