@@ -1085,9 +1085,10 @@ for (const id of ORDER) for (const t of PROJECTS[id].tags) if (t !== 'Art Direct
     function shareFlash(txt){ shareT.textContent=txt; shareBtn.classList.add('done'); clearTimeout(shareTimer); shareTimer=setTimeout(function(){ shareT.textContent='Share'; shareBtn.classList.remove('done'); },2200); }
     shareBtn.addEventListener('click',function(){ if(!curPid) return; var d=PROJECTS[curPid], url=location.origin+projUrl(curPid);
       var data={ title:d.title+' \u2014 Supernerd', text:d.title+' by Supernerd', url:url };
-      var touch=matchMedia('(pointer:coarse)').matches;
-      if(touch && navigator.share){ navigator.share(data).catch(function(){}); return; }
-      function legacyCopy(){ var t=document.createElement('textarea'); t.value=url; t.setAttribute('readonly',''); t.style.cssText='position:fixed;top:0;left:0;opacity:0'; document.body.appendChild(t); t.select(); var ok=false; try{ ok=document.execCommand('copy'); }catch(e){} t.remove(); if(ok) shareFlash('Link copied'); else if(navigator.share) navigator.share(data).catch(function(){}); else shareFlash('Copy failed'); }
+      function legacyCopy(){ var t=document.createElement('textarea'); t.value=url; t.setAttribute('readonly',''); t.style.cssText='position:fixed;top:0;left:0;opacity:0'; document.body.appendChild(t); t.select(); var ok=false; try{ ok=document.execCommand('copy'); }catch(e){} t.remove(); shareFlash(ok?'Link copied':'Copy failed'); }
+      // System share sheet everywhere it exists (AirDrop, Messages, Mail, Copy… on Mac and phones);
+      // browsers without it (e.g. Firefox desktop) fall back to copying the link.
+      if(navigator.share && (!navigator.canShare || navigator.canShare(data))){ navigator.share(data).catch(function(e){ if(e && e.name!=='AbortError') legacyCopy(); }); return; }
       if(navigator.clipboard && window.isSecureContext){ navigator.clipboard.writeText(url).then(function(){ shareFlash('Link copied'); },legacyCopy); }
       else legacyCopy(); });
     if(LANDED && PROJECTS[LANDED]){ open(LANDED,true); }
