@@ -8,8 +8,8 @@ alter or break the others. Read this before editing anything.
 - Repo: Supernerd12/supernerd-tv, branch `main`. Host: Cloudflare Pages.
 - Every push to `main` auto-deploys (~90s). There is no staging. main IS production.
 - Build/test command: `npm install` once, then `npm run build`. A good build ends
-  with "N page(s) built" where N = 3 + the number of published projects in
-  `src/content/work/` (53 as of Sept 2026), then "Complete!". If the count is
+  with "N page(s) built" where N = 4 + the number of published projects in
+  `src/content/work/` (54 as of Sept 2026; the 4th fixed page is `/reel/`), then "Complete!". If the count is
   off or there's an error, DO NOT COMMIT.
 - Cloudflare Pages limits: max ~20,000 files per deploy, 25 MiB per file.
 
