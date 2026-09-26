@@ -8,13 +8,20 @@ alter or break the others. Read this before editing anything.
 - Repo: Supernerd12/supernerd-tv, branch `main`. Host: Cloudflare Pages.
 - Every push to `main` auto-deploys (~90s). There is no staging. main IS production.
 - Build/test command: `npm install` once, then `npm run build`. A good build ends
-  with "3 page(s) built". If it doesn't say that, DO NOT COMMIT.
+  with "N page(s) built" where N = 3 + the number of published projects in
+  `src/content/work/` (53 as of Sept 2026), then "Complete!". If the count is
+  off or there's an error, DO NOT COMMIT.
 - Cloudflare Pages limits: max ~20,000 files per deploy, 25 MiB per file.
 
 ## The three products (treat as separate entities)
 
 ### 1. Main portfolio site — supernerd.tv
-- Pages: `src/pages/index.astro` and the rest of `src/pages/` (except `r/`).
+- Pages: the whole site lives in `src/components/Portfolio.astro`. `src/pages/index.astro`
+  renders it plainly; `src/pages/work/[slug].astro` renders one page per project
+  (`/work/<slug>/`, opened on that project) so projects can be shared and indexed.
+  Slugs come from `src/components/workSlug.js` — never change an existing slug
+  (shared links depend on it). `sitemap.xml` and `llms.txt` are generated from
+  the CMS in `src/pages/`.
 - Content: `src/content/work/` (portfolio projects).
 - Public assets and IMAGES: `public/` (images live in `public/work/uploads/`,
   `public/collab/`, etc.). This is the most fragile area — see the hard rule below.
@@ -53,7 +60,7 @@ alter or break the others. Read this before editing anything.
   touches `src/pages/`, `src/content/work/`, and specific files in `public/`.
 - Never delete files outside the product you're working on. If a change seems to
   require touching another product's files, STOP and ask first.
-- Before every commit: run `npm run build`, confirm "3 page(s) built", and review
+- Before every commit: run `npm run build`, confirm the page count above, and review
   `git status` / `git diff --stat` to confirm only the intended product's files
   changed. If unrelated files show as modified or deleted, do not commit.
 

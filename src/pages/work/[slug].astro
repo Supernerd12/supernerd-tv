@@ -1,0 +1,17 @@
+---
+// One shareable, indexable page per portfolio project: /work/<slug>/
+// Same site as the homepage, opened straight into that project.
+import { getCollection } from 'astro:content';
+import Portfolio from '../../components/Portfolio.astro';
+import { workSlug } from '../../components/workSlug.js';
+
+export async function getStaticPaths() {
+  const entries = (await getCollection('work')).filter((e) => e.data.published !== false);
+  return entries.map((e) => {
+    const id = e.id.replace(/\.[^.]+$/, '');
+    return { params: { slug: workSlug(id) }, props: { project: id } };
+  });
+}
+const { project } = Astro.props;
+---
+<Portfolio project={project} />
