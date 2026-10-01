@@ -27,7 +27,7 @@ alter or break the others. Read this before editing anything.
   `public/collab/`, etc.). This is the most fragile area — see the hard rule below.
 
 ### 2. Client review portal — supernerd.tv/r/studio/
-- Single file: `src/pages/r/[slug].astro` (large, self-contained; ~v54).
+- Single file: `src/pages/r/[slug].astro` (large, self-contained; v58), login page `src/pages/portal.astro`.
 - Data it reads: content collections `src/content/reviews/` (companies),
   `src/content/reviewProjects/` (projects), `src/content/reviewItems/`
   (deliverables). CMS at supernerd.tv/admin (Sveltia) writes these.
@@ -42,6 +42,18 @@ alter or break the others. Read this before editing anything.
   `public/work/uploads/`) straight to main. So the portal itself commits — always
   `git pull` first. Deploy the function with
   `supabase functions deploy portal-onboard --project-ref wvtokocjhtpjrkojxaia`.
+- Deliverables (v58+): live in Supabase table `review_items`, NOT in `src/content/reviewItems/`
+  (those files were imported once and are no longer read; Sveltia's "Reviews — Items" is retired).
+  Owner + team members upload from inside the portal through the `portal-items` Edge Function
+  (`supabase/functions/portal-items/`): files -> Cloudflare R2 bucket `supernerd-portal`
+  (public at files.supernerd.tv), videos -> Cloudflare Stream. Team = `invites.role = 'team'`.
+- Security model (v58+): owner = signed-in email is hello@/shaun@supernerd.tv — there is NO
+  URL admin key anymore; never reintroduce one. Database access is enforced by RLS in
+  `supabase/migrations/20261001_lockdown.sql` (owner / on-the-project / own rows). Every table
+  must keep ONLY policies of that shape — never add `using (true)` or anon policies.
+  Run SQL with `supabase db query --linked --project-ref wvtokocjhtpjrkojxaia -f <file>`.
+- Emails go through the `dynamic-processor` function (members only; non-owners can only email
+  portal people). Scheduled emails are sent by pg_cron with a Vault secret `DISPATCH_SECRET`.
 - Standing rule: bump the footer version `const VERSION = 'vN'` on every change
   to this file, and say the new number.
 
@@ -56,7 +68,7 @@ alter or break the others. Read this before editing anything.
   `_redirects`. Only ever add/edit the specific files or subfolder that change.
 - A change scoped to one product must touch ONLY that product's paths above.
   Fitness work touches `public/fit/` and `functions/` only. Portal work touches
-  `src/pages/r/[slug].astro`, `src/content/review*` and `supabase/functions/` only. Portfolio work
+  `src/pages/r/[slug].astro`, `src/pages/portal.astro`, `src/content/review*` and `supabase/` only. Portfolio work
   touches `src/pages/`, `src/content/work/`, and specific files in `public/`.
 - Never delete files outside the product you're working on. If a change seems to
   require touching another product's files, STOP and ask first.

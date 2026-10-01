@@ -6,7 +6,7 @@ const OWNER_EMAIL  = "hello@supernerd.tv";
 // Accounts that ARE Supernerd (the owner) — these skip onboarding and go straight in.
 // Add any email you sign in with as the owner/admin.
 const OWNER_LOGINS = ["hello@supernerd.tv", "shaun@supernerd.tv"];
-const ADMIN_KEY    = "sn-admin-7yq4";
+const ADMIN_KEY    = null; // v58: retired — owners are recognised by their signed-in email
 ---
 <!doctype html>
 <html lang="en">
@@ -201,7 +201,7 @@ const ADMIN_KEY    = "sn-admin-7yq4";
 (function(){
   var sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, flowType:"pkce" } });
   var params = new URLSearchParams(location.search);
-  var ADMIN  = params.get("admin") === ADMIN_KEY;
+  var ADMIN  = params.has("admin"); // admin screen only renders for a signed-in owner email (see render)
   var SESSION=null, EMAIL=null, INVITE=null, PROFILE=null, COMPANIES=[], PENDING=null, PENDING_LOGO=null, EDIT=null, RETURN_ENTERED=false;
   var stage=document.getElementById("stage");
 
@@ -210,6 +210,7 @@ const ADMIN_KEY    = "sn-admin-7yq4";
   function slug(){ return (INVITE&&INVITE.review_slug)||(PROFILE&&PROFILE.review_slug)||REVIEW_SLUG; }
   function company(id){ return COMPANIES.find(function(c){return c.id===id;})||{id:id,name:id,color:"#8b8f98"}; }
   function reEmail(e){ return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e); }
+  function isOwnerEmail(e){ e=String(e||"").toLowerCase(); return (OWNER_LOGINS||[]).some(function(x){ return String(x).toLowerCase()===e; }); }
 
   async function loadInvite(){ try{ var r=await sb.from("invites").select("*").ilike("email",EMAIL).limit(1); INVITE=(r.data&&r.data[0])||null; }catch(e){ INVITE=null; } }
   async function loadProfile(){
@@ -218,8 +219,7 @@ const ADMIN_KEY    = "sn-admin-7yq4";
     var em=(SESSION.user.email||"").toLowerCase();
     var ownerEmail = (OWNER_LOGINS||[]).map(function(x){return String(x).toLowerCase();}).indexOf(em)>=0;
     var ro=null; try{ var q=await sb.from("review_settings").select("*").eq("review_slug",REVIEW_SLUG).maybeSingle(); ro=q.data||null; }catch(e){}
-    var ownerUid = ro && ro.owner_uid && ro.owner_uid===SESSION.user.id;
-    if(ownerEmail || ownerUid){
+    if(ownerEmail){
       PROFILE={ id:SESSION.user.id, review_slug:REVIEW_SLUG, email:SESSION.user.email,
         full_name:(ro&&ro.owner_name)||"Supernerd", position:(ro&&ro.owner_position)||"",
         company_id:(ro&&ro.owner_company_id)||null, avatar_url:(ro&&ro.owner_avatar_url)||null,
@@ -227,6 +227,7 @@ const ADMIN_KEY    = "sn-admin-7yq4";
       return;
     }
     try{ var r=await sb.from("profiles").select("*").eq("id",SESSION.user.id).maybeSingle(); PROFILE=r.data||null; }catch(e){ PROFILE=null; }
+    if(PROFILE) PROFILE.owner=false; // only owner emails are owners
   }
   async function loadCompanies(){ try{ var r=await sb.from("companies").select("*").eq("review_slug",slug()).order("sort"); COMPANIES=r.data||[]; }catch(e){ COMPANIES=[]; } }
 
@@ -248,7 +249,7 @@ const ADMIN_KEY    = "sn-admin-7yq4";
   function render(){
     if(document.getElementById('ob')) return;        // wizard owns the screen; don't redraw behind it
     var br=document.querySelector('.brand'); if(br) br.style.visibility='';
-    if(ADMIN) return renderAdmin();
+    if(ADMIN && EMAIL && isOwnerEmail(EMAIL)) return renderAdmin();
     if(!EMAIL) return renderGate();                   // LOG IN — the front door, always
     if(!INVITE && !PROFILE) return renderBlocked();   // signed in, not invited
     if(!PROFILE) return renderSignedIn();             // signed in + invited, not onboarded yet
@@ -271,7 +272,7 @@ const ADMIN_KEY    = "sn-admin-7yq4";
       var v=em.value.trim().toLowerCase(); m.className="msg";
       if(!reEmail(v)){ m.className="msg err"; m.textContent="Enter a valid email."; return; }
       send.disabled=true; send.textContent="\u2026";
-      var inv=null; try{ var r=await sb.from("invites").select("email").ilike("email",v).limit(1); inv=(r.data&&r.data[0])||null; }catch(e){}
+      var inv=null; try{ var r=await sb.rpc("sn_is_invited",{ e:v }); inv=r.data?{email:v}:null; }catch(e){}
       if(!inv){ m.className="msg err"; m.textContent="That email isn\u2019t on the invite list. Ask Supernerd for access."; send.disabled=false; send.textContent="\u2192"; return; }
       var res=await sb.auth.signInWithOtp({ email:v, options:{ emailRedirectTo: location.origin+"/portal" } });
       if(res && res.error){ m.className="msg err"; m.textContent=res.error.message||"Could not send."; send.disabled=false; send.textContent="\u2192"; return; }
@@ -431,8 +432,7 @@ const ADMIN_KEY    = "sn-admin-7yq4";
 
   function goPortal(){
     var s=REVIEW_SLUG||slug();
-    var q=(PROFILE&&PROFILE.owner)?("?admin="+encodeURIComponent(ADMIN_KEY)):"";
-    location.href="/r/"+s+"/"+q;
+    location.href="/r/"+s+"/";
   }
 
   function renderAdmin(){
@@ -442,7 +442,7 @@ const ADMIN_KEY    = "sn-admin-7yq4";
       +'<div class="fld"><label>Emails</label><textarea id="emails" placeholder="ada@studio.com&#10;winnie@funkychild.co&#10;margot@trrp.org"></textarea></div>'
       +'<button class="cta" id="go">Send invites</button>'
       +'<div class="ilog" id="log"></div>'
-      +'<div class="note">Re-inviting just resends \u2014 no duplicates. <a class="link" href="/r/'+esc(REVIEW_SLUG)+'/?admin='+esc(ADMIN_KEY)+'">Open the portal \u2192</a></div></div>';
+      +'<div class="note">Re-inviting just resends \u2014 no duplicates. <a class="link" href="/r/'+esc(REVIEW_SLUG)+'/">Open the portal \u2192</a></div></div>';
     var go=document.getElementById("go"), log=document.getElementById("log");
     go.onclick=async function(){
       var sl=document.getElementById("aslug").value.trim()||REVIEW_SLUG;

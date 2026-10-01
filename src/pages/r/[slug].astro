@@ -2,10 +2,12 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v57';  // v57: partners get the Studio company grid too (no auto-jump), counts show only their projects. v56: route only after sign-in resolves (owner no longer auto-jumped into a lone project). v55: Add company / Add project from the Studio (portal-onboard fn commits CMS files). (v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
+  const VERSION = 'v58';  // v58: deliverables live in Supabase; owner + team upload from the portal (R2/Stream), edit/move/delete, 'Uploaded by'. v57: partners get the Studio company grid too (no auto-jump), counts show only their projects. v56: route only after sign-in resolves (owner no longer auto-jumped into a lone project). v55: Add company / Add project from the Studio (portal-onboard fn commits CMS files). (v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
-  const items    = (await getCollection('reviewItems')).filter(i => i.data.published !== false);
+  // v58: deliverables load from Supabase (review_items) after sign-in, so they're no longer
+  // baked into the public page. The old src/content/reviewItems/ files were imported once.
+  const items    = [];
 
   const cleanId = (id) => String(id).replace(/\.(json|ya?ml)$/i, '');
   const slug = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
@@ -129,7 +131,7 @@ const { data } = Astro.props;
 const SUPABASE_URL    = 'https://wvtokocjhtpjrkojxaia.supabase.co';
 const SUPABASE_KEY    = 'sb_publishable_NOSa5I95dUTHZhVai9dZtQ_8GEM00J6';
 const STREAM_CUSTOMER = 'customer-jo6j16htmygzl1y3.cloudflarestream.com';
-const ADMIN_KEY       = 'sn-admin-7yq4';
+const ADMIN_KEY       = null; // v58: retired — owner is decided only by the signed-in email
 ---
 <!doctype html>
 <html lang="en">
@@ -1937,6 +1939,37 @@ select.nl-i option{background:#15161a; color:var(--bone)}
   .nb-ev .nb-evt{grid-column:1 / -1}
   .nb-sec{padding:18px 16px}
 }
+.ob-team{display:flex;gap:10px;align-items:flex-start;margin:4px 0 12px;font-size:13.5px;color:var(--dim);cursor:pointer}
+.ob-team b{color:var(--bone)}
+.ob-team input{margin-top:3px;accent-color:#BAC01E}
+/* ===== v58 — upload deliverables from inside the portal ===== */
+.mh-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.up-open{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:#0c0d0e;background:var(--green);border:none;border-radius:999px;padding:10px 18px 10px 14px;cursor:pointer;font-weight:700;margin-top:6px;transition:background .15s var(--ease)}
+.up-open span{font-size:17px;line-height:0}
+.up-open:hover{background:var(--green-hi)}
+.up-list{margin-top:14px;display:flex;flex-direction:column;gap:8px}
+.up-row{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.4fr) 84px 150px;gap:10px;align-items:center;padding:10px;border:1px solid var(--hair);border-radius:12px;background:#000}
+.up-row.done{border-color:rgba(186,192,30,.4)}
+.up-fn{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.up-fn small{display:block;font-family:var(--mono);font-size:10.5px;color:var(--dim)}
+.up-row .nb-i{padding:9px 11px;font-size:14px}
+.up-row .nb-del{justify-self:end}
+.up-st{display:flex;align-items:center;gap:8px;justify-content:flex-end;font-family:var(--mono);font-size:11px;color:var(--dim)}
+.up-st.ok{color:var(--green-hi)}
+.up-st.err{color:#ff8a8d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
+.up-bar{flex:1;height:5px;border-radius:9px;background:rgba(255,255,255,.1);overflow:hidden;max-width:90px}
+.up-bar i{display:block;height:100%;background:var(--green);transition:width .2s}
+.ie-modal{max-width:480px}
+.ie-modal .nb-i{margin-bottom:12px}
+.ie-row{display:grid;grid-template-columns:1fr 110px;gap:12px}
+.ie-del{margin-right:auto;background:none;border:1px solid rgba(229,72,77,.5);color:#ff8a8d;border-radius:8px;padding:8px 14px;cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+.ie-del:hover{background:rgba(229,72,77,.12)}
+.up-stamp b{color:var(--bone);font-weight:600}
+@media (max-width:700px){
+  .up-row{grid-template-columns:1fr 70px;}
+  .up-row .up-fn{grid-column:1 / -1}
+  .up-st{grid-column:1 / -1;justify-content:flex-start}
+}
 </style>
 </head>
 <body>
@@ -2018,7 +2051,7 @@ select.nl-i option{background:#15161a; color:var(--bone)}
 const CONFIG = Object.assign({ SUPABASE_URL, SUPABASE_KEY, STREAM_CUSTOMER, ADMIN_KEY }, data);
 const sb = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY, { auth: { persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, flowType:"pkce" } });
 var currentFolder=null; var currentProjectKey=null;
-let ADMIN = !!CONFIG.ADMIN_KEY && new URLSearchParams(location.search).get('admin') === CONFIG.ADMIN_KEY;
+let ADMIN = false; // v58: set only after sign-in, when the email is an owner login (never from the URL)
 let players = {};
 let recorders = {};      // itemId -> MediaRecorder
 let pendingAudio = {};   // itemId -> Blob
@@ -2330,13 +2363,13 @@ function route(){
     if(!allow[p]){ routeHome(); return; }
     const proj=CONFIG.PROJECTS.find(x=>x.id===p); if(!proj){ routeHome(); return; }
     let sec=proj.sections.find(x=>x.id===s) || proj.sections[0];
-    if(!sec){ routeHome(); return; }
+    if(!sec){ if(f){ sec={id:'',name:'',stacks:[]}; } else { updateTopbar(proj.client); renderProject(proj, {id:'',name:'Deliverables',stacks:[]}, null); try{ window.scrollTo(0,0); }catch(e){} return; } }
     if(!accessIsOwner() && !secVisibleForClient(proj, sec)){
       sec=visSectionsOf(proj)[0];
       if(!sec){ routeHome(); return; }
     }
     updateTopbar(proj.client);
-    if(f==='activity' && !accessIsOwner()) f=null;
+    if((f==='activity' || f==='newsletter') && !accessIsOwner()) f=null;
     if(f){ renderProject(proj, sec, null, f); track('folder',{project:proj.id, section:sec.id, folder:f, label:proj.title+' \u00b7 '+folderLabel(f)}); try{ window.scrollTo(0,0); }catch(e){} return; }
     let stack=null;
     if(k) stack=sec.stacks.find(x=>x.id===k)||null;
@@ -2642,6 +2675,197 @@ function nbPollAgain(pk, ck, started){
   NB.poll=setTimeout(function(){ nbPollLive(pk, ck, started); }, 8000);
 }
 
+/* ---------- v58: deliverables live in Supabase (review_items) ----------
+   Uploaded from inside the portal by the owner or a team member (invites.role='team').
+   Files go browser -> Cloudflare R2 / Stream; the portal-items function signs uploads
+   and writes rows (permissions enforced there). Clients only read, via RLS. */
+var ITEMS={ loaded:false };
+function itemPv(v){ var m=String(v||'').match(/(\d+)/); return m?parseInt(m[1],10):0; }
+function itemSlug(s){ return String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,''); }
+function itemFromRow(r){
+  return { id:r.id, section:((r.section||'Other').trim())||'Other', type:r.kind||'file', title:r.title||'', version:r.version||'',
+    stream_uid:r.stream_uid||'', src:r.src_url||'', download_url:r.download_url||'', date:r.created_at||'',
+    archived:!!r.archived, order:(r.item_order==null?100:r.item_order), uploader:r.uploader_name||'',
+    uploader_email:String(r.uploader_email||'').toLowerCase(), legacy:!!r.legacy, file_name:r.file_name||'' };
+}
+// Same grouping the old build step did: sections in order of first appearance, then
+// "stacks" (one per title) whose versions sort newest first.
+function itemsToSections(list){
+  list=list.slice().sort(function(a,b){ return (a.order-b.order) || String(a.date).localeCompare(String(b.date)); });
+  var secOrder=[], secMap={};
+  list.forEach(function(it){ if(!secMap[it.section]){ secMap[it.section]=[]; secOrder.push(it.section); } secMap[it.section].push(it); });
+  return secOrder.map(function(sName){
+    var stOrder=[], stMap={}, used={};
+    secMap[sName].forEach(function(it){ var k=(it.title||'').trim().toLowerCase()||('__'+it.id); if(!stMap[k]){ stMap[k]=[]; stOrder.push(k); } stMap[k].push(it); });
+    var stacks=stOrder.map(function(k){
+      var versions=stMap[k].slice().sort(function(a,b){ return (itemPv(b.version)-itemPv(a.version)) || String(b.date||'').localeCompare(String(a.date||'')); });
+      var title=versions[0].title||'Untitled', base=(itemSlug(sName)||'sec')+'--'+(itemSlug(title)||'item'), sid=base, n=2;
+      while(used[sid]) sid=base+'-'+(n++); used[sid]=1;
+      return { id:sid, title:title, versions:versions };
+    });
+    return { id:sName, name:sName, stacks:stacks };
+  });
+}
+async function itemsLoad(){
+  try{
+    var r=await sb.from('review_items').select('*').eq('review_slug','studio').eq('published',true);
+    if(r.error) throw r.error;
+    var by={}; (r.data||[]).forEach(function(row){ (by[row.project_key]=by[row.project_key]||[]).push(itemFromRow(row)); });
+    CONFIG.PROJECTS.forEach(function(p){ p.sections=itemsToSections(by[p.id]||[]); });
+    ITEMS.loaded=true;
+  }catch(e){ console.error('deliverables load failed', e); }
+}
+function canUpload(projId){ if(ADMIN) return true; return !!AUTH.isTeam && visibleProjectIds().indexOf(projId)>=0; }
+function canEditItem(it){ if(ADMIN) return true; return !!AUTH.isTeam && !!it.uploader_email && it.uploader_email===String(myEmail()||'').toLowerCase(); }
+async function itemsCall(body){
+  var r=await sb.functions.invoke('portal-items',{ body:body });
+  if(r.error){ var d=''; try{ d=(await r.error.context.json()).error; }catch(_){} throw new Error(d||r.error.message||'Request failed'); }
+  return r.data;
+}
+function upBtnHTML(proj){ return canUpload(proj.id)?'<button class="up-open" type="button" data-upproj="'+esc(proj.id)+'"><span>+</span> Upload</button>':''; }
+function upFolderOptions(proj, sel){
+  var names=(proj.sections||[]).map(function(s){ return s.name; });
+  return names.map(function(n){ return '<option value="'+esc(n)+'"'+(n===sel?' selected':'')+'>'+esc(n)+'</option>'; }).join('')
+    +'<option value="__new__"'+(sel==='__new__'||!names.length?' selected':'')+'>+ New folder…</option>';
+}
+function upNextVersion(proj, folder, title){
+  var t=String(title||'').trim().toLowerCase(); if(!t) return 'v1';
+  var sec=(proj.sections||[]).find(function(s){ return s.name===folder; }); if(!sec) return 'v1';
+  var st=sec.stacks.find(function(x){ return String(x.title||'').trim().toLowerCase()===t; }); if(!st) return 'v1';
+  return 'v'+(st.versions.reduce(function(m,v){ return Math.max(m,itemPv(v.version)); },0)+1);
+}
+function upTitleFromFile(name){ return String(name||'').replace(/\.[^.]+$/,'').replace(/[_-]+/g,' ').replace(/\s+/g,' ').trim().replace(/^./,function(c){ return c.toUpperCase(); }) || 'Untitled'; }
+function upSize(n){ if(!n) return ''; var u=['B','KB','MB','GB']; var i=0; while(n>=1024&&i<3){ n/=1024; i++; } return (i?n.toFixed(1):n)+' '+u[i]; }
+
+/* ---- Upload sheet ---- */
+var UP=null;
+function upOpen(projId, presetFolder){
+  var proj=CONFIG.PROJECTS.find(function(p){ return p.id===projId; }); if(!proj||!canUpload(projId)) return;
+  var folder=presetFolder||((proj.sections[0]&&proj.sections[0].name)||'__new__');
+  UP={ proj:proj, folder:folder, newFolder:'', files:[], busy:false };
+  var ov=document.createElement('div'); ov.className='nb'; ov.id='upOv';
+  ov.innerHTML='<div class="nb-wrap"><div class="nb-top"><div><div class="eyebrow">'+esc(proj.title)+'</div><h1>Upload deliverables</h1><p>Images and files go to Cloudflare R2, videos to Cloudflare Stream. They show up for everyone on this project the moment they finish.</p></div><button class="nb-x" id="upX" aria-label="Close">×</button></div>'
+    +'<div class="nb-sec"><div class="nb-sh"><span class="nb-num">01</span><h3>Folder</h3></div><div class="nb-row"><div><label class="nb-l" for="upFolder">Put these in</label><select class="nb-i" id="upFolder">'+upFolderOptions(proj, folder)+'</select></div><div id="upNewWrap"'+(folder==='__new__'?'':' hidden')+'><label class="nb-l" for="upNew">New folder name</label><input class="nb-i" id="upNew" placeholder="e.g. Styleframes" autocomplete="off"></div></div></div>'
+    +'<div class="nb-sec"><div class="nb-sh"><span class="nb-num">02</span><h3>Files</h3><span class="nb-opt">Same name as an existing item = new version</span></div>'
+    +'<label class="nb-drop up-drop" id="upDrop"><div class="nb-drop-prev empty">+</div><div class="nb-drop-t"><b>Drop files or click to choose</b><span>Images, video (up to 200 MB), audio, PDFs, design files · up to 5 GB each</span></div><input type="file" id="upFile" multiple hidden></label>'
+    +'<div class="up-list" id="upList"></div></div></div>';
+  document.body.appendChild(ov); document.body.style.overflow='hidden';
+  var foot=document.createElement('div'); foot.className='nb-foot'; foot.id='upFoot';
+  foot.innerHTML='<div class="nb-foot-in"><button class="nb-ghost" id="upCancel">Cancel</button><span class="nb-msg" id="upMsg"></span><button class="nb-go" id="upGo" disabled>Upload</button></div>';
+  document.body.appendChild(foot);
+  document.getElementById('upX').onclick=upClose; document.getElementById('upCancel').onclick=upClose; document.getElementById('upGo').onclick=upSubmit;
+  var fs=document.getElementById('upFolder'), nw=document.getElementById('upNew');
+  fs.onchange=function(){ UP.folder=fs.value; document.getElementById('upNewWrap').hidden=(fs.value!=='__new__'); upRetitle(); if(fs.value==='__new__') nw.focus(); };
+  nw.oninput=function(){ UP.newFolder=nw.value; upRetitle(); };
+  var drop=document.getElementById('upDrop'), fi=document.getElementById('upFile');
+  fi.onchange=function(){ upAdd(fi.files); fi.value=''; };
+  ['dragenter','dragover'].forEach(function(t){ drop.addEventListener(t,function(e){ e.preventDefault(); drop.classList.add('over'); }); });
+  ['dragleave','drop'].forEach(function(t){ drop.addEventListener(t,function(e){ e.preventDefault(); drop.classList.remove('over'); }); });
+  drop.addEventListener('drop',function(e){ if(e.dataTransfer&&e.dataTransfer.files) upAdd(e.dataTransfer.files); });
+}
+function upClose(){ if(UP&&UP.busy&&!confirm('Uploads are still running. Close anyway?')) return; var o=document.getElementById('upOv'); if(o) o.remove(); var f=document.getElementById('upFoot'); if(f) f.remove(); document.body.style.overflow=''; UP=null; }
+function upFolderName(){ return UP.folder==='__new__'?String(UP.newFolder||'').trim():UP.folder; }
+function upAdd(fileList){
+  [].slice.call(fileList||[]).forEach(function(f){ var t=upTitleFromFile(f.name); UP.files.push({ file:f, title:t, version:upNextVersion(UP.proj, upFolderName(), t), vTouched:false, state:'ready', pct:0, err:'' }); });
+  upRender();
+}
+function upRetitle(){ if(!UP) return; UP.files.forEach(function(x){ if(!x.vTouched) x.version=upNextVersion(UP.proj, upFolderName(), x.title); }); upRender(); }
+function upRender(){
+  var box=document.getElementById('upList'); if(!box) return;
+  box.innerHTML=UP.files.map(function(x,i){
+    var st=x.state==='done'?'<span class="up-st ok">✓ Uploaded</span>':x.state==='err'?'<span class="up-st err" title="'+esc(x.err)+'">'+esc(x.err||'Failed')+'</span>':x.state==='up'?'<span class="up-st"><span class="up-bar"><i style="width:'+x.pct+'%"></i></span>'+x.pct+'%</span>':'<button type="button" class="nb-del" data-i="'+i+'" aria-label="Remove">✕</button>';
+    var lock=x.state!=='ready'&&x.state!=='err';
+    return '<div class="up-row'+(x.state==='done'?' done':'')+'"><div class="up-fn" title="'+esc(x.file.name)+'">'+esc(x.file.name)+'<small>'+upSize(x.file.size)+'</small></div><input class="nb-i up-t" data-i="'+i+'" value="'+esc(x.title)+'" placeholder="Name"'+(lock?' disabled':'')+'><input class="nb-i up-v" data-i="'+i+'" value="'+esc(x.version)+'" placeholder="v1"'+(lock?' disabled':'')+'>'+st+'</div>';
+  }).join('');
+  box.querySelectorAll('.up-t').forEach(function(el){ el.oninput=function(){ var x=UP.files[+el.dataset.i]; x.title=el.value; if(!x.vTouched){ x.version=upNextVersion(UP.proj, upFolderName(), x.title); var v=box.querySelector('.up-v[data-i="'+el.dataset.i+'"]'); if(v) v.value=x.version; } }; });
+  box.querySelectorAll('.up-v').forEach(function(el){ el.oninput=function(){ var x=UP.files[+el.dataset.i]; x.version=el.value; x.vTouched=true; }; });
+  box.querySelectorAll('.nb-del').forEach(function(b){ b.onclick=function(){ UP.files.splice(+b.dataset.i,1); upRender(); }; });
+  var go=document.getElementById('upGo'), pending=UP.files.filter(function(x){ return x.state==='ready'||x.state==='err'; }).length;
+  if(go && !UP.busy){ go.disabled=!pending; go.textContent=pending?('Upload '+pending+' file'+(pending===1?'':'s')):'Upload'; }
+}
+function upXhr(method, url, body, headers, onPct){
+  return new Promise(function(res, rej){
+    var x=new XMLHttpRequest(); x.open(method, url);
+    Object.keys(headers||{}).forEach(function(k){ x.setRequestHeader(k, headers[k]); });
+    x.upload.onprogress=function(e){ if(e.lengthComputable) onPct(Math.round(e.loaded/e.total*100)); };
+    x.onload=function(){ (x.status>=200&&x.status<300)?res():rej(new Error('Upload failed ('+x.status+')')); };
+    x.onerror=function(){ rej(new Error('Network error — check your connection')); };
+    x.send(body);
+  });
+}
+async function upSubmit(){
+  if(!UP||UP.busy) return;
+  var msg=document.getElementById('upMsg'), go=document.getElementById('upGo');
+  var folder=upFolderName();
+  if(!folder){ msg.className='nb-msg err'; msg.textContent='Name the new folder.'; document.getElementById('upNew').focus(); return; }
+  var todo=UP.files.filter(function(x){ return x.state==='ready'||x.state==='err'; });
+  if(todo.some(function(x){ return !String(x.title).trim(); })){ msg.className='nb-msg err'; msg.textContent='Every file needs a name.'; return; }
+  UP.busy=true; go.disabled=true; go.textContent='Uploading…'; msg.className='nb-msg'; msg.textContent='';
+  var proj=UP.proj, failed=0;
+  for(var i=0;i<todo.length;i++){
+    var x=todo[i]; x.state='up'; x.pct=0; x.err=''; upRender();
+    try{
+      var f=x.file, type=f.type||'application/octet-stream';
+      var sg=await itemsCall({ action:'sign', project:proj.id, files:[{ name:f.name, size:f.size, type:type }] });
+      var t=sg.targets[0];
+      var onPct=function(p){ x.pct=Math.min(p,99); upRender(); };
+      if(t.method==='PUT') await upXhr('PUT', t.uploadURL, f, { 'Content-Type':type }, onPct);
+      else { var fd=new FormData(); fd.append('file', f, f.name); await upXhr('POST', t.uploadURL, fd, {}, onPct); }
+      await itemsCall({ action:'create', item:{ project:proj.id, section:folder, title:String(x.title).trim(), version:String(x.version||'').trim(), kind:t.kind, r2_key:t.r2_key||'', stream_uid:t.stream_uid||'', file_name:f.name, file_size:f.size, mime:type } });
+      x.state='done'; x.pct=100;
+    }catch(e){ x.state='err'; x.err=(e&&e.message)||'Failed'; failed++; }
+    upRender();
+  }
+  UP.busy=false;
+  await itemsLoad();
+  if(failed){ msg.className='nb-msg err'; msg.textContent=failed+' upload'+(failed===1?'':'s')+' failed — fix and press Upload to retry.'; upRender(); return; }
+  var hash='p='+encodeURIComponent(proj.id)+'&s='+encodeURIComponent(folder);
+  upClose();
+  if(location.hash.replace(/^#/,'')===hash) route(); else location.hash=hash;
+}
+
+/* ---- Edit / move / delete one deliverable ---- */
+function itemEditOpen(itemId){
+  var found=findItem(itemId); if(!found||!canEditItem(found.it)) return;
+  var proj=found.proj, it=found.it;
+  var ov=document.createElement('div'); ov.className='onb show'; ov.id='ieOv';
+  ov.innerHTML='<div class="lm-modal ie-modal"><div class="lm-title" style="font-size:19px">Edit deliverable</div>'
+    +'<p class="dk-hint" style="margin:0 0 14px">'+(it.uploader?'Uploaded by '+esc(it.uploader)+(it.date?' · '+esc(fmtStamp(it.date)):''):'')+'</p>'
+    +'<label class="nb-l" for="ieTitle">Name</label><input class="nb-i" id="ieTitle" value="'+esc(it.title)+'">'
+    +'<div class="ie-row"><div><label class="nb-l" for="ieFolder">Folder</label><select class="nb-i" id="ieFolder">'+upFolderOptions(proj, it.section)+'</select><input class="nb-i" id="ieNew" placeholder="New folder name" hidden></div>'
+    +'<div><label class="nb-l" for="ieVer">Version</label><input class="nb-i" id="ieVer" value="'+esc(it.version)+'" placeholder="v1"></div></div>'
+    +'<div class="lm-foot"><button class="ie-del" id="ieDel" type="button">Delete</button><button id="ieCancel" type="button">Cancel</button><button id="ieSave" class="post" type="button">Save</button><span class="msg" id="ieMsg"></span></div></div>';
+  document.body.appendChild(ov);
+  var fs=document.getElementById('ieFolder'), nw=document.getElementById('ieNew'), msg=document.getElementById('ieMsg');
+  fs.onchange=function(){ nw.hidden=(fs.value!=='__new__'); if(!nw.hidden) nw.focus(); };
+  ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); });
+  document.getElementById('ieCancel').onclick=function(){ ov.remove(); };
+  document.getElementById('ieSave').onclick=async function(){
+    var b=this, folder=fs.value==='__new__'?nw.value.trim():fs.value, title=document.getElementById('ieTitle').value.trim();
+    if(!title){ msg.className='msg err'; msg.textContent='Give it a name.'; return; }
+    if(!folder){ msg.className='msg err'; msg.textContent='Name the new folder.'; return; }
+    b.disabled=true; b.textContent='Saving…'; msg.className='msg'; msg.textContent='';
+    try{
+      await itemsCall({ action:'update', id:it.id, patch:{ title:title, section:folder, version:document.getElementById('ieVer').value.trim() } });
+      await itemsLoad(); ov.remove();
+      var p=CONFIG.PROJECTS.find(function(x){ return x.id===proj.id; }), sec=p&&p.sections.find(function(s){ return s.name===folder; });
+      var st=sec&&sec.stacks.find(function(s){ return s.versions.some(function(v){ return v.id===it.id; }); });
+      location.hash='p='+encodeURIComponent(proj.id)+'&s='+encodeURIComponent(folder)+(st?'&k='+encodeURIComponent(st.id)+'&i='+encodeURIComponent(it.id):'');
+      route();
+    }catch(e){ b.disabled=false; b.textContent='Save'; msg.className='msg err'; msg.textContent=(e&&e.message)||'Could not save.'; }
+  };
+  document.getElementById('ieDel').onclick=async function(){
+    if(!confirm('Delete “'+(it.title||'this item')+(it.version?' '+it.version:'')+'”? Its notes stay in the activity log but it disappears from the project.')) return;
+    var b=this; b.disabled=true; b.textContent='Deleting…';
+    try{ await itemsCall({ action:'delete', id:it.id }); await itemsLoad(); ov.remove(); location.hash='p='+encodeURIComponent(proj.id)+'&s='+encodeURIComponent(it.section); route(); }
+    catch(e){ b.disabled=false; b.textContent='Delete'; msg.className='msg err'; msg.textContent=(e&&e.message)||'Could not delete.'; }
+  };
+}
+document.addEventListener('click',function(e){
+  var u=e.target.closest&&e.target.closest('[data-upproj]'); if(u){ var cur=new URLSearchParams(location.hash.replace(/^#/,'')).get('s'); upOpen(u.dataset.upproj, cur||null); return; }
+  var ed=e.target.closest&&e.target.closest('[data-itemedit]'); if(ed){ itemEditOpen(ed.dataset.itemedit); }
+});
+
 function onboardSectionHTML(cl){
   var projs=CONFIG.PROJECTS.filter(function(p){ return p.client===cl.key; });
   var checks=projs.map(function(p){ return '<label class="ob-proj"><input type="checkbox" class="ob-proj-cb" value="'+esc(p.id)+'" checked> '+esc(p.title)+'</label>'; }).join('');
@@ -2649,6 +2873,7 @@ function onboardSectionHTML(cl){
     +'<div class="ob-row"><input id="ob-name" class="ob-input" placeholder="Default name (optional)"></div>'
     +'<div class="ob-row"><textarea id="ob-emails" class="ob-input ob-area" placeholder="One recipient per line. Just an email, or personalize:&#10;margot@email.com&#10;Winnie <winnie@email.com>"></textarea></div>'
     +'<div class="ob-projs"><span class="ob-projs-h">Access to:</span>'+checks+'</div>'
+    +'<label class="ob-team"><input type="checkbox" id="ob-team"> <span><b>Team member</b> \u2014 designers, animators, producers: can upload deliverables and edit their own uploads</span></label>'
     +'<div class="ob-foot"><button class="post" id="ob-send">Send invite</button><span class="msg" id="ob-msg"></span></div><div class="ob-list" id="ob-list"></div></section>';
 }
 
@@ -2671,7 +2896,7 @@ function renderProject(proj, sec, stack, folder){
   // Presentations lives ABOVE the Project group. Admin always sees it; clients only when a deck is published.
   const decksNav='<nav class="nav nav-decks"><a id="decksNav" href="#p='+encodeURIComponent(proj.id)+'&f=decks" class="'+(folder==='decks'?'active':'')+'"'+(ADMIN?'':' style="display:none"')+'><span class="n-ico">'+calNavIcon('deck')+'</span><span class="n-name">Presentations</span></a></nav>';
   const finalNav='<div class="nav-group">Final</div><nav class="nav nav-final"><a href="#p='+encodeURIComponent(proj.id)+'&f=final" class="'+(folder==='final'?'active':'')+'"><span class="n-ico">'+calNavIcon('final')+'</span><span class="n-name">Final Deliverables</span></a><a href="#p='+encodeURIComponent(proj.id)+'&f=newsletter" class="'+(folder==='newsletter'?'active':'')+'"'+(ADMIN?'':' style="display:none"')+'><span class="n-ico">'+calNavIcon('news')+'</span><span class="n-name">Send Newsletter</span></a></nav>';
-  const adminHTML = ADMIN ? adminStrip(proj,sec) : '';
+  const adminHTML = (ADMIN || (sec.id && !folder && !stack && canUpload(proj.id))) ? adminStrip(proj,sec) : ''; // v58: team members can notify/schedule too
   const signoffNav = ADMIN ? '<div class="signoff-nav"><button class="signoff-btn" id="signoffBtn" title="Export a branded review record (comments + approvals) as PDF"><span class="n-ico">'+calNavIcon('final')+'</span><span class="n-name">Export sign-off PDF</span></button></div>' : '';
   let head, body;
   if(folder){
@@ -2691,9 +2916,9 @@ function renderProject(proj, sec, stack, folder){
   } else {
     const secHid=isHidden(visKeySection(proj.id,sec.id));
     const secTog=(typeof ADMIN!=='undefined'&&ADMIN)?'<button class="vis-tog sec-tog'+(secHid?' on':'')+'" data-vk="'+esc(visKeySection(proj.id,sec.id))+'">'+(secHid?visEyeOff()+'Hidden from clients':visEye()+'Visible to clients')+'</button>':'';
-    head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>'+esc(sec.name)+'</h2>'+secTog+'</div>';
-    const vstacks=visStacksOf(proj,sec);
-    body = vstacks.length ? '<div class="rgrid" data-cols="'+Math.min(vstacks.length,3)+'">'+vstacks.map(st=>gridCardWrap(proj,sec,st)).join('')+'</div>' : '<div class="sec-empty">Nothing in '+esc(sec.name)+' yet.</div>';
+    head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><div class="mh-row"><h2>'+esc(sec.name)+'</h2>'+upBtnHTML(proj)+'</div>'+(sec.id?secTog:'')+'</div>';
+    const vstacks=sec.id?visStacksOf(proj,sec):[];
+    body = vstacks.length ? '<div class="rgrid" data-cols="'+Math.min(vstacks.length,3)+'">'+vstacks.map(st=>gridCardWrap(proj,sec,st)).join('')+'</div>' : '<div class="sec-empty">'+(sec.id?'Nothing in '+esc(sec.name)+' yet.':(canUpload(proj.id)?'No deliverables yet \u2014 upload the first ones.':'Nothing to review yet.'))+'</div>';
   }
   var _cl=(CONFIG.CLIENTS||[]).find(function(x){return x.key===proj.client;}); var _clName=_cl?_cl.name:CONFIG.COMPANY.name;
   app.innerHTML='<div class="pv"><aside class="side"><a class="back" href="#c='+encodeURIComponent(proj.client||'')+'">← '+esc(_clName)+'</a><div class="pv-eyebrow">Project</div><h2 class="pv-title">'+esc(proj.title)+'</h2><div id="projStatusBox" class="pstat-box"></div><nav class="nav">'+nav+'</nav>'+decksNav+'<div class="nav-group">Client Dashboard</div><nav class="nav nav-folders">'+folderNav+'</nav>'+finalNav+signoffNav+'</aside><div class="mainsec">'+head+adminHTML+body+'</div></div>';
@@ -2721,7 +2946,8 @@ function renderProject(proj, sec, stack, folder){
     loadGridCounts(proj, sec);
     APPR_GRID={proj:proj,sec:sec}; approvalsEnsure(proj.id); seenbyEnsure(proj.id);
   }
-  if(ADMIN){ const ab=document.getElementById('ann-btn-'+sec.id); if(ab) ab.addEventListener('click', ()=>announce(proj.id,sec.id)); const asch=document.getElementById('ann-sch-'+sec.id); if(asch) asch.addEventListener('click', ()=>announceSchedule(proj.id,sec.id)); const sob=document.getElementById('signoffBtn'); if(sob) sob.addEventListener('click', ()=>exportSignoff(proj.id)); }
+  if(ADMIN || canUpload(proj.id)){ const ab=document.getElementById('ann-btn-'+sec.id); if(ab) ab.addEventListener('click', ()=>announce(proj.id,sec.id)); const asch=document.getElementById('ann-sch-'+sec.id); if(asch) asch.addEventListener('click', ()=>announceSchedule(proj.id,sec.id)); }
+  if(ADMIN){ const sob=document.getElementById('signoffBtn'); if(sob) sob.addEventListener('click', ()=>exportSignoff(proj.id)); }
 }
 
 function gridCardHTML(proj, sec, stack){
@@ -3091,11 +3317,12 @@ function versionBodyHTML(proj, sec, it){
   const dlBtn = (it.type==='video' && it.stream_uid && !it.download_url)
     ? '<button class="dl-btn" type="button" id="dlv-'+it.id+'" data-uid="'+esc(it.stream_uid)+'" data-fn="'+esc((itemTitle(it)||'video').replace(/[^A-Za-z0-9-_]+/g,'_').slice(0,110)||'video')+'">⤓ Download</button>'
     : (dl ? '<a class="dl-btn" href="'+esc(dl)+'" download target="_blank" rel="noopener">⤓ Download</a>' : '');
-  const stamp = it.date ? '<span class="up-stamp">Uploaded '+esc(fmtStamp(it.date))+'</span>' : '';
+  const stamp = (it.date||it.uploader) ? '<span class="up-stamp">Uploaded'+(it.uploader?' by <b>'+esc(it.uploader)+'</b>':'')+(it.date?' \u00b7 '+esc(fmtStamp(it.date)):'')+'</span>' : '';
+  const editBtn = (it.type!=='deck' && it.uploader_email!==undefined && canEditItem(it)) ? '<button class="meta-share it-edit" type="button" data-itemedit="'+esc(it.id)+'" title="Rename, move to another folder, or delete">\u270e<span>Edit</span></button>' : '';
   const shareBtn = it.type==='deck' ? '' : '<button class="meta-share" id="share-'+it.id+'" type="button" title="Share">'+svgIcon('share')+'<span>Share</span></button><div class="share-pop" id="sharepop-'+it.id+'" hidden></div>';
   const gifBtn = (it.type==='video' && it.stream_uid && (typeof ADMIN!=='undefined' && ADMIN)) ? '<button class="meta-share gifbtn" id="gif-'+it.id+'" type="button" title="Make a looping GIF for slides"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M7 9v6M11 9v6M15 12h2.5M15 9h3M15 9v6"/></svg><span>GIF</span></button>' : '';
   const aeBtn = (it.type==='video' && (typeof ADMIN!=='undefined' && ADMIN)) ? '<button class="meta-share gifbtn" id="ae-'+it.id+'" type="button" title="Download these notes as After Effects markers (.jsx)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 20h16"/></svg><span>AE notes</span></button>' : '';
-  const metaBar = it.type==='deck' ? '' : '<div class="meta-bar"><div class="meta-left">'+dlBtn+stamp+'</div><div class="meta-right"><span class="appr" id="appr-'+it.id+'"></span>'+aeBtn+gifBtn+shareBtn+'</div></div>';
+  const metaBar = it.type==='deck' ? '' : '<div class="meta-bar"><div class="meta-left">'+dlBtn+stamp+'</div><div class="meta-right"><span class="appr" id="appr-'+it.id+'"></span>'+editBtn+aeBtn+gifBtn+shareBtn+'</div></div>';
   const tcField = it.type==='video' ? '<div class="field f-tc"><label>Timecode</label><div class="tc-wrap"><input id="tc-'+it.id+'" placeholder="00:00"><button type="button" class="tc-now" id="tcnow-'+it.id+'" title="Grab the current play position">\u23f1 now</button></div></div>' : '';
   const pinTool = it.type==='image' ? '<button class="tool-btn" id="pin-'+it.id+'" type="button">📍 Pin to image</button><span class="pin-ind" id="pin-ind-'+it.id+'"></span>' : '';
   const composer = '<div class="composer"><div class="reply-ctx" id="replyctx-'+it.id+'" hidden></div>'
@@ -3392,7 +3619,7 @@ async function deleteNote(itemId, commentId){
 }
 
 function adminStrip(proj, sec){
-  return '<div class="admin-strip"><span class="admin-tag">Admin</span><input id="ann-msg-'+sec.id+'" class="admin-input" placeholder="Optional message — e.g. \'New work is up for review\'"><button class="admin-btn" id="ann-btn-'+sec.id+'">Notify Team</button><button class="admin-btn ghost" id="ann-sch-'+sec.id+'" title="Schedule this for later">\u23f1 Schedule</button><span class="admin-msg" id="ann-status-'+sec.id+'"></span></div>';
+  return '<div class="admin-strip"><span class="admin-tag">'+(ADMIN?'Admin':'Team')+'</span><input id="ann-msg-'+sec.id+'" class="admin-input" placeholder="Optional message — e.g. \'New work is up for review\'"><button class="admin-btn" id="ann-btn-'+sec.id+'">Notify Team</button><button class="admin-btn ghost" id="ann-sch-'+sec.id+'" title="Schedule this for later">\u23f1 Schedule</button><span class="admin-msg" id="ann-status-'+sec.id+'"></span></div>';
 }
 /* ---------- scheduled email helpers (shared by Notify Team + Newsletter) ---------- */
 function schedFmt(iso){ try{ return new Date(iso).toLocaleString([], {weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}); }catch(e){ return iso; } }
@@ -3416,7 +3643,8 @@ async function announceBuild(proj, sec, message){
   if(!INVITES.length) await loadInvites();
   var own={}; (CONFIG.OWNER_LOGINS||[]).forEach(function(e){ own[String(e).toLowerCase()]=1; }); own[String(OWNER_EMAIL).toLowerCase()]=1;
   var recips=(INVITES||[]).filter(function(p){ return p.email && (!p.project_keys || !p.project_keys.length || p.project_keys.indexOf(proj.id)>=0); }).map(function(p){ return p.email; });
-  recips=[...new Set(recips)].filter(function(e){ return e && !own[e.toLowerCase()]; });
+  var meE=String(myEmail()||'').toLowerCase();
+  recips=[...new Set(recips)].filter(function(e){ return e && !own[e.toLowerCase()] && e.toLowerCase()!==meE; });
   var link='https://supernerd.tv/r/'+CONFIG.REVIEW_SLUG+'/#p='+encodeURIComponent(proj.id)+'&s='+encodeURIComponent(sec.id);
   var inner='<p style="margin:0 0 14px;font-size:15px;line-height:1.6;color:#c9ccd1;">New work is ready for you to review in <b style="color:#fff;">'+esc(proj.title)+' \u2014 '+esc(sec.name)+'</b>.</p>'
     +(message?'<p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#c9ccd1;">'+esc(message)+'</p>':'')
@@ -3433,7 +3661,7 @@ async function announce(projId, secId){
     try{ await sb.from('announcements').insert({ review_slug:CONFIG.REVIEW_SLUG, project:proj.id, section:sec.id, message:message||null }); }catch(e){}
     var p=await announceBuild(proj, sec, message);
     if(p.recips.length){
-      await sendEmail({ to:[OWNER_EMAIL], bcc:p.recips, subject:p.subject, html:p.html, replyTo:OWNER_EMAIL });
+      await sendEmail({ to:[OWNER_EMAIL], bcc:p.recips, subject:p.subject, html:p.html, replyTo:(ADMIN?OWNER_EMAIL:(myEmail()||OWNER_EMAIL)) });
       if(inp) inp.value=''; st.className='admin-msg ok'; st.textContent='Team emailed ('+p.recips.length+').'; setTimeout(()=>{ if(st) st.textContent=''; },3500);
     } else {
       if(inp) inp.value=''; st.className='admin-msg ok'; st.textContent='Posted \u2014 no partners to email yet.'; setTimeout(()=>{ if(st) st.textContent=''; },3500);
@@ -3449,7 +3677,7 @@ async function announceSchedule(projId, secId){
   var p=await announceBuild(proj, sec, message);
   if(!p.recips.length){ if(st){ st.className='admin-msg err'; st.textContent='No partners on this project to schedule for yet.'; } return; }
   openSchedulePicker({ title:'Schedule Notify Team', note:'Emails '+p.recips.length+' partner'+(p.recips.length>1?'s':'')+' at the time you pick.', onSchedule: async function(iso, ok, err){
-    var row={ review_slug:CONFIG.REVIEW_SLUG, project_key:proj.id, kind:'notify', label:'Notify \u00b7 '+proj.title+' \u2014 '+sec.name, to_emails:[OWNER_EMAIL], bcc_emails:p.recips, reply_to:OWNER_EMAIL, subject:p.subject, html:p.html, send_at:iso, created_by:myEmail() };
+    var row={ review_slug:CONFIG.REVIEW_SLUG, project_key:proj.id, kind:'notify', label:'Notify \u00b7 '+proj.title+' \u2014 '+sec.name, to_emails:[OWNER_EMAIL], bcc_emails:p.recips, reply_to:(ADMIN?OWNER_EMAIL:(myEmail()||OWNER_EMAIL)), subject:p.subject, html:p.html, send_at:iso, created_by:myEmail() };
     var r=await schedInsert(row); if(r.error){ err(r.error.message||'Could not schedule'); return; }
     try{ await sb.from('announcements').insert({ review_slug:CONFIG.REVIEW_SLUG, project:proj.id, section:sec.id, message:message||null }); }catch(e){}
     if(inp) inp.value=''; if(st){ st.className='admin-msg ok'; st.textContent='Scheduled for '+schedFmt(iso); setTimeout(()=>{ if(st) st.textContent=''; },5000); }
@@ -3459,7 +3687,7 @@ async function announceSchedule(projId, secId){
 
 async function loadInvites(){
   try{
-    const { data, error } = await sb.from('invites').select('id,email,name,project_keys,created_at,can_approve').eq('review_slug', CONFIG.REVIEW_SLUG).order('created_at',{ascending:true});
+    const { data, error } = await sb.from('invites').select('id,email,name,project_keys,created_at,can_approve,role').eq('review_slug', CONFIG.REVIEW_SLUG).order('created_at',{ascending:true});
     if(error) throw error;
     const seen=new Set(); INVITES=(data||[]).filter(r=>{ if(!r.email||seen.has(r.email)) return false; seen.add(r.email); return true; });
   }catch(e){ console.error('invites load failed', e); INVITES=[]; }
@@ -3513,7 +3741,8 @@ async function sendOnboarding(clientKey){
     const rows=parsed.map(function(r){
       const prev=INVITES.find(function(x){ return (x.email||'').toLowerCase()===r.email.toLowerCase(); });
       const keys=Array.from(new Set(((prev&&prev.project_keys)||[]).concat(pk)));
-      return { email:prev?prev.email:r.email, name:r.name||(prev&&prev.name)||null, review_slug:CONFIG.REVIEW_SLUG, project_keys:keys };
+      var teamEl=document.getElementById('ob-team'), team=!!(teamEl&&teamEl.checked);
+      return { email:prev?prev.email:r.email, name:r.name||(prev&&prev.name)||null, review_slug:CONFIG.REVIEW_SLUG, project_keys:keys, role:team?'team':((prev&&prev.role)||'client') };
     });
     const { error } = await sb.from('invites').upsert(rows, { onConflict:'review_slug,email' });
     if(error) throw error;
@@ -3605,10 +3834,8 @@ document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') closeOverlay();
 chrome();
 (function(){ var b=document.getElementById('buildStamp'); if(b && CONFIG.VERSION) b.textContent=CONFIG.VERSION; })();
 window.addEventListener('hashchange', route);
-// v56: never route before sign-in resolves. Routing early (before we know you're the owner)
-// treated the owner like a one-company client and auto-jumped into that project.
-var INVITES_READY=loadInvites();
-INVITES_READY.finally(function(){ if(AUTH.ready) route(); });
+// v56/v58: invites load inside authInit once signed in (routing waits for it; never runs anonymously).
+var INVITES_READY=null;
 
 /* ===================== CALENDAR ===================== */
 var CAL = { view:'month', cursor:null, filter:'all', day:null, editing:false, pendingDel:null, TYPES:{}, ORDER:[], EV:[], projId:null };
@@ -4230,15 +4457,16 @@ async function loadProfile(){
   var ownerEmail=(CONFIG.OWNER_LOGINS||[]).some(function(x){return String(x).toLowerCase()===em;});
   var d=null;
   try{ var ro=await sb.from('review_settings').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).maybeSingle(); d=ro&&ro.data; }catch(e){}
-  var ownerUid=d&&d.owner_uid&&d.owner_uid===AUTH.user.id;
-  if(ownerEmail||ownerUid){
+  if(ownerEmail){
     AUTH.profile={ id:AUTH.user.id, owner:true, full_name:(d&&d.owner_name)||'Supernerd', position:(d&&d.owner_position)||'', company_id:(d&&d.owner_company_id)||'supernerd', avatar_url:(d&&d.owner_avatar_url)||null, phone:(d&&d.owner_phone)||null, timezone:(d&&d.owner_timezone)||null };
     AUTH.canApprove=true;
     return;
   }
   try{ var r=await sb.from('profiles').select('*').eq('id',AUTH.user.id).maybeSingle(); AUTH.profile=r.data||null; }catch(e){ AUTH.profile=null; }
+  if(AUTH.profile) AUTH.profile.owner=false; // only owner emails are owners
   AUTH.canApprove=false;
-  try{ var iv=await sb.from('invites').select('can_approve').eq('review_slug',CONFIG.REVIEW_SLUG).eq('email',em).maybeSingle(); AUTH.canApprove=!!(iv&&iv.data&&iv.data.can_approve); }catch(e){}
+  AUTH.isTeam=false;
+  try{ var iv=await sb.from('invites').select('can_approve,role').eq('review_slug',CONFIG.REVIEW_SLUG).ilike('email',em).maybeSingle(); AUTH.canApprove=!!(iv&&iv.data&&iv.data.can_approve); AUTH.isTeam=!!(iv&&iv.data&&iv.data.role==='team'); }catch(e){}
 }
 function gateOverlay(){ if(document.getElementById('authGate')||!document.body) return; var g=document.createElement('div'); g.id='authGate'; g.setAttribute('style','position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#050505;color:#8a8a86;font-family:var(--mono),monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase'); g.textContent='Verifying access\u2026'; document.body.appendChild(g); }
 function gateClear(){ var g=document.getElementById('authGate'); if(g) g.remove(); }
@@ -4246,7 +4474,7 @@ function gateRedirect(){ try{ var nxt=encodeURIComponent(location.pathname+locat
 function urlHasAuth(){ var s=(location.hash||'')+(location.search||''); return /access_token=|refresh_token=|[?&]code=|type=(magiclink|recovery|signup|invite)/.test(s); }
 async function authInit(){
   gateOverlay();
-  try{ var s=await sb.auth.getSession(); AUTH.user=(s&&s.data&&s.data.session)?s.data.session.user:null; if(AUTH.user) await loadProfile(); }catch(e){}
+  try{ var s=await sb.auth.getSession(); AUTH.user=(s&&s.data&&s.data.session)?s.data.session.user:null; if(AUTH.user){ await loadProfile(); INVITES_READY=loadInvites(); } }catch(e){}
   if(!AUTH.user){
     if(!urlHasAuth()){ gateRedirect(); return; }       // logged out, no pending sign-in -> bounce to login
     setTimeout(function(){ if(!AUTH.user) gateRedirect(); }, 4500); // sign-in didn't complete -> bounce
@@ -4254,6 +4482,7 @@ async function authInit(){
   if(AUTH.profile && AUTH.profile.owner) ADMIN=true;
   await visLoad(); await porderLoad();
   try{ if(INVITES_READY) await INVITES_READY; }catch(e){}
+  if(AUTH.user) await itemsLoad();
   AUTH.ready=true; renderAuthSlot(); startPresence(); try{ route(); }catch(e){}
   try{ track('open',{label:'Opened the portal'}); }catch(e){}
   var _authUid = (AUTH.user && AUTH.user.id) || null;
@@ -4266,7 +4495,7 @@ async function authInit(){
     if(uid===_authUid && ev!=='SIGNED_OUT'){ return; }
     _authUid=uid;
     setTimeout(async function(){
-      if(AUTH.user){ await loadProfile(); gateClear(); } else { AUTH.profile=null; }
+      if(AUTH.user){ await loadProfile(); await loadInvites(); await itemsLoad(); gateClear(); } else { AUTH.profile=null; }
       if(AUTH.profile && AUTH.profile.owner) ADMIN=true;
       renderAuthSlot(); startPresence();
       if(AUTH.user && !AUTH.profile && !(typeof ADMIN!=='undefined' && ADMIN)) openOnboarding();
@@ -4661,9 +4890,10 @@ function openPartnerDetail(p){
       }).join('');
       return rows?('<div class="pa-group"><div class="pa-group-h">'+ppEsc(cl.name)+'</div>'+rows+'</div>'):'';
     }).join('');
-    var inv0appr=!!(inv0&&inv0.can_approve);
+    var inv0appr=!!(inv0&&inv0.can_approve), inv0team=!!(inv0&&inv0.role==='team');
     access='<div class="pd-access"><div class="pa-h">Project access</div>'+groups
       +'<label class="pa-appr"><input type="checkbox" id="pdCanApprove"'+(inv0appr?' checked':'')+'> <span><b>Can approve deliverables</b><small>Lets this partner sign off on a cut \u2014 stamps it Approved for everyone.</small></span></label>'
+      +'<label class="pa-appr"><input type="checkbox" id="pdTeam"'+(inv0team?' checked':'')+'> <span><b>Team member \u2014 can upload</b><small>For designers, animators and producers: upload deliverables to the projects above, and edit or delete their own uploads.</small></span></label>'
       +'<div class="pa-foot"><button class="pa-save" id="pdSaveAccess" data-email="'+ppEsc(p.email)+'">Save access</button><span class="pa-msg" id="pdAccessMsg"></span></div></div>';
   }
   var ov=document.createElement('div'); ov.className='onb show'; ov.id='pdOv';
@@ -4684,14 +4914,14 @@ function openPartnerDetail(p){
   var sv=document.getElementById('pdSaveAccess');
   if(sv) sv.onclick=async function(){
     var em=sv.dataset.email, keys=[].slice.call(ov.querySelectorAll('.pa-cb:checked')).map(function(x){ return x.value; });
-    var caEl=document.getElementById('pdCanApprove'); var canAppr=!!(caEl&&caEl.checked);
+    var caEl=document.getElementById('pdCanApprove'); var canAppr=!!(caEl&&caEl.checked); var tmEl=document.getElementById('pdTeam'); var isTeam=!!(tmEl&&tmEl.checked);
     var m=document.getElementById('pdAccessMsg'); if(m){ m.className='pa-msg'; m.textContent='Saving…'; }
     sv.disabled=true;
     try{
-      var r=await sb.from('invites').upsert({ review_slug:CONFIG.REVIEW_SLUG, email:em, project_keys:keys, can_approve:canAppr }, { onConflict:'review_slug,email' });
+      var r=await sb.from('invites').upsert({ review_slug:CONFIG.REVIEW_SLUG, email:em, project_keys:keys, can_approve:canAppr, role:isTeam?'team':'client' }, { onConflict:'review_slug,email' });
       if(r.error) throw r.error;
       await loadInvites();
-      if(m){ m.className='pa-msg ok'; m.textContent=(keys.length?('Saved — '+keys.length+' project'+(keys.length===1?'':'s')):'Saved — no projects')+(canAppr?' · approver':''); }
+      if(m){ m.className='pa-msg ok'; m.textContent=(keys.length?('Saved — '+keys.length+' project'+(keys.length===1?'':'s')):'Saved — no projects')+(canAppr?' · approver':'')+(isTeam?' · team':''); }
       if(currentFolder==='partners') renderPartners(PP.profiles);
     }catch(e){ console.error('save access failed', e); if(m){ m.className='pa-msg err'; m.textContent='Could not save — run approvals.sql'; } }
     finally{ sv.disabled=false; }
