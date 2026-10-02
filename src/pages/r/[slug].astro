@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v60';  // v60: people lists strictly scoped to the project/company (no cross-client names); company ✕ removes only that company's access. v59: videos upload via resumable Stream (tus, up to 30 GB); readable upload errors. v58: deliverables live in Supabase; owner + team upload from the portal (R2/Stream), edit/move/delete, 'Uploaded by'. v57: partners get the Studio company grid too (no auto-jump), counts show only their projects. v56: route only after sign-in resolves (owner no longer auto-jumped into a lone project). v55: Add company / Add project from the Studio (portal-onboard fn commits CMS files). (v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
+  const VERSION = 'v61';  // v61: presentations from any tool (Google Slides, PowerPoint, Figma, Pitch, Gamma, Prezi, PDF/PPTX upload w/ slide player); team can add decks. v60: people lists strictly scoped to the project/company (no cross-client names); company ✕ removes only that company's access. v59: videos upload via resumable Stream (tus, up to 30 GB); readable upload errors. v58: deliverables live in Supabase; owner + team upload from the portal (R2/Stream), edit/move/delete, 'Uploaded by'. v57: partners get the Studio company grid too (no auto-jump), counts show only their projects. v56: route only after sign-in resolves (owner no longer auto-jumped into a lone project). v55: Add company / Add project from the Studio (portal-onboard fn commits CMS files). (v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   // v58: deliverables load from Supabase (review_items) after sign-in, so they're no longer
@@ -1973,6 +1973,35 @@ select.nl-i option{background:#15161a; color:var(--bone)}
   .up-row .up-fn{grid-column:1 / -1}
   .up-st{grid-column:1 / -1;justify-content:flex-start}
 }
+.dk-modal{max-width:520px}
+.dk-tabs{display:flex;gap:6px;margin:16px 0 10px;padding:4px;border-radius:11px;background:#000;border:1px solid var(--line)}
+.dk-tab{flex:1;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);background:none;border:0;border-radius:8px;padding:9px;cursor:pointer}
+.dk-tab.on{background:var(--green);color:#0c0d0e;font-weight:700}
+.dk-detect{font-family:var(--mono);font-size:11.5px;margin-top:7px;min-height:15px}
+.dk-detect.ok{color:var(--green-hi)} .dk-detect.warn{color:#f0b35a}
+.dk-drop{padding:16px}
+.dk-prog{display:flex;align-items:center;gap:10px;margin-top:10px;font-family:var(--mono);font-size:11px;color:var(--dim)}
+.dk-prog .up-bar{max-width:none}
+.pdfdeck{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding-bottom:34px;background:#0c0d0e;outline:none;user-select:none}
+.pdfdeck:fullscreen{padding-bottom:0;background:#000}
+.pdfdeck canvas{display:block;cursor:pointer;box-shadow:0 10px 40px -12px #000}
+.pd-load{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;color:var(--dim)}
+.pd-nav{position:absolute;top:50%;transform:translateY(-60%);width:42px;height:42px;border-radius:50%;border:1px solid rgba(255,255,255,.18);background:rgba(0,0,0,.55);color:#fff;font-size:24px;line-height:1;cursor:pointer;opacity:0;transition:opacity .2s}
+.pdfdeck:hover .pd-nav,.pdfdeck:focus-within .pd-nav{opacity:1}
+.pd-prev{left:12px} .pd-next{right:12px}
+.pd-bar{position:absolute;left:0;right:0;bottom:0;height:34px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;font-family:var(--mono);font-size:11px;color:var(--dim);border-top:1px solid var(--hair)}
+.pdfdeck:fullscreen .pd-bar{background:rgba(0,0,0,.6);border:0;opacity:.0;transition:opacity .2s}
+.pdfdeck:fullscreen:hover .pd-bar{opacity:1}
+.pd-fs{background:none;border:1px solid var(--line);color:var(--bone);border-radius:6px;padding:4px 10px;font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+.pd-fs:hover{border-color:var(--green);color:var(--green)}
+@media (hover:none){ .pd-nav{opacity:.85} }
+.deck-linkcard{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;text-align:center}
+.deck-linkcard p{margin:0;max-width:420px;color:var(--dim);font-size:14px;line-height:1.5}
+.dlc-badge{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--green)}
+.deck-linkcard .deck-add{margin:0;text-decoration:none}
+.dx-pdf canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#0c0d0e}
+.dx-kind{position:absolute;left:10px;top:10px;font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;color:#0c0d0e;background:var(--green);border-radius:3px;padding:2px 6px}
+.dx-none-in{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font:500 12px var(--mono);color:var(--dim)}
 </style>
 </head>
 <body>
@@ -2924,7 +2953,7 @@ function renderProject(proj, sec, stack, folder){
     return '<a href="#p='+encodeURIComponent(proj.id)+'&f='+ff.k+'" class="'+(folder===ff.k?'active':'')+'"><span class="n-ico">'+calNavIcon(ff.ico)+'</span><span class="n-name">'+esc(ff.name)+'</span>'+badge+'</a>';
   }).join('');
   // Presentations lives ABOVE the Project group. Admin always sees it; clients only when a deck is published.
-  const decksNav='<nav class="nav nav-decks"><a id="decksNav" href="#p='+encodeURIComponent(proj.id)+'&f=decks" class="'+(folder==='decks'?'active':'')+'"'+(ADMIN?'':' style="display:none"')+'><span class="n-ico">'+calNavIcon('deck')+'</span><span class="n-name">Presentations</span></a></nav>';
+  const decksNav='<nav class="nav nav-decks"><a id="decksNav" href="#p='+encodeURIComponent(proj.id)+'&f=decks" class="'+(folder==='decks'?'active':'')+'"'+((ADMIN||canUpload(proj.id))?'':' style="display:none"')+'><span class="n-ico">'+calNavIcon('deck')+'</span><span class="n-name">Presentations</span></a></nav>';
   const finalNav='<div class="nav-group">Final</div><nav class="nav nav-final"><a href="#p='+encodeURIComponent(proj.id)+'&f=final" class="'+(folder==='final'?'active':'')+'"><span class="n-ico">'+calNavIcon('final')+'</span><span class="n-name">Final Deliverables</span></a><a href="#p='+encodeURIComponent(proj.id)+'&f=newsletter" class="'+(folder==='newsletter'?'active':'')+'"'+(ADMIN?'':' style="display:none"')+'><span class="n-ico">'+calNavIcon('news')+'</span><span class="n-name">Send Newsletter</span></a></nav>';
   const adminHTML = (ADMIN || (sec.id && !folder && !stack && canUpload(proj.id))) ? adminStrip(proj,sec) : ''; // v58: team members can notify/schedule too
   const signoffNav = ADMIN ? '<div class="signoff-nav"><button class="signoff-btn" id="signoffBtn" title="Export a branded review record (comments + approvals) as PDF"><span class="n-ico">'+calNavIcon('final')+'</span><span class="n-name">Export sign-off PDF</span></button></div>' : '';
@@ -2932,7 +2961,7 @@ function renderProject(proj, sec, stack, folder){
   if(folder){
     if(folder==='activity'){ head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>Activity</h2><div class="pp-sub">Everything that\u2019s happened on this project since you were last here \u2014 only you can see this.</div></div>'; body='<div id="actmount"><div class="cal-loading">Loading activity\u2026</div></div>'; }
     else if(folder==='calendar'){ head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>Calendar</h2></div>'; body='<div class="cal" id="calmount"><div class="cal-loading">Loading calendar\u2026</div></div>'; }
-    else if(folder==='decks'){ head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>Presentations</h2><div class="pp-sub">Live Canva decks — they stay current as you edit them in Canva.</div></div>'; body='<div id="deckmount" class="decks"><div class="cal-loading">Loading presentations\u2026</div></div>'; }
+    else if(folder==='decks'){ head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>Presentations</h2><div class="pp-sub">Decks from Canva, Google Slides, PowerPoint, Figma, Pitch, Gamma or Prezi — or an uploaded PDF / PowerPoint file.</div></div>'; body='<div id="deckmount" class="decks"><div class="cal-loading">Loading presentations\u2026</div></div>'; }
     else if(folder==='tasks'){ head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>Task Manager</h2><div class="pp-sub">Shared checklist. Both sides can add tasks, assign an owner &amp; due date, and set status.</div></div>'; body='<div id="taskmount" class="tasks-wrap"><div class="cal-loading">Loading tasks\u2026</div></div>'; }
     else if(folder==='partners'){ head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>Project Partners</h2><div class="pp-sub">Everyone onboarded to this project.</div></div>'; body='<div id="ppmount"><div class="cal-loading">Loading partners\u2026</div></div>'; }
     else if(folder==='assets'){ head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><h2>Client Assets</h2><div class="pp-sub">Brand kit for this project. Anyone on the team can add to it.</div></div>'; body='<div id="camount" class="ca-wrap"><div class="cal-loading">Loading assets\u2026</div></div>'; }
@@ -3921,13 +3950,98 @@ function canvaEmbed(url){
   if(/canva\.com/i.test(url)){ return url.split('#')[0].split('?')[0].replace(/\/(edit|view)\/?$/,'/view')+'?embed'; }
   return url;
 }
+/* ---------- v61: presentations from any tool ----------
+   Links: Canva, Google Slides, PowerPoint Online, Figma, Pitch, Gamma, Prezi (converted to
+   each tool's embed URL). Uploads (to R2): PDF -> built-in slide player; PPTX -> Microsoft's
+   web viewer. Keynote can't play in any browser, so we ask for a PDF/PPTX export. */
+function deckSource(url){
+  url=String(url||'').trim(); if(!url) return { kind:'none', label:'' };
+  var u; try{ u=new URL(url); }catch(e){ return { kind:'link', label:'link', open:url, note:'That doesn’t look like a full link (it should start with https://).' }; }
+  var h=u.hostname.replace(/^www\./,'').toLowerCase(), p=u.pathname;
+  if(/(^|\.)canva\.com$/.test(h)) return { kind:'iframe', label:'Canva', embed:canvaEmbed(url), open:url };
+  if(/\.pdf$/i.test(p)) return { kind:'pdf', label:'PDF', src:url, open:url };
+  if(/\.pptx?$/i.test(p)) return { kind:'iframe', label:'PowerPoint', embed:'https://view.officeapps.live.com/op/embed.aspx?src='+encodeURIComponent(url), open:url };
+  if(/\.key$/i.test(p) || h==='icloud.com' && /keynote/.test(p)) return { kind:'link', label:'Keynote', open:url, note:'Keynote can’t play inside a browser. In Keynote: File → Export To → PDF (or PowerPoint), then upload that file here.' };
+  if(h==='docs.google.com' && /^\/presentation\//.test(p)){
+    var g=p.match(/^\/presentation\/d\/(e\/)?([^/]+)/);
+    if(g) return { kind:'iframe', label:'Google Slides', embed:'https://docs.google.com/presentation/d/'+(g[1]?'e/':'')+g[2]+'/embed?start=false&loop=false&delayms=60000', open:url };
+  }
+  if(/(^|\.)sharepoint\.com$/.test(h)){ var sp=new URL(url); sp.searchParams.set('action','embedview'); return { kind:'iframe', label:'PowerPoint', embed:sp.toString(), open:url }; }
+  if(h==='onedrive.live.com'){ var od=new URL(url); if(!/\/embed/.test(od.pathname)) od.pathname='/embed'; return { kind:'iframe', label:'PowerPoint', embed:od.toString(), open:url }; }
+  if(h==='1drv.ms') return { kind:'link', label:'PowerPoint', open:url, note:'Short OneDrive links can’t be embedded. In PowerPoint: File → Share → Embed, and paste the link from that code instead.' };
+  if(h==='figma.com' || /\.figma\.com$/.test(h)) return { kind:'iframe', label:'Figma', embed:(/^\/embed/.test(p)?url:'https://www.figma.com/embed?embed_host=supernerd&url='+encodeURIComponent(url)), open:url };
+  if(h==='gamma.app'){ var gm=p.match(/^\/(?:docs|public)\/(?:[^/]*-)?([a-z0-9]+)\/?$/i); return { kind:'iframe', label:'Gamma', embed:(/^\/embed\//.test(p)?url:(gm?'https://gamma.app/embed/'+gm[1]:url)), open:url }; }
+  if(h==='pitch.com') return { kind:'iframe', label:'Pitch', embed:url, open:url };
+  if(h==='prezi.com'){ var pz=p.match(/^\/p\/([^/]+)/); return { kind:'iframe', label:'Prezi', embed:(pz && pz[1]!=='embed'?'https://prezi.com/p/embed/'+pz[1]+'/':url), open:url }; }
+  return { kind:'iframe', label:h.replace(/^.*?([^.]+\.[^.]+)$/,'$1'), embed:url, open:url };
+}
+function deckFrameInner(row){
+  var s=deckSource(row&&row.url);
+  if(s.kind==='none') return '<div class="deck-empty">No link yet.</div>';
+  if(s.kind==='pdf') return '<div class="pdfdeck" tabindex="0" data-src="'+esc(s.src)+'"><canvas></canvas><div class="pd-load">Loading slides…</div><button class="pd-nav pd-prev" type="button" aria-label="Previous slide">‹</button><button class="pd-nav pd-next" type="button" aria-label="Next slide">›</button><div class="pd-bar"><span class="pd-count">– / –</span><button class="pd-fs" type="button" title="Full screen">⤢ Present</button></div></div>';
+  if(s.kind==='link') return '<div class="deck-linkcard"><div class="dlc-badge">'+esc(s.label)+'</div><p>'+esc(s.note||'This one opens in its own app.')+'</p><a class="deck-add" href="'+esc(s.open)+'" target="_blank" rel="noopener">Open ↗</a></div>';
+  return '<iframe loading="lazy" src="'+esc(s.embed)+'" allow="fullscreen; autoplay; clipboard-write" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe>';
+}
+function deckOpenLabel(row){ var s=deckSource(row&&row.url); return s.kind==='pdf'?'Open PDF ↗':(s.label?'Open in '+s.label+' ↗':'Open ↗'); }
+
+/* PDF slide player (pdf.js, loaded on demand) */
+var PDFJS_LOADING=null;
+function pdfjsLoad(){
+  if(window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  if(!PDFJS_LOADING) PDFJS_LOADING=new Promise(function(res, rej){
+    var sc=document.createElement('script'); sc.src='https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js';
+    sc.onload=function(){ window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js'; res(window.pdfjsLib); };
+    sc.onerror=function(){ PDFJS_LOADING=null; rej(new Error('Could not load the slide player')); };
+    document.head.appendChild(sc);
+  });
+  return PDFJS_LOADING;
+}
+function deckHydrate(root){
+  (root||document).querySelectorAll('.pdfdeck:not([data-ready])').forEach(function(el){ el.setAttribute('data-ready','1'); pdfDeckInit(el); });
+  (root||document).querySelectorAll('canvas[data-pdfthumb]:not([data-ready])').forEach(function(cv){ cv.setAttribute('data-ready','1'); pdfThumb(cv); });
+}
+async function pdfThumb(cv){
+  try{ var lib=await pdfjsLoad(); var doc=await lib.getDocument(cv.dataset.pdfthumb).promise; var pg=await doc.getPage(1);
+    var vp=pg.getViewport({scale:1}), sc=Math.min(640/vp.width, 2); var v2=pg.getViewport({scale:sc});
+    cv.width=v2.width; cv.height=v2.height; await pg.render({ canvasContext:cv.getContext('2d'), viewport:v2 }).promise;
+  }catch(e){ cv.replaceWith(Object.assign(document.createElement('span'),{className:'dx-none-in',textContent:'PDF'})); }
+}
+async function pdfDeckInit(el){
+  var cv=el.querySelector('canvas'), load=el.querySelector('.pd-load'), cnt=el.querySelector('.pd-count');
+  var doc=null, page=1, busy=false, want=0;
+  async function draw(){
+    if(!doc) return; if(busy){ want=page; return; } busy=true;
+    try{
+      var pg=await doc.getPage(page), base=pg.getViewport({scale:1});
+      var W=el.clientWidth, H=el.clientHeight-(document.fullscreenElement===el?0:34), dpr=Math.min(window.devicePixelRatio||1,2);
+      var sc=Math.min(W/base.width, H/base.height)*dpr, vp=pg.getViewport({scale:sc});
+      cv.width=Math.floor(vp.width); cv.height=Math.floor(vp.height); cv.style.width=Math.floor(vp.width/dpr)+'px'; cv.style.height=Math.floor(vp.height/dpr)+'px';
+      await pg.render({ canvasContext:cv.getContext('2d'), viewport:vp }).promise;
+      cnt.textContent=page+' / '+doc.numPages;
+    }catch(e){ console.error('pdf page', e); }
+    busy=false; if(want && want!==page){ want=0; draw(); } else want=0;
+  }
+  function go(d){ if(!doc) return; var n=Math.max(1, Math.min(doc.numPages, page+d)); if(n!==page){ page=n; draw(); } }
+  el.querySelector('.pd-prev').onclick=function(e){ e.stopPropagation(); go(-1); };
+  el.querySelector('.pd-next').onclick=function(e){ e.stopPropagation(); go(1); };
+  el.querySelector('.pd-fs').onclick=function(e){ e.stopPropagation(); if(document.fullscreenElement) document.exitFullscreen(); else if(el.requestFullscreen) el.requestFullscreen(); else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen(); };
+  cv.onclick=function(e){ var r=cv.getBoundingClientRect(); go(e.clientX-r.left < r.width/3 ? -1 : 1); };
+  el.addEventListener('keydown',function(e){ if(e.key==='ArrowRight'||e.key===' '||e.key==='PageDown'){ e.preventDefault(); go(1); } else if(e.key==='ArrowLeft'||e.key==='PageUp'){ e.preventDefault(); go(-1); } else if(e.key==='Home'){ page=1; draw(); } else if(e.key==='End'&&doc){ page=doc.numPages; draw(); } });
+  var sx=null; el.addEventListener('touchstart',function(e){ sx=e.touches[0].clientX; },{passive:true}); el.addEventListener('touchend',function(e){ if(sx===null) return; var dx=e.changedTouches[0].clientX-sx; if(Math.abs(dx)>40) go(dx<0?1:-1); sx=null; });
+  document.addEventListener('fullscreenchange',function(){ if(document.fullscreenElement===el||!document.fullscreenElement){ setTimeout(draw,60); if(document.fullscreenElement===el) el.focus(); } });
+  var ro=window.ResizeObserver?new ResizeObserver(function(){ draw(); }):null; if(ro) ro.observe(el);
+  try{ var lib=await pdfjsLoad(); doc=await lib.getDocument(el.dataset.src).promise; load.remove(); draw(); }
+  catch(e){ load.textContent='Could not open this PDF.'; }
+}
+function canDeck(projKey){ return ADMIN || canUpload(projKey); }
+function deckMine(row){ return ADMIN || (!!row && !!row.created_by && String(row.created_by).toLowerCase()===String(myEmail()||'').toLowerCase()); }
 function deckEmbedHTML(row){
   var src=canvaEmbed(row.url);
   if(!src) return '<div class="deck-empty">No link yet.</div>';
   return '<div class="deck-frame"><iframe loading="lazy" src="'+esc(src)+'" allow="fullscreen" allowfullscreen referrerpolicy="no-referrer"></iframe></div>'
     +'<div class="deck-foot"><a class="deck-open" href="'+esc(row.url)+'" target="_blank" rel="noopener">Open in Canva \u2197</a></div>';
 }
-function deckIframe(row){ var src=canvaEmbed(row.url); if(!src) return '<div class="deck-empty">No Canva link yet.</div>'; return '<iframe loading="lazy" src="'+esc(src)+'" allow="fullscreen" allowfullscreen referrerpolicy="no-referrer"></iframe>'; }
+function deckIframe(row){ return deckFrameInner(row); }
 var DECK_VIEW={items:{}};
 var DECK_PICK=null;
 function deckGrpSort(vers){ var v=null; vers.forEach(function(x){ if(x.sort!==null&&x.sort!==undefined&&x.sort!==''&&!isNaN(Number(x.sort))){ var n=Number(x.sort); if(v===null||n<v) v=n; } }); return v; }
@@ -3941,7 +4055,7 @@ async function deckLoad(projKey){
     if(r.error) throw r.error; rows=r.data||[];
   }catch(e){ console.error('decks load failed', e); mount.innerHTML='<div class="sec-empty">Could not load presentations. Run presentations.sql in Supabase first.</div>'; return; }
   DECKS_CACHE[projKey]=rows;
-  var visible = ADMIN ? rows : rows.filter(function(x){ return x.published; });
+  var visible = ADMIN ? rows : rows.filter(function(x){ return x.published || deckMine(x); });
   var order=[], map={};
   visible.forEach(function(x){ var n=x.name||'Presentation'; if(!map[n]){ map[n]=[]; order.push(n); } map[n].push(x); });
   // Order: anything with an explicit sort first, then most recently added/updated first
@@ -3953,8 +4067,8 @@ async function deckLoad(projKey){
     if(sa===null && sb2!==null) return 1;
     return String(deckGrpTime(map[b])).localeCompare(String(deckGrpTime(map[a])));
   });
-  var addBtn = ADMIN ? '<button class="deck-add" id="deckAdd">+ Add presentation</button>' : '';
-  if(!order.length){ mount.innerHTML=addBtn+'<div class="sec-empty">'+(ADMIN?'No presentations yet. Add one with a Canva link.':'No presentations shared yet.')+'</div>'; if(ADMIN){ var b0=document.getElementById('deckAdd'); if(b0) b0.onclick=function(){ deckOpen(projKey,null); }; } return; }
+  var addBtn = canDeck(projKey) ? '<button class="deck-add" id="deckAdd">+ Add presentation</button>' : '';
+  if(!order.length){ mount.innerHTML=addBtn+'<div class="sec-empty">'+(canDeck(projKey)?'No presentations yet. Add one with a link (Canva, Google Slides, PowerPoint…) or upload a PDF / PowerPoint.':'No presentations shared yet.')+'</div>'; if(canDeck(projKey)){ var b0=document.getElementById('deckAdd'); if(b0) b0.onclick=function(){ deckOpen(projKey,null); }; } return; }
   var proj=CONFIG.PROJECTS.find(function(p){return p.id===projKey;})||{id:projKey,sections:[]};
   var sec={id:'__decks__', name:'Presentations', stacks:[]};
   DECK_VIEW={proj:proj, sec:sec, projKey:projKey, items:{}};
@@ -3966,19 +4080,20 @@ function deckRenderIndex(mount, projKey, order, map, addBtn){
   var cards=order.map(function(n){
     var vers=deckVersSorted(map[n]);
     var sel=vers.filter(function(v){return v.published;})[0]||vers[0];
-    var emb=canvaEmbed(sel.url);
-    var thumb = emb
-      ? '<span class="dx-thumb"><iframe loading="lazy" src="'+esc(emb)+'" tabindex="-1" scrolling="no" referrerpolicy="no-referrer" aria-hidden="true"></iframe><span class="dx-shield"></span></span>'
-      : '<span class="dx-thumb dx-none">No preview yet</span>';
+    var ds=deckSource(sel.url);
+    var thumb = ds.kind==='iframe'
+      ? '<span class="dx-thumb"><iframe loading="lazy" src="'+esc(ds.embed)+'" tabindex="-1" scrolling="no" referrerpolicy="no-referrer-when-downgrade" aria-hidden="true"></iframe><span class="dx-shield"></span></span>'
+      : ds.kind==='pdf' ? '<span class="dx-thumb dx-pdf"><canvas data-pdfthumb="'+esc(ds.src)+'"></canvas><span class="dx-kind">PDF</span><span class="dx-shield"></span></span>'
+      : '<span class="dx-thumb dx-none">'+esc(ds.label||'No preview yet')+'</span>';
     var anyPub=vers.some(function(v){return v.published;});
-    var badge = ADMIN ? (anyPub?'<span class="deck-badge live">LIVE</span>':'<span class="deck-badge hid">HIDDEN</span>') : '';
+    var badge = canDeck(projKey) ? (anyPub?'<span class="deck-badge live">LIVE</span>':'<span class="deck-badge hid">HIDDEN</span>') : '';
     return '<a class="dx-card" href="#p='+encodeURIComponent(projKey)+'&f=decks&dk='+encodeURIComponent(n)+'">'
       +thumb
       +'<span class="dx-meta"><span class="dx-name">'+esc(n)+'</span>'+badge+'</span>'
       +'<span class="dx-sub">'+vers.length+' version'+(vers.length===1?'':'s')+'<span class="dx-notes" data-dxn="'+esc(n)+'"></span><span class="dx-go">Open \u2192</span></span>'
       +'</a>';
   }).join('');
-  mount.innerHTML=addBtn+'<div class="dx-grid">'+cards+'</div>';
+  mount.innerHTML=addBtn+'<div class="dx-grid">'+cards+'</div>'; deckHydrate(mount);
   var ab=document.getElementById('deckAdd'); if(ab) ab.onclick=function(){ deckOpen(projKey,null); };
   deckNoteCounts(projKey);
 }
@@ -3995,12 +4110,12 @@ function deckRenderOne(mount, projKey, proj, sec, map, n, multi, addBtn){
   var vers=deckVersSorted(map[n]);
   var sel=vers[0];
   var anyPub=vers.some(function(v){return v.published;});
-  var badge = ADMIN ? (anyPub?'<span class="deck-badge live">LIVE</span>':'<span class="deck-badge hid">HIDDEN</span>') : '';
-  var chips = vers.length>1 ? '<div class="ver-chips">'+vers.map(function(v,vi){ return '<button class="ver-chip deck-vchip'+(vi===0?' active':'')+(ADMIN&&!v.published?' off':'')+'" data-gi="'+gi+'" data-vid="'+esc(v.id)+'">'+esc(v.version||('v'+(vers.length-vi)))+'</button>'; }).join('')+'</div>' : '';
-  var adminRow = ADMIN ? '<div class="deck-admin">'
-      +vers.map(function(v){ return '<span class="deck-vrow"><b>'+esc(v.version||'v1')+'</b> <button class="deck-pub'+(v.published?' on':'')+'" data-vid="'+esc(v.id)+'" data-proj="'+esc(projKey)+'">'+(v.published?'Live':'Hidden')+'</button> <button class="deck-edit" data-vid="'+esc(v.id)+'" data-proj="'+esc(projKey)+'">Edit</button> <button class="deck-del" data-vid="'+esc(v.id)+'" data-proj="'+esc(projKey)+'">Delete</button></span>'; }).join('')
+  var badge = canDeck(projKey) ? (anyPub?'<span class="deck-badge live">LIVE</span>':'<span class="deck-badge hid">HIDDEN</span>') : '';
+  var chips = vers.length>1 ? '<div class="ver-chips">'+vers.map(function(v,vi){ return '<button class="ver-chip deck-vchip'+(vi===0?' active':'')+(canDeck(projKey)&&!v.published?' off':'')+'" data-gi="'+gi+'" data-vid="'+esc(v.id)+'">'+esc(v.version||('v'+(vers.length-vi)))+'</button>'; }).join('')+'</div>' : '';
+  var adminRow = canDeck(projKey) ? '<div class="deck-admin">'
+      +vers.filter(deckMine).map(function(v){ return '<span class="deck-vrow"><b>'+esc(v.version||'v1')+'</b> <button class="deck-pub'+(v.published?' on':'')+'" data-vid="'+esc(v.id)+'" data-proj="'+esc(projKey)+'">'+(v.published?'Live':'Hidden')+'</button> <button class="deck-edit" data-vid="'+esc(v.id)+'" data-proj="'+esc(projKey)+'">Edit</button> <button class="deck-del" data-vid="'+esc(v.id)+'" data-proj="'+esc(projKey)+'">Delete</button></span>'; }).join('')
       +'<button class="deck-addver" data-name="'+esc(n)+'" data-proj="'+esc(projKey)+'">+ Add version</button></div>' : '';
-  var below='<div class="deck-foot"><a class="deck-open" href="'+esc(sel.url||'#')+'" target="_blank" rel="noopener">Open in Canva \u2197</a></div>'+adminRow;
+  var below='<div class="deck-foot"><a class="deck-open" href="'+esc(sel.url||'#')+'" target="_blank" rel="noopener">'+esc(deckOpenLabel(sel))+'</a></div>'+adminRow;
   var dit={ id:did, type:'deck', title:n, deckAsset:deckAssetId(projKey,n), _embed:deckIframe(sel), _below:below, url:sel.url };
   DECK_VIEW.items[gi]=dit;
   var top = multi ? '<a class="dx-back" href="#p='+encodeURIComponent(projKey)+'&f=decks">\u2190 All presentations</a>' : addBtn;
@@ -4011,17 +4126,17 @@ function deckRenderOne(mount, projKey, proj, sec, map, n, multi, addBtn){
     +'<div class="ver-body" id="vbody-'+did+'">'+versionBodyHTML(proj, sec, dit)+'</div>'
     +'</div></section></div>';
   var ab=document.getElementById('deckAdd'); if(ab) ab.onclick=function(){ deckOpen(projKey,null); };
-  wireVersion(proj, sec, dit);
+  wireVersion(proj, sec, dit); deckHydrate(mount);
   if(typeof wireResizer==='function'){ try{ wireResizer(); }catch(e){} }
   mount.querySelectorAll('.deck-vchip').forEach(function(ch){ ch.onclick=function(){
     var d2=DECK_VIEW.items[ch.dataset.gi]; if(!d2) return;
     var row=(DECKS_CACHE[projKey]||[]).find(function(x){return x.id===ch.dataset.vid;}); if(!row) return;
     var sect=document.getElementById('deckdeliv-'+ch.dataset.gi); if(sect){ sect.querySelectorAll('.deck-vchip').forEach(function(c){ c.classList.remove('active'); }); } ch.classList.add('active');
-    var frame=document.getElementById('deckframe-'+d2.id); if(frame){ frame.innerHTML=deckIframe(row); }
-    var open=sect?sect.querySelector('.deck-open'):null; if(open) open.href=row.url||'#';
+    var frame=document.getElementById('deckframe-'+d2.id); if(frame){ frame.innerHTML=deckIframe(row); deckHydrate(frame); }
+    var open=sect?sect.querySelector('.deck-open'):null; if(open){ open.href=row.url||'#'; open.textContent=deckOpenLabel(row); }
     d2._embed=deckIframe(row); d2.url=row.url;
   }; });
-  if(ADMIN){
+  if(canDeck(projKey)){
     mount.querySelectorAll('.deck-pub').forEach(function(b){ b.onclick=function(){ deckTogglePublish(b.dataset.proj, b.dataset.vid); }; });
     mount.querySelectorAll('.deck-edit').forEach(function(b){ b.onclick=function(){ var row=(DECKS_CACHE[b.dataset.proj]||[]).find(function(x){return x.id===b.dataset.vid;}); deckOpen(b.dataset.proj, row); }; });
     mount.querySelectorAll('.deck-del').forEach(function(b){ b.onclick=function(){ deckDelete(b.dataset.proj, b.dataset.vid); }; });
@@ -4040,32 +4155,58 @@ async function deckDelete(projKey, id){
 }
 function deckOpen(projKey, row){
   row=row||{}; var editing=!!row.id;
+  if(editing && !deckMine(row)) return;
   var ov=document.createElement('div'); ov.className='onb show'; ov.id='deckOv';
   var nameVal=esc(row.name||''), urlVal=esc(row.url||''), verVal=esc(row.version||(row._newVersion?'':'v1')), pub=row.published?'checked':'';
-  ov.innerHTML='<div class="lm-modal">'
+  var startUpload=/^https:\/\/files\.supernerd\.tv\//.test(row.url||'');
+  ov.innerHTML='<div class="lm-modal dk-modal">'
     +'<div class="lm-title" style="font-size:19px">'+(editing?'Edit presentation':(row._newVersion?'Add a version':'Add presentation'))+'</div>'
     +'<label class="dk-l">Name'+(row._newVersion?' (locked to this presentation)':'')+'</label><input class="dk-i" id="dkName" value="'+nameVal+'" placeholder="e.g. Brand Pitch Deck"'+(row._newVersion?' readonly':'')+'>'
-    +'<label class="dk-l">Canva link</label><input class="dk-i" id="dkUrl" value="'+urlVal+'" placeholder="Paste the Canva share link">'
-    +'<div class="dk-hint">In Canva: Share \u2192 copy link, set to \u201Canyone with the link can view.\u201D It stays live as you edit it.</div>'
+    +'<div class="dk-tabs"><button type="button" class="dk-tab'+(startUpload?'':' on')+'" data-t="link">Paste a link</button><button type="button" class="dk-tab'+(startUpload?' on':'')+'" data-t="file">Upload a file</button></div>'
+    +'<div id="dkLinkPane"'+(startUpload?' hidden':'')+'><input class="dk-i" id="dkUrl" value="'+(startUpload?'':urlVal)+'" placeholder="https://…" autocomplete="off"><div class="dk-detect" id="dkDetect"></div>'
+    +'<div class="dk-hint">Works with <b>Canva</b>, <b>Google Slides</b>, <b>PowerPoint Online</b>, <b>Figma</b>, <b>Pitch</b>, <b>Gamma</b> and <b>Prezi</b>. Set sharing to “anyone with the link can view.” Linked decks stay live as you edit them.</div></div>'
+    +'<div id="dkFilePane"'+(startUpload?'':' hidden')+'><label class="nb-drop dk-drop" id="dkDrop"><div class="nb-drop-t"><b id="dkFileT">'+(startUpload?'Current file kept — drop a new one to replace it':'Drop a PDF or PowerPoint, or click to choose')+'</b><span>PDF plays as slides here · PowerPoint (.pptx, up to 10 MB) plays in Microsoft’s viewer · Keynote: export to PDF first</span></div><input type="file" id="dkFile" accept=".pdf,.pptx,.ppt,.key,application/pdf" hidden></label><div class="dk-prog" id="dkProg" hidden><span class="up-bar"><i></i></span><span id="dkPct">0%</span></div></div>'
     +'<label class="dk-l">Version label</label><input class="dk-i" id="dkVer" value="'+verVal+'" placeholder="v1">'
     +'<label class="dk-cb"><input type="checkbox" id="dkPub" '+pub+'> Live for clients now</label>'
     +'<div class="lm-foot"><button id="dkCancel">Cancel</button><button id="dkSave" class="post">Save</button><span class="msg" id="dkMsg"></span></div></div>';
   document.body.appendChild(ov);
+  var mode=startUpload?'file':'link', file=null, msg=document.getElementById('dkMsg');
+  ov.querySelectorAll('.dk-tab').forEach(function(t){ t.onclick=function(){ mode=t.dataset.t; ov.querySelectorAll('.dk-tab').forEach(function(x){ x.classList.toggle('on', x===t); }); document.getElementById('dkLinkPane').hidden=(mode!=='link'); document.getElementById('dkFilePane').hidden=(mode!=='file'); }; });
+  var urlIn=document.getElementById('dkUrl'), det=document.getElementById('dkDetect');
+  function detect(){ var v=urlIn.value.trim(); if(!v){ det.textContent=''; det.className='dk-detect'; return; } var ds=deckSource(v); det.className='dk-detect'+(ds.kind==='link'?' warn':' ok'); det.textContent=ds.kind==='link'?(ds.note||'This link will open in a new tab instead of playing here.'):('✓ '+(ds.kind==='pdf'?'PDF — plays as slides':ds.label+' — plays inside the portal')); }
+  urlIn.oninput=detect; detect();
+  var drop=document.getElementById('dkDrop'), fi=document.getElementById('dkFile');
+  function take(f){ if(!f) return; var ext=(f.name.split('.').pop()||'').toLowerCase(); var t=document.getElementById('dkFileT');
+    if(ext==='key'){ file=null; t.textContent='Keynote files can’t play in a browser — in Keynote use File → Export To → PDF, then upload that.'; return; }
+    if(['pdf','pptx','ppt'].indexOf(ext)<0){ file=null; t.textContent='Use a PDF or a PowerPoint (.pptx) file.'; return; }
+    if(ext!=='pdf' && f.size>10*1024*1024){ file=null; t.textContent='Microsoft’s viewer only plays PowerPoint files up to 10 MB — export a PDF instead (any size).'; return; }
+    file=f; t.textContent=f.name+' · '+upSize(f.size);
+    var nm=document.getElementById('dkName'); if(!nm.value.trim()) nm.value=upTitleFromFile(f.name); }
+  fi.onchange=function(){ take(fi.files&&fi.files[0]); fi.value=''; };
+  ['dragenter','dragover'].forEach(function(ev){ drop.addEventListener(ev,function(e){ e.preventDefault(); drop.classList.add('over'); }); });
+  ['dragleave','drop'].forEach(function(ev){ drop.addEventListener(ev,function(e){ e.preventDefault(); drop.classList.remove('over'); }); });
+  drop.addEventListener('drop',function(e){ take(e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0]); });
   ov.addEventListener('click',function(e){ if(e.target===ov) ov.remove(); });
   document.getElementById('dkCancel').onclick=function(){ ov.remove(); };
   document.getElementById('dkSave').onclick=async function(){
-    var name=(document.getElementById('dkName').value||'').trim();
-    var url=(document.getElementById('dkUrl').value||'').trim();
-    var ver=(document.getElementById('dkVer').value||'').trim()||'v1';
-    var pubd=document.getElementById('dkPub').checked; var msg=document.getElementById('dkMsg');
+    var btn=this, name=(document.getElementById('dkName').value||'').trim(), ver=(document.getElementById('dkVer').value||'').trim()||'v1', pubd=document.getElementById('dkPub').checked, url='';
+    msg.className='msg'; msg.textContent='';
     if(!name){ msg.className='msg err'; msg.textContent='Give it a name.'; return; }
-    if(!url){ msg.className='msg err'; msg.textContent='Paste a Canva link.'; return; }
-    var btn=document.getElementById('dkSave'); btn.disabled=true; btn.textContent='Saving\u2026';
+    if(mode==='link'){ url=urlIn.value.trim(); if(!url){ msg.className='msg err'; msg.textContent='Paste a link.'; return; } var ds=deckSource(url); if(ds.label==='Keynote'){ msg.className='msg err'; msg.textContent='Keynote can’t play here — export a PDF and use Upload a file.'; return; } }
+    else if(!file){ if(startUpload) url=row.url; else { msg.className='msg err'; msg.textContent='Choose a PDF or PowerPoint file.'; return; } }
+    btn.disabled=true; btn.textContent='Saving…';
     try{
+      if(mode==='file' && file){
+        var type=file.type||(/\.pdf$/i.test(file.name)?'application/pdf':'application/vnd.openxmlformats-officedocument.presentationml.presentation');
+        var sg=await itemsCall({ action:'sign', project:projKey, files:[{ name:file.name, size:file.size, type:type }] }), t=sg.targets[0];
+        var pr=document.getElementById('dkProg'); pr.hidden=false;
+        await upXhr('PUT', t.uploadURL, file, { 'Content-Type':type }, function(pc){ pr.querySelector('i').style.width=pc+'%'; document.getElementById('dkPct').textContent=pc+'%'; });
+        url=t.publicURL;
+      }
       if(editing){ var r=await sb.from('presentations').update({ name:name, url:url, version:ver, published:pubd }).eq('id', row.id); if(r.error) throw r.error; }
-      else { var r2=await sb.from('presentations').insert({ review_slug:CONFIG.REVIEW_SLUG, project_key:projKey, name:name, url:url, version:ver, published:pubd }); if(r2.error) throw r2.error; }
+      else { var r2=await sb.from('presentations').insert({ review_slug:CONFIG.REVIEW_SLUG, project_key:projKey, name:name, url:url, version:ver, published:pubd, created_by:String(myEmail()||'').toLowerCase() }); if(r2.error) throw r2.error; }
       ov.remove(); deckLoad(projKey);
-    }catch(e){ console.error('save deck failed', e); msg.className='msg err'; msg.textContent='Could not save — run presentations.sql and sign in as owner.'; btn.disabled=false; btn.textContent='Save'; }
+    }catch(e){ console.error('save deck failed', e); msg.className='msg err'; msg.textContent=(e&&e.message)||'Could not save.'; btn.disabled=false; btn.textContent='Save'; }
   };
 }
 
