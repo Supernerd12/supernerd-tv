@@ -21,7 +21,7 @@ const BUCKET = 'supernerd-portal';
 const PUBLIC_BASE = 'https://files.supernerd.tv';
 const ALLOWED_ORIGINS = ['https://supernerd.tv', 'https://www.supernerd.tv', 'http://localhost:4321'];
 const MAX_FILE = 5 * 1024 * 1024 * 1024;      // R2 single PUT limit
-const MAX_STREAM_BASIC = 200 * 1024 * 1024;   // Stream basic direct-upload limit
+const MAX_STREAM = 30 * 1024 * 1024 * 1024;   // Stream resumable (tus) upload limit
 const KEY_RE = /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/;
 
 const ACCT = Deno.env.get('CF_ACCOUNT_ID')!;
@@ -89,15 +89,26 @@ async function presignPut(key: string, type: string) {
   return signed.url;
 }
 
-async function streamDirectUpload(name: string) {
-  const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${ACCT}/stream/direct_upload`, {
+// Resumable (tus) direct upload: any size up to 30 GB, sent in chunks by the browser,
+// retried automatically if the connection blips. The browser never sees our API token.
+const b64 = (s: string) => btoa(String.fromCharCode(...new TextEncoder().encode(s)));
+async function streamTusUpload(name: string, size: number) {
+  const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${ACCT}/stream?direct_user=true`, {
     method: 'POST',
-    headers: { Authorization: `Bearer ${Deno.env.get('CF_STREAM_TOKEN')}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ maxDurationSeconds: 3600, meta: { name } }),
+    headers: {
+      Authorization: `Bearer ${Deno.env.get('CF_STREAM_TOKEN')}`,
+      'Tus-Resumable': '1.0.0',
+      'Upload-Length': String(size),
+      'Upload-Metadata': `maxdurationseconds ${b64('21600')},name ${b64(name)}`,
+    },
   });
-  const d = await res.json().catch(() => ({}));
-  if (!res.ok || !d?.result?.uploadURL) throw new HttpError(502, 'Cloudflare Stream would not accept the upload: ' + (d?.errors?.[0]?.message || res.status));
-  return { uploadURL: d.result.uploadURL as string, uid: d.result.uid as string };
+  const loc = res.headers.get('Location'), uid = res.headers.get('stream-media-id');
+  if (!res.ok || !loc || !uid) {
+    const t = await res.text().catch(() => '');
+    throw new HttpError(502, 'Cloudflare Stream would not accept the upload (' + res.status + ') ' + t.slice(0, 160));
+  }
+  await res.body?.cancel();
+  return { uploadURL: loc, uid };
 }
 
 async function r2Delete(key: string) {
@@ -149,9 +160,10 @@ Deno.serve(async (req) => {
         const name = str(f.name, 200), type = str(f.type, 100) || 'application/octet-stream', size = Number(f.size) || 0;
         const kind = kindFor(type, name);
         if (kind === 'video') {
-          if (size > MAX_STREAM_BASIC) throw new HttpError(413, `"${name}" is over 200 MB. Export a smaller review copy for now.`);
-          const s = await streamDirectUpload(name);
-          out.push({ name, kind, stream_uid: s.uid, uploadURL: s.uploadURL, method: 'POST-FORM' });
+          if (!size) throw new HttpError(400, `"${name}" looks empty.`);
+          if (size > MAX_STREAM) throw new HttpError(413, `"${name}" is over 30 GB.`);
+          const s = await streamTusUpload(name, size);
+          out.push({ name, kind, stream_uid: s.uid, uploadURL: s.uploadURL, method: 'TUS' });
         } else {
           if (size > MAX_FILE) throw new HttpError(413, `"${name}" is over 5 GB.`);
           const key = `${SLUG}/${project}/${stamp()}-${crypto.randomUUID().slice(0, 8)}/${safeName(name)}`;

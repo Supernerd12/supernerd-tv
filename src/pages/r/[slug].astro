@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v58';  // v58: deliverables live in Supabase; owner + team upload from the portal (R2/Stream), edit/move/delete, 'Uploaded by'. v57: partners get the Studio company grid too (no auto-jump), counts show only their projects. v56: route only after sign-in resolves (owner no longer auto-jumped into a lone project). v55: Add company / Add project from the Studio (portal-onboard fn commits CMS files). (v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
+  const VERSION = 'v59';  // v59: videos upload via resumable Stream (tus, up to 30 GB); readable upload errors. v58: deliverables live in Supabase; owner + team upload from the portal (R2/Stream), edit/move/delete, 'Uploaded by'. v57: partners get the Studio company grid too (no auto-jump), counts show only their projects. v56: route only after sign-in resolves (owner no longer auto-jumped into a lone project). v55: Add company / Add project from the Studio (portal-onboard fn commits CMS files). (v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   // v58: deliverables load from Supabase (review_items) after sign-in, so they're no longer
@@ -1956,7 +1956,9 @@ select.nl-i option{background:#15161a; color:var(--bone)}
 .up-row .nb-del{justify-self:end}
 .up-st{display:flex;align-items:center;gap:8px;justify-content:flex-end;font-family:var(--mono);font-size:11px;color:var(--dim)}
 .up-st.ok{color:var(--green-hi)}
-.up-st.err{color:#ff8a8d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
+.up-st.err{color:#ff8a8d}
+.up-errline{grid-column:1 / -1;display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;background:rgba(229,72,77,.1);border:1px solid rgba(229,72,77,.35);color:#ffb3b5;font-size:13.5px;line-height:1.45}
+.up-rm{margin-left:auto;flex:0 0 auto;background:none;border:1px solid rgba(255,179,181,.4);color:#ffb3b5;border-radius:7px;padding:5px 10px;font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
 .up-bar{flex:1;height:5px;border-radius:9px;background:rgba(255,255,255,.1);overflow:hidden;max-width:90px}
 .up-bar i{display:block;height:100%;background:var(--green);transition:width .2s}
 .ie-modal{max-width:480px}
@@ -2747,7 +2749,7 @@ function upOpen(projId, presetFolder){
   ov.innerHTML='<div class="nb-wrap"><div class="nb-top"><div><div class="eyebrow">'+esc(proj.title)+'</div><h1>Upload deliverables</h1><p>Images and files go to Cloudflare R2, videos to Cloudflare Stream. They show up for everyone on this project the moment they finish.</p></div><button class="nb-x" id="upX" aria-label="Close">×</button></div>'
     +'<div class="nb-sec"><div class="nb-sh"><span class="nb-num">01</span><h3>Folder</h3></div><div class="nb-row"><div><label class="nb-l" for="upFolder">Put these in</label><select class="nb-i" id="upFolder">'+upFolderOptions(proj, folder)+'</select></div><div id="upNewWrap"'+(folder==='__new__'?'':' hidden')+'><label class="nb-l" for="upNew">New folder name</label><input class="nb-i" id="upNew" placeholder="e.g. Styleframes" autocomplete="off"></div></div></div>'
     +'<div class="nb-sec"><div class="nb-sh"><span class="nb-num">02</span><h3>Files</h3><span class="nb-opt">Same name as an existing item = new version</span></div>'
-    +'<label class="nb-drop up-drop" id="upDrop"><div class="nb-drop-prev empty">+</div><div class="nb-drop-t"><b>Drop files or click to choose</b><span>Images, video (up to 200 MB), audio, PDFs, design files · up to 5 GB each</span></div><input type="file" id="upFile" multiple hidden></label>'
+    +'<label class="nb-drop up-drop" id="upDrop"><div class="nb-drop-prev empty">+</div><div class="nb-drop-t"><b>Drop files or click to choose</b><span>Images, video, audio, PDFs, design files · files up to 5 GB, videos up to 30 GB</span></div><input type="file" id="upFile" multiple hidden></label>'
     +'<div class="up-list" id="upList"></div></div></div>';
   document.body.appendChild(ov); document.body.style.overflow='hidden';
   var foot=document.createElement('div'); foot.className='nb-foot'; foot.id='upFoot';
@@ -2773,13 +2775,13 @@ function upRetitle(){ if(!UP) return; UP.files.forEach(function(x){ if(!x.vTouch
 function upRender(){
   var box=document.getElementById('upList'); if(!box) return;
   box.innerHTML=UP.files.map(function(x,i){
-    var st=x.state==='done'?'<span class="up-st ok">✓ Uploaded</span>':x.state==='err'?'<span class="up-st err" title="'+esc(x.err)+'">'+esc(x.err||'Failed')+'</span>':x.state==='up'?'<span class="up-st"><span class="up-bar"><i style="width:'+x.pct+'%"></i></span>'+x.pct+'%</span>':'<button type="button" class="nb-del" data-i="'+i+'" aria-label="Remove">✕</button>';
+    var st=x.state==='done'?'<span class="up-st ok">✓ Uploaded</span>':x.state==='err'?'<span class="up-st err">⚠ Failed</span>':x.state==='up'?'<span class="up-st"><span class="up-bar"><i style="width:'+x.pct+'%"></i></span>'+x.pct+'%</span>':'<button type="button" class="nb-del" data-i="'+i+'" aria-label="Remove">✕</button>';
     var lock=x.state!=='ready'&&x.state!=='err';
-    return '<div class="up-row'+(x.state==='done'?' done':'')+'"><div class="up-fn" title="'+esc(x.file.name)+'">'+esc(x.file.name)+'<small>'+upSize(x.file.size)+'</small></div><input class="nb-i up-t" data-i="'+i+'" value="'+esc(x.title)+'" placeholder="Name"'+(lock?' disabled':'')+'><input class="nb-i up-v" data-i="'+i+'" value="'+esc(x.version)+'" placeholder="v1"'+(lock?' disabled':'')+'>'+st+'</div>';
+    return '<div class="up-row'+(x.state==='done'?' done':'')+'"><div class="up-fn" title="'+esc(x.file.name)+'">'+esc(x.file.name)+'<small>'+upSize(x.file.size)+'</small></div><input class="nb-i up-t" data-i="'+i+'" value="'+esc(x.title)+'" placeholder="Name"'+(lock?' disabled':'')+'><input class="nb-i up-v" data-i="'+i+'" value="'+esc(x.version)+'" placeholder="v1"'+(lock?' disabled':'')+'>'+st+(x.state==='err'?'<div class="up-errline"><span>'+esc(x.err||'Upload failed')+'</span><button type="button" class="up-rm" data-i="'+i+'">Remove</button></div>':'')+'</div>';
   }).join('');
   box.querySelectorAll('.up-t').forEach(function(el){ el.oninput=function(){ var x=UP.files[+el.dataset.i]; x.title=el.value; if(!x.vTouched){ x.version=upNextVersion(UP.proj, upFolderName(), x.title); var v=box.querySelector('.up-v[data-i="'+el.dataset.i+'"]'); if(v) v.value=x.version; } }; });
   box.querySelectorAll('.up-v').forEach(function(el){ el.oninput=function(){ var x=UP.files[+el.dataset.i]; x.version=el.value; x.vTouched=true; }; });
-  box.querySelectorAll('.nb-del').forEach(function(b){ b.onclick=function(){ UP.files.splice(+b.dataset.i,1); upRender(); }; });
+  box.querySelectorAll('.nb-del, .up-rm').forEach(function(b){ b.onclick=function(){ UP.files.splice(+b.dataset.i,1); upRender(); }; });
   var go=document.getElementById('upGo'), pending=UP.files.filter(function(x){ return x.state==='ready'||x.state==='err'; }).length;
   if(go && !UP.busy){ go.disabled=!pending; go.textContent=pending?('Upload '+pending+' file'+(pending===1?'':'s')):'Upload'; }
 }
@@ -2791,6 +2793,27 @@ function upXhr(method, url, body, headers, onPct){
     x.onload=function(){ (x.status>=200&&x.status<300)?res():rej(new Error('Upload failed ('+x.status+')')); };
     x.onerror=function(){ rej(new Error('Network error — check your connection')); };
     x.send(body);
+  });
+}
+var TUS_LOADING=null;
+function upLoadTus(){
+  if(window.tus) return Promise.resolve(window.tus);
+  if(!TUS_LOADING) TUS_LOADING=new Promise(function(res, rej){ var sc=document.createElement('script'); sc.src='https://cdn.jsdelivr.net/npm/tus-js-client@4.2.3/dist/tus.min.js'; sc.onload=function(){ res(window.tus); }; sc.onerror=function(){ TUS_LOADING=null; rej(new Error('Could not load the video uploader — check your connection')); }; document.head.appendChild(sc); });
+  return TUS_LOADING;
+}
+// Videos: resumable chunked upload straight to Cloudflare Stream (any size up to 30 GB).
+async function upTus(file, uploadURL, onPct){
+  var tus=await upLoadTus();
+  return new Promise(function(res, rej){
+    var up=new tus.Upload(file, {
+      uploadUrl: uploadURL,
+      chunkSize: 50*1024*1024,
+      retryDelays: [0, 2000, 5000, 10000, 20000, 30000],
+      onProgress: function(sent, total){ onPct(Math.round(sent/total*100)); },
+      onSuccess: function(){ res(); },
+      onError: function(err){ var m=String((err&&err.message)||err||'Video upload failed'); rej(new Error(/response text|originalRequest/i.test(m)?'Video upload was interrupted — press Upload to resume':m.slice(0,200))); }
+    });
+    up.start();
   });
 }
 async function upSubmit(){
@@ -2810,6 +2833,7 @@ async function upSubmit(){
       var t=sg.targets[0];
       var onPct=function(p){ x.pct=Math.min(p,99); upRender(); };
       if(t.method==='PUT') await upXhr('PUT', t.uploadURL, f, { 'Content-Type':type }, onPct);
+      else if(t.method==='TUS') await upTus(f, t.uploadURL, onPct);
       else { var fd=new FormData(); fd.append('file', f, f.name); await upXhr('POST', t.uploadURL, fd, {}, onPct); }
       await itemsCall({ action:'create', item:{ project:proj.id, section:folder, title:String(x.title).trim(), version:String(x.version||'').trim(), kind:t.kind, r2_key:t.r2_key||'', stream_uid:t.stream_uid||'', file_name:f.name, file_size:f.size, mime:type } });
       x.state='done'; x.pct=100;
