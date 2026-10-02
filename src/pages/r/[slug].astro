@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v59';  // v59: videos upload via resumable Stream (tus, up to 30 GB); readable upload errors. v58: deliverables live in Supabase; owner + team upload from the portal (R2/Stream), edit/move/delete, 'Uploaded by'. v57: partners get the Studio company grid too (no auto-jump), counts show only their projects. v56: route only after sign-in resolves (owner no longer auto-jumped into a lone project). v55: Add company / Add project from the Studio (portal-onboard fn commits CMS files). (v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
+  const VERSION = 'v60';  // v60: people lists strictly scoped to the project/company (no cross-client names); company ✕ removes only that company's access. v59: videos upload via resumable Stream (tus, up to 30 GB); readable upload errors. v58: deliverables live in Supabase; owner + team upload from the portal (R2/Stream), edit/move/delete, 'Uploaded by'. v57: partners get the Studio company grid too (no auto-jump), counts show only their projects. v56: route only after sign-in resolves (owner no longer auto-jumped into a lone project). v55: Add company / Add project from the Studio (portal-onboard fn commits CMS files). (v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   // v58: deliverables load from Supabase (review_items) after sign-in, so they're no longer
@@ -1939,6 +1939,7 @@ select.nl-i option{background:#15161a; color:var(--bone)}
   .nb-ev .nb-evt{grid-column:1 / -1}
   .nb-sec{padding:18px 16px}
 }
+.ob-team-tag{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#0c0d0e;background:var(--green);border-radius:3px;padding:2px 6px;margin-left:6px;vertical-align:middle}
 .ob-team{display:flex;gap:10px;align-items:flex-start;margin:4px 0 12px;font-size:13.5px;color:var(--dim);cursor:pointer}
 .ob-team b{color:var(--bone)}
 .ob-team input{margin-top:3px;accent-color:#BAC01E}
@@ -2080,7 +2081,11 @@ function svgIcon(n){
 }
 function reactorIdentity(it){ const a=getAuthor(it); if(!a.name) return null; return { key:(a.email||('name:'+a.name.toLowerCase())), name:a.name, email:a.email||null }; }
 function itemDeepLink(proj, sec, it){ return location.origin+location.pathname+'#p='+encodeURIComponent(proj.id)+'&s='+encodeURIComponent(sec.id)+'&i='+encodeURIComponent(it.id); }
-function mentionPeople(){ return [{name:OWNER_NAME,email:OWNER_EMAIL}].concat(INVITES.map(p=>({name:p.name||p.email,email:p.email}))); }
+// v60: people lists are ALWAYS scoped to one project. Nobody from another client's project
+// may appear in mentions, notify boxes, task assignees, partner lists or invite panels.
+function invitesOn(projKey){ if(!projKey) return []; return (INVITES||[]).filter(function(p){ return p.email && Array.isArray(p.project_keys) && p.project_keys.indexOf(projKey)>=0; }); }
+function invitesOnClient(clientKey){ var keys=CONFIG.PROJECTS.filter(function(pr){ return pr.client===clientKey; }).map(function(pr){ return pr.id; }); return (INVITES||[]).filter(function(p){ return p.email && Array.isArray(p.project_keys) && p.project_keys.some(function(k){ return keys.indexOf(k)>=0; }); }); }
+function mentionPeople(){ return [{name:OWNER_NAME,email:OWNER_EMAIL}].concat(invitesOn(currentProjectKey).map(p=>({name:p.name||p.email,email:p.email}))); }
 function mentionHighlight(body){
   let html=esc(body);
   const names=mentionPeople().map(p=>p.name).filter(Boolean);
@@ -2112,8 +2117,9 @@ function fillNameSelect(it){
   const sel = document.getElementById('name-'+it.id); if(!sel) return;
   let opts = '<option value="">— pick your name —</option>';
   if(ADMIN) opts += '<option value="__you__">You ('+esc(OWNER_NAME)+')</option>';
-  const counts={}; INVITES.forEach(p=>{ const k=(p.name||p.email).toLowerCase(); counts[k]=(counts[k]||0)+1; });
-  opts += INVITES.map(p=>{ const nm=p.name||p.email; const lbl=(counts[nm.toLowerCase()]>1 && p.name) ? nm+' ('+p.email+')' : nm; return '<option value="'+esc(p.email)+'">'+esc(lbl)+'</option>'; }).join('');
+  const onProj=invitesOn(currentProjectKey);
+  const counts={}; onProj.forEach(p=>{ const k=(p.name||p.email).toLowerCase(); counts[k]=(counts[k]||0)+1; });
+  opts += onProj.map(p=>{ const nm=p.name||p.email; const lbl=(counts[nm.toLowerCase()]>1 && p.name) ? nm+' ('+p.email+')' : nm; return '<option value="'+esc(p.email)+'">'+esc(lbl)+'</option>'; }).join('');
   opts += '<option value="__other__">Someone else…</option>';
   sel.innerHTML = opts;
   const saved = getSavedAuthor();
@@ -2457,7 +2463,7 @@ function renderClientProjects(cl, allow){
   const onboard = ADMIN ? onboardSectionHTML(cl) : '';
   const addProj = ADMIN ? '<button type="button" class="card-add" id="nbAddProj"><span class="add-plus">+</span><span class="add-lbl">Add project</span></button>' : '';
   app.innerHTML='<section class="landing">'+back+'<div class="eyebrow">Company</div><h1 class="co-name">'+esc(cl.name)+'</h1><div class="lead-row"><p class="lead">Open a project to review its work. Leave a note, a voice note, or pin a comment right onto an image.</p>'+reorderBtn+'</div>'+onboard+'<div class="grid">'+((cards+addProj)||'<p class="sec-empty">No projects yet.</p>')+'</div></section>';
-  if(ADMIN){ const b=document.getElementById('ob-send'); if(b) b.addEventListener('click', ()=>sendOnboarding(cl.key)); renderOnboardList(); const ap=document.getElementById('nbAddProj'); if(ap) ap.onclick=function(){ nbOpen(cl); }; }
+  if(ADMIN){ const b=document.getElementById('ob-send'); if(b) b.addEventListener('click', ()=>sendOnboarding(cl.key)); renderOnboardList(cl.key); const ap=document.getElementById('nbAddProj'); if(ap) ap.onclick=function(){ nbOpen(cl); }; }
   if(owner){
     const pe=document.getElementById('porgEnter'); if(pe) pe.onclick=function(){ reorderStart(cl.key); };
     document.querySelectorAll('.grid .card-wrap').forEach(function(w){
@@ -3666,7 +3672,7 @@ function openSchedulePicker(opts){
 async function announceBuild(proj, sec, message){
   if(!INVITES.length) await loadInvites();
   var own={}; (CONFIG.OWNER_LOGINS||[]).forEach(function(e){ own[String(e).toLowerCase()]=1; }); own[String(OWNER_EMAIL).toLowerCase()]=1;
-  var recips=(INVITES||[]).filter(function(p){ return p.email && (!p.project_keys || !p.project_keys.length || p.project_keys.indexOf(proj.id)>=0); }).map(function(p){ return p.email; });
+  var recips=invitesOn(proj.id).map(function(p){ return p.email; });
   var meE=String(myEmail()||'').toLowerCase();
   recips=[...new Set(recips)].filter(function(e){ return e && !own[e.toLowerCase()] && e.toLowerCase()!==meE; });
   var link='https://supernerd.tv/r/'+CONFIG.REVIEW_SLUG+'/#p='+encodeURIComponent(proj.id)+'&s='+encodeURIComponent(sec.id);
@@ -3719,26 +3725,38 @@ async function loadInvites(){
 function fillNotifyBox(it){
   const box=document.getElementById('notify-'+it.id); if(!box) return;
   const author=getAuthor(it);
-  const people=INVITES.filter(p=>p.email && p.email!==author.email);
+  const people=invitesOn(currentProjectKey).filter(p=>p.email && p.email!==author.email);
   if(!people.length){ box.innerHTML='<div class="notify-empty">Also email this note to — no one else is on the project yet.</div>'; return; }
   const counts={}; people.forEach(p=>{ const k=(p.name||p.email).toLowerCase(); counts[k]=(counts[k]||0)+1; });
   box.innerHTML='<div class="notify-head"><span class="notify-title">Also email this note to:</span><button type="button" class="notify-all">select all</button></div><div class="notify-list">'+people.map(p=>{ const nm=p.name||p.email; const dup=counts[nm.toLowerCase()]>1; return '<label class="notify-chip" title="'+esc(p.email)+'"><input type="checkbox" class="notify-pick" value="'+esc(p.email)+'"> <span class="chip-name">'+esc(nm)+'</span>'+(dup?'<span class="chip-email">'+esc(p.email)+'</span>':'')+'</label>'; }).join('')+'</div>';
   const all=box.querySelector('.notify-all');
   if(all) all.addEventListener('click', ()=>{ const picks=box.querySelectorAll('.notify-pick'); const anyOff=[...picks].some(c=>!c.checked); picks.forEach(c=>c.checked=anyOff); all.textContent=anyOff?'clear all':'select all'; });
 }
-function renderOnboardList(){
-  const el=document.getElementById('ob-list'); if(!el) return;
-  if(!INVITES.length){ el.innerHTML='<div class="ob-empty">No one on this project yet.</div>'; return; }
-  el.innerHTML='<div class="ob-listhead">On this project ('+INVITES.length+')</div>'+INVITES.map(p=>'<div class="ob-person"><span class="ob-person-name">'+esc(p.name||'—')+'</span><span class="ob-person-email">'+esc(p.email)+'</span><button class="ob-rm" data-id="'+esc(p.id)+'" title="Remove from project">×</button></div>').join('');
+var OB_CLIENT=null;
+function renderOnboardList(clientKey){
+  if(clientKey) OB_CLIENT=clientKey;
+  const el=document.getElementById('ob-list'); if(!el||!OB_CLIENT) return;
+  const projs=CONFIG.PROJECTS.filter(function(pr){ return pr.client===OB_CLIENT; });
+  const people=invitesOnClient(OB_CLIENT);
+  if(!people.length){ el.innerHTML='<div class="ob-empty">No one has access to this company yet.</div>'; return; }
+  el.innerHTML='<div class="ob-listhead">People with access to this company ('+people.length+')</div>'+people.map(function(p){
+    var mine=projs.filter(function(pr){ return p.project_keys.indexOf(pr.id)>=0; }).map(function(pr){ return pr.title; }).join(', ');
+    return '<div class="ob-person"><span class="ob-person-name">'+esc(p.name||'\u2014')+(p.role==='team'?' <span class="ob-team-tag">Team</span>':'')+'</span><span class="ob-person-email">'+esc(p.email)+' \u00b7 '+esc(mine)+'</span><button class="ob-rm" data-id="'+esc(p.id)+'" title="Remove their access to this company\u2019s projects">\u00d7</button></div>';
+  }).join('');
   el.querySelectorAll('.ob-rm').forEach(b=>b.addEventListener('click', ()=>removeInvite(b.dataset.id)));
 }
+// Removes access to the CURRENT company's projects only; access to other companies stays.
 async function removeInvite(id){
-  if(!confirm('Remove this person from the project? They stop getting alerts; you can re-onboard them (or a new email) anytime.')) return;
+  var inv=(INVITES||[]).find(function(x){ return String(x.id)===String(id); }); if(!inv||!OB_CLIENT) return;
+  var coKeys=CONFIG.PROJECTS.filter(function(pr){ return pr.client===OB_CLIENT; }).map(function(pr){ return pr.id; });
+  var keep=(inv.project_keys||[]).filter(function(k){ return coKeys.indexOf(k)<0; });
+  var cl=(CONFIG.CLIENTS||[]).find(function(c){ return c.key===OB_CLIENT; });
+  if(!confirm('Remove '+(inv.name||inv.email)+'\u2019s access to '+((cl&&cl.name)||'this company')+'?'+(keep.length?' They keep access to their other projects.':''))) return;
   try{
-    const { error } = await sb.from('invites').delete().eq('id', id);
-    if(error) throw error;
+    var r = keep.length ? await sb.from('invites').update({ project_keys:keep }).eq('id', id) : await sb.from('invites').delete().eq('id', id);
+    if(r.error) throw r.error;
     await loadInvites(); renderOnboardList();
-  }catch(e){ console.error('remove failed', e); alert('Could not remove — run people-and-naming.sql in Supabase (it adds the delete permission).'); }
+  }catch(e){ console.error('remove failed', e); alert('Could not remove access: '+((e&&e.message)||'try again')); }
 }
 
 function parseRecipient(entry, defName){
@@ -4177,7 +4195,7 @@ async function taskDelete(projKey,id){
   try{ var r=await sb.from('tasks').delete().eq('id',id); if(r.error) throw r.error; taskLoad(projKey); taskBadgeLoad(projKey); }
   catch(e){ console.error('delete failed',e); alert('Could not delete.'); }
 }
-function taskPeople(){ var own={}; (CONFIG.OWNER_LOGINS||[]).forEach(function(e){ own[String(e).toLowerCase()]=1; }); own[String(OWNER_EMAIL).toLowerCase()]=1; if(ADMIN){ var me=myEmail(); if(me) own[me]=1; } var list=[], seen={}; (INVITES||[]).forEach(function(i){ var em=(i.email||'').toLowerCase(); if(!em||own[em]||seen[em]) return; seen[em]=1; list.push({name:i.name||i.email,email:i.email}); }); return list; }
+function taskPeople(){ var own={}; (CONFIG.OWNER_LOGINS||[]).forEach(function(e){ own[String(e).toLowerCase()]=1; }); own[String(OWNER_EMAIL).toLowerCase()]=1; if(ADMIN){ var me=myEmail(); if(me) own[me]=1; } var list=[], seen={}; invitesOn(currentProjectKey).forEach(function(i){ var em=(i.email||'').toLowerCase(); if(!em||own[em]||seen[em]) return; seen[em]=1; list.push({name:i.name||i.email,email:i.email}); }); return list; }
 function taskOpen(projKey, side, row){
   var editing=!!(row && row.id);
   var curSide = editing ? (row.side||'supernerd') : (side || (ADMIN ? 'client' : 'supernerd'));
@@ -4754,6 +4772,8 @@ async function loadPartners(){
   await loadInvites();
   var profiles=[];
   try{ var r=await sb.from('profiles').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).order('created_at',{ascending:true}); profiles=r.data||[]; }catch(e){ profiles=[]; }
+  var onP={}; invitesOn(currentProjectKey).forEach(function(i){ onP[String(i.email).toLowerCase()]=1; });
+  profiles=profiles.filter(function(pf){ return onP[String(pf.email||'').toLowerCase()]; });
   PP.taskBy={};
   PP.seen={};
   if(typeof ADMIN!=='undefined' && ADMIN){
@@ -4831,7 +4851,7 @@ function ppToggleInvite(){
   document.getElementById('ppInvCopy').onclick=function(){ try{ navigator.clipboard.writeText(location.origin+location.pathname); }catch(e){} this.textContent='Copied \u2713'; };
   document.getElementById('ppInvSend').onclick=async function(){
     var em=document.getElementById('ppInvEmail').value.trim(); if(!em) return; this.disabled=true; this.textContent='Sending\u2026';
-    try{ await sb.from('invites').upsert({review_slug:CONFIG.REVIEW_SLUG, email:em},{onConflict:'review_slug,email'}); }catch(e){}
+    try{ await loadInvites(); var prevI=(INVITES||[]).find(function(x){ return String(x.email||'').toLowerCase()===em.toLowerCase(); }); var ks=Array.from(new Set(((prevI&&prevI.project_keys)||[]).concat(currentProjectKey?[currentProjectKey]:[]))); await sb.from('invites').upsert({review_slug:CONFIG.REVIEW_SLUG, email:prevI?prevI.email:em, project_keys:ks},{onConflict:'review_slug,email'}); }catch(e){} // v60: grants THIS project, keeps their others
     var res=await signInMagic(em);
     var msg=document.getElementById('ppInvMsg');
     if(res && res.error){ if(msg) msg.textContent=res.error.message||'Could not send.'; this.disabled=false; this.textContent='Send invite'; return; }
