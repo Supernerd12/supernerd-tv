@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v67';  // v67: Final Deliverables folders can nest (folders inside folders, back goes up a level, New folder creates inside the open folder). v66: clients + team can add calendar events on their jobs (edit only their own; 'Added by'). v65: calendar events sorted by time within each day. v64: 12-hour times everywhere (calendar, stamps, scheduled sends). v63: per-job custom event types (Edit types + '+ New type' in the event window). v62: calendar is per job — event types are that job's folders, only that job's events load. v61: presentations from any tool (Google Slides, PowerPoint, Figma, Pitch, Gamma, Prezi, PDF/PPTX upload w/ slide player); team can add decks. v60: people lists strictly scoped to the project/company (no cross-client names); company ✕ removes only that company's access. v59: videos upload via resumable Stream (tus, up to 30 GB); readable upload errors. v58: deliverables live in Supabase; owner + team upload from the portal (R2/Stream), edit/move/delete, 'Uploaded by'. v57: partners get the Studio company grid too (no auto-jump), counts show only their projects. v56: route only after sign-in resolves (owner no longer auto-jumped into a lone project). v55: Add company / Add project from the Studio (portal-onboard fn commits CMS files). (v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
+  const VERSION = 'v68';  // v68: review folders can nest ("Parent / Child" names) and exist empty (review_sections) so the team can work out of them; sidebar + folder page list subfolders. v67: Final Deliverables folders can nest (folders inside folders, back goes up a level, New folder creates inside the open folder). v66: clients + team can add calendar events on their jobs (edit only their own; 'Added by'). v65: calendar events sorted by time within each day. v64: 12-hour times everywhere (calendar, stamps, scheduled sends). v63: per-job custom event types (Edit types + '+ New type' in the event window). v62: calendar is per job — event types are that job's folders, only that job's events load. v61: presentations from any tool (Google Slides, PowerPoint, Figma, Pitch, Gamma, Prezi, PDF/PPTX upload w/ slide player); team can add decks. v60: people lists strictly scoped to the project/company (no cross-client names); company ✕ removes only that company's access. v59: videos upload via resumable Stream (tus, up to 30 GB); readable upload errors. v58: deliverables live in Supabase; owner + team upload from the portal (R2/Stream), edit/move/delete, 'Uploaded by'. v57: partners get the Studio company grid too (no auto-jump), counts show only their projects. v56: route only after sign-in resolves (owner no longer auto-jumped into a lone project). v55: Add company / Add project from the Studio (portal-onboard fn commits CMS files). (v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   // v58: deliverables load from Supabase (review_items) after sign-in, so they're no longer
@@ -218,6 +218,21 @@ const ADMIN_KEY       = null; // v58: retired — owner is decided only by the s
   .is-image .ph{position:static; min-height:220px}
 
   .sec-empty{color:var(--dim); font-size:15px; padding:30px 0; font-family:var(--mono)}
+  /* v68 nested review folders */
+  .nav a.n-depth{padding-top:8px; padding-bottom:8px; background:transparent !important; border-color:transparent !important; box-shadow:none !important}
+  .nav a.n-depth .n-name{font-size:13.5px; font-weight:500; color:rgba(236,236,234,.82)}
+  .nav a.n-depth.active .n-name{color:var(--green-hi)}
+  .nav a.n-d1{margin-left:16px} .nav a.n-d2{margin-left:30px} .nav a.n-d3{margin-left:44px} .nav a.n-d4{margin-left:58px}
+  .nav a .n-sub{opacity:.55}
+  .sub-new{margin-left:10px}
+  .sub-list{display:flex; flex-direction:column; border:1px solid rgba(236,236,234,.12); border-radius:14px; overflow:hidden; margin:6px 0 28px; background:rgba(13,14,16,.35)}
+  .sub-row{display:flex; align-items:center; gap:14px; padding:15px 18px; border-top:1px solid rgba(236,236,234,.08); transition:background .2s var(--ease)}
+  .sub-row:first-child{border-top:0}
+  .sub-row:hover{background:rgba(236,236,234,.05)}
+  .sub-ic{display:inline-flex; color:var(--green-hi); opacity:.85}
+  .sub-name{font-weight:600; font-size:15px}
+  .sub-meta{margin-left:auto; font-family:var(--mono); font-size:11.5px; color:var(--dim)}
+  .sub-go{font-size:20px; color:var(--dim); line-height:1}
 
   /* ---- notes ---- */
   .notes{margin-top:20px}
@@ -2757,12 +2772,29 @@ function itemsToSections(list){
     return { id:sName, name:sName, stacks:stacks };
   });
 }
+// v68 nested folders: "A / B / C" lives inside "A / B".
+function secParts(n){ return String(n||'').split(' / ').map(function(x){ return x.trim(); }).filter(Boolean); }
+function secLeaf(n){ var a=secParts(n); return a.length?a[a.length-1]:String(n||''); }
+function secParentName(n){ var a=secParts(n); return a.length>1?a.slice(0,-1).join(' / '):''; }
+function secDepth(n){ return Math.max(0,secParts(n).length-1); }
+function secEnsure(p,name){ var a=secParts(name); for(var i=1;i<=a.length;i++){ var nm=a.slice(0,i).join(' / '); if(!(p.sections||[]).some(function(x){ return x.name===nm; })) (p.sections=p.sections||[]).push({ id:nm, name:nm, stacks:[] }); } }
+function secTreeOrder(list){ var top=[]; list.forEach(function(sc){ var t=secParts(sc.name)[0]||''; if(top.indexOf(t)<0) top.push(t); }); return list.slice().sort(function(a,b){ var ta=top.indexOf(secParts(a.name)[0]||''), tb=top.indexOf(secParts(b.name)[0]||''); if(ta!==tb) return ta-tb; return secParts(a.name).join('\u0001').localeCompare(secParts(b.name).join('\u0001'), undefined, {numeric:true}); }); }
+function secChildren(proj,sec){ return (proj.sections||[]).filter(function(x){ return secParentName(x.name)===sec.name; }); }
+function secDeepCount(proj,sec){ return (proj.sections||[]).filter(function(x){ return x.name===sec.name || x.name.indexOf(sec.name+' / ')===0; }).reduce(function(n,x){ return n+visStacksOf(proj,x).reduce(function(m,st){ return m+st.versions.length; },0); },0); }
+async function secNewSub(proj,sec){
+  var nm=(window.prompt(sec&&sec.name?'New folder inside \u201c'+secLeaf(sec.name)+'\u201d':'New folder name')||'').replace(/\//g,'-').trim(); if(!nm) return;
+  var full=(sec&&sec.name)?sec.name+' / '+nm:nm;
+  try{ var r=await sb.from('review_sections').insert({ review_slug:'studio', project_key:proj.id, name:full, ord:0, created_by:myEmail() }); if(r.error && !/duplicate/i.test(r.error.message)){ alert('Could not create folder: '+r.error.message); return; } }catch(e){ alert('Could not create folder.'); return; }
+  await itemsLoad(); location.hash='p='+encodeURIComponent(proj.id)+'&s='+encodeURIComponent(full); route();
+}
 async function itemsLoad(){
   try{
     var r=await sb.from('review_items').select('*').eq('review_slug','studio').eq('published',true);
     if(r.error) throw r.error;
     var by={}; (r.data||[]).forEach(function(row){ (by[row.project_key]=by[row.project_key]||[]).push(itemFromRow(row)); });
     CONFIG.PROJECTS.forEach(function(p){ p.sections=itemsToSections(by[p.id]||[]); });
+    try{ var rs=await sb.from('review_sections').select('project_key,name,ord').eq('review_slug','studio').order('ord',{ascending:true}).order('name',{ascending:true}); ((rs&&rs.data)||[]).forEach(function(row){ var p=CONFIG.PROJECTS.find(function(x){ return x.id===row.project_key; }); if(p) secEnsure(p,row.name); }); }catch(e){}
+    CONFIG.PROJECTS.forEach(function(p){ (p.sections||[]).slice().forEach(function(sc){ secEnsure(p,sc.name); }); p.sections=secTreeOrder(p.sections||[]); });
     ITEMS.loaded=true;
   }catch(e){ console.error('deliverables load failed', e); }
 }
@@ -2957,8 +2989,13 @@ function renderProject(proj, sec, stack, folder){
   const nav=visSectionsOf(proj).map((s,i)=>{
     const n=visStacksOf(proj,s).reduce((m,st)=>m+st.versions.length,0);
     const hid=isHidden(visKeySection(proj.id,s.id));
-    const tail=((typeof ADMIN!=='undefined'&&ADMIN)&&hid)?'<span class="nav-hid-tag">hidden</span>':'<span class="n-ct">'+(n||'')+'</span>';
-    return '<a href="#p='+encodeURIComponent(proj.id)+'&s='+encodeURIComponent(s.id)+'" class="'+(s.id===sec.id?'active':'')+(hid?' nav-hidden':'')+'"><span class="n-num">'+String(i+1).padStart(2,'0')+'</span><span class="n-name">'+esc(s.name)+'</span>'+tail+'</a>';
+    var tail=((typeof ADMIN!=='undefined'&&ADMIN)&&hid)?'<span class="nav-hid-tag">hidden</span>':'<span class="n-ct">'+(n||'')+'</span>';
+    var d=secDepth(s.name), vis=visSectionsOf(proj), parVis=!d||vis.some(function(x){ return x.name===secParentName(s.name); });
+    var label=parVis?secLeaf(s.name):s.name; if(!parVis) d=0;
+    var topIdx=vis.filter(function(x){ return !secDepth(x.name); }).indexOf(s);
+    var num=d?'<span class="n-num n-sub">\u2514</span>':'<span class="n-num">'+String((topIdx<0?i:topIdx)+1).padStart(2,'0')+'</span>';
+    var dn=secDeepCount(proj,s); if(!hid||!((typeof ADMIN!=='undefined'&&ADMIN))) tail='<span class="n-ct">'+(dn||'')+'</span>';
+    return '<a href="#p='+encodeURIComponent(proj.id)+'&s='+encodeURIComponent(s.id)+'" class="'+(s.id===sec.id?'active':'')+(hid?' nav-hidden':'')+(d?' n-depth n-d'+Math.min(d,4):'')+'">'+num+'<span class="n-name">'+esc(label)+'</span>'+tail+'</a>';
   }).join('');
   const FOLDERS=((typeof ADMIN!=='undefined'&&ADMIN)?[{k:'activity',name:'Activity',ico:'act'}]:[]).concat([{k:'calendar',name:'Calendar',ico:'cal'},{k:'tasks',name:'Task Manager',ico:'task'},{k:'assets',name:'Client Assets',ico:'pal'},{k:'brief',name:'Creative Brief',ico:'brief'},{k:'partners',name:'Project Partners',ico:'ppl'}]);
   const folderNav=FOLDERS.map(function(ff){
@@ -2989,13 +3026,20 @@ function renderProject(proj, sec, stack, folder){
   } else {
     const secHid=isHidden(visKeySection(proj.id,sec.id));
     const secTog=(typeof ADMIN!=='undefined'&&ADMIN)?'<button class="vis-tog sec-tog'+(secHid?' on':'')+'" data-vk="'+esc(visKeySection(proj.id,sec.id))+'">'+(secHid?visEyeOff()+'Hidden from clients':visEye()+'Visible to clients')+'</button>':'';
-    head='<div class="main-head"><div class="eyebrow">'+esc(proj.title)+'</div><div class="mh-row"><h2>'+esc(sec.name)+'</h2>'+upBtnHTML(proj)+'</div>'+(sec.id?secTog:'')+'</div>';
+    const pName=secParentName(sec.name||'');
+    const eyebrow=pName?'<a class="crumb" href="#p='+encodeURIComponent(proj.id)+'&s='+encodeURIComponent(pName)+'">\u2190 '+esc(secParts(pName).join(' \u203a '))+'</a>':'<div class="eyebrow">'+esc(proj.title)+'</div>';
+    const canFolder=sec.id && (ADMIN||canUpload(proj.id));
+    const newSub=canFolder?'<button class="ca-btn ghost sub-new" id="secNewSub" type="button">+ New folder</button>':'';
+    head='<div class="main-head">'+eyebrow+'<div class="mh-row"><h2>'+esc(secLeaf(sec.name)||sec.name)+'</h2>'+upBtnHTML(proj)+newSub+'</div>'+(sec.id?secTog:'')+'</div>';
     const vstacks=sec.id?visStacksOf(proj,sec):[];
-    body = vstacks.length ? '<div class="rgrid" data-cols="'+Math.min(vstacks.length,3)+'">'+vstacks.map(st=>gridCardWrap(proj,sec,st)).join('')+'</div>' : '<div class="sec-empty">'+(sec.id?'Nothing in '+esc(sec.name)+' yet.':(canUpload(proj.id)?'No deliverables yet \u2014 upload the first ones.':'Nothing to review yet.'))+'</div>';
+    const kids=sec.id?secChildren(proj,sec).filter(function(k){ return ADMIN||visSectionsOf(proj).indexOf(k)>=0||canUpload(proj.id); }):[];
+    const kidList=kids.length?'<div class="sub-list">'+kids.map(function(k){ var n=secDeepCount(proj,k), g=secChildren(proj,k).length; return '<a class="sub-row" href="#p='+encodeURIComponent(proj.id)+'&s='+encodeURIComponent(k.id)+'"><span class="sub-ic">'+calNavIcon('final')+'</span><span class="sub-name">'+esc(secLeaf(k.name))+'</span><span class="sub-meta">'+(g?g+' folder'+(g===1?'':'s')+' \u00b7 ':'')+n+' item'+(n===1?'':'s')+'</span><span class="sub-go">\u203a</span></a>'; }).join('')+'</div>':'';
+    body = kidList + (vstacks.length ? '<div class="rgrid" data-cols="'+Math.min(vstacks.length,3)+'">'+vstacks.map(st=>gridCardWrap(proj,sec,st)).join('')+'</div>' : (kids.length?'':'<div class="sec-empty">'+(sec.id?'Nothing in '+esc(secLeaf(sec.name))+' yet.':(canUpload(proj.id)?'No deliverables yet \u2014 upload the first ones.':'Nothing to review yet.'))+'</div>'));
   }
   var _cl=(CONFIG.CLIENTS||[]).find(function(x){return x.key===proj.client;}); var _clName=_cl?_cl.name:CONFIG.COMPANY.name;
   app.innerHTML='<div class="pv"><aside class="side"><a class="back" href="#c='+encodeURIComponent(proj.client||'')+'">← '+esc(_clName)+'</a><div class="pv-eyebrow">Project</div><h2 class="pv-title">'+esc(proj.title)+'</h2><div id="projStatusBox" class="pstat-box"></div><nav class="nav">'+nav+'</nav>'+decksNav+'<div class="nav-group">Client Dashboard</div><nav class="nav nav-folders">'+folderNav+'</nav>'+finalNav+signoffNav+'</aside><div class="mainsec">'+head+adminHTML+body+'</div></div>';
   if(!ADMIN) decksReveal(proj.id);
+  var _ns=document.getElementById('secNewSub'); if(_ns) _ns.onclick=function(){ secNewSub(proj,sec); };
   projStatusLoad(proj.id);
   taskBadgeLoad(proj.id);
   if(typeof ADMIN!=='undefined'&&ADMIN) actBadgeLoad(proj.id);
@@ -4610,7 +4654,7 @@ async function calLoad(projId){
   try{ var rt=await sb.from('calendar_types').select('key,label,color').eq('review_slug',CONFIG.REVIEW_SLUG); ((rt&&rt.data)||[]).forEach(function(r){ saved[r.key]={l:r.label,c:r.color}; }); }catch(e){}
   CAL.FOLDER_TYPES=[];
   var proj=CONFIG.PROJECTS.find(function(p){ return p.id===projId; })||{sections:[]};
-  (proj.sections||[]).forEach(function(sec,i){ var k=calFolderKey(sec.name); if(CAL.TYPES[k]) return; var sv=saved[projId+'/'+k]||saved[k]; CAL.TYPES[k]={l:sec.name,c:(sv&&sv.c)||CAL_PAL[i%CAL_PAL.length]}; CAL.ORDER.push(k); CAL.FOLDER_TYPES.push(k); });
+  (proj.sections||[]).filter(function(sec){ return !secDepth(sec.name); }).forEach(function(sec,i){ var k=calFolderKey(sec.name); if(CAL.TYPES[k]) return; var sv=saved[projId+'/'+k]||saved[k]; CAL.TYPES[k]={l:sec.name,c:(sv&&sv.c)||CAL_PAL[i%CAL_PAL.length]}; CAL.ORDER.push(k); CAL.FOLDER_TYPES.push(k); });
   CAL.CUSTOM={};
   Object.keys(saved).forEach(function(key){ if(key.indexOf(projId+'/')!==0) return; var k=key.slice(projId.length+1); if(!k||CAL.TYPES[k]||k==='general') return;
     CAL.TYPES[k]={l:saved[key].l||k,c:saved[key].c||'#8b8f98'}; CAL.ORDER.push(k); CAL.FOLDER_TYPES.push(k); CAL.CUSTOM[k]=1; });
