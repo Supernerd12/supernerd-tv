@@ -264,6 +264,12 @@ pre{white-space:pre-wrap;font:12px/1.7 var(--mono);background:var(--glass);borde
   border-radius:var(--r-card);padding:16px;margin:0;overflow-x:auto}
 label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter-spacing:.12em;color:var(--faint)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+.nightbar{margin:0 0 8px;padding:10px 12px;border-radius:12px;background:rgba(124,140,255,.12);border:1px solid rgba(124,140,255,.35);font-size:13px;line-height:1.45}
+.nightbar button{display:inline-block;margin-left:6px;padding:4px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.25);background:none;color:inherit;font-size:12px;cursor:pointer}
+.dayed{margin-top:12px}
+.dayrow{width:100%;display:flex;justify-content:space-between;gap:10px;text-align:left;padding:10px 0;border-bottom:1px solid var(--rule)}
+.dayrow span{color:var(--ink);font-size:14px}
+.dayrow b{font-size:13px;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -289,7 +295,7 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
 <div id="app" class="hide">
 <header>
   <h1 id="vtitle">Today</h1>
-  <button id="ver" title="Tap to force a fresh copy">v52</button>
+  <button id="ver" title="Tap to force a fresh copy">v53</button>
   <span style="justify-self:end;display:flex;align-items:center;gap:10px">
     <span class="date" id="vdate"></span>
     <button id="gear" aria-label="Settings" style="width:34px;height:34px;display:grid;place-items:center;color:var(--dim)">
@@ -400,6 +406,7 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
   </div>
 
   <h2>Log what you ate</h2>
+  <div class="nightbar hide" data-nightbar></div>
   <div class="compose">
     <textarea id="sayF" placeholder="the short rib meal and about 15 fries" enterkeyhint="done"></textarea>
     <button id="mic" aria-label="Dictate">🎙</button>
@@ -516,6 +523,7 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
   </div>
 
   <h2>Or just say it</h2>
+  <div class="nightbar hide" data-nightbar></div>
   <div class="compose">
     <textarea id="sayT" placeholder="200 jumping jacks in 2 sets of 100" enterkeyhint="done"></textarea>
   </div>
@@ -743,7 +751,15 @@ const api=async(p,o={})=>{const r=await fetch('/api/'+p,{...o,headers:o.body?{'c
   const body=isJson?await r.json():await r.text();
   if(!r.ok) throw new Error((body&&body.error)||('HTTP '+r.status));
   return body;};
-const post=(p,b)=>api(p,{method:'POST',body:JSON.stringify(b||{})});
+/* v53: your day ends when you go to bed, not at midnight. Between 12am and 4am anything you
+   log (food, training, water, meals, sets, undo) goes on the day before, unless you switch. */
+const DAY_START_HOUR=4;
+let NIGHT_TODAY=false;
+const lateNight=()=>new Date().getHours()<DAY_START_HOUR;
+function logDate(){ if(!lateNight()||NIGHT_TODAY) return null; const y=new Date(); y.setDate(y.getDate()-1); return y.toLocaleDateString('en-CA'); }
+const LOG_EPS=new Set(['food','workout','set','water','water/undo','undo','meal/log','product/log']);
+const post=(p,b)=>{ b=b||{}; if(LOG_EPS.has(p)&&!b.date){ const ld=logDate(); if(ld) b.date=ld; } return api(p,{method:'POST',body:JSON.stringify(b)}); };
+const dayQ=p=>{ const ld=logDate(); return ld?p+(p.includes('?')?'&':'?')+'date='+ld:p; };
 const toast=m=>{const t=$('#toast');t.textContent=m;t.classList.add('show');clearTimeout(t._x);t._x=setTimeout(()=>t.classList.remove('show'),2600);};
 const show=w=>{$('#gate').classList.toggle('hide',w!=='gate');$('#app').classList.toggle('hide',w==='gate');};
 const fmtD=s=>new Date(s+'T12:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
@@ -799,14 +815,14 @@ function go(v){
 }
 
 async function refresh(){
-  const s=await api('status'); S=s;
+  const s=await api(dayQ('status')); S=s; nightBar();
   const t=s.today, g=t.target, tr=s.trends;
   $('#vdate').textContent=fmtD(t.date);
   const v=$('#ver'), mine=v.textContent.trim().split(' ')[0];
   if(s.version===mine){v.className='ok';v.textContent=mine;}
   else{v.className='bad';v.textContent=`${mine} / api ${s.version}`;}
 
-  api('energy').then(e=>{
+  api(dayQ('energy')).then(e=>{
     const el=$('#eDef');
     el.classList.toggle('over', e.deficit<0);
     roll(el, Math.abs(e.deficit));
@@ -860,7 +876,7 @@ async function refresh(){
 
   // Room is measured against what you burned, not a fixed intake ceiling. The Hub
   // counts deficit; this card used to count against 1,750, and the two disagreed.
-  api('energy').then(e=>{
+  api(dayQ('energy')).then(e=>{
     const room = e.out - e.target - e.intake;
     const fl=$('#fLeft');
     fl.classList.toggle('over', room<0);
@@ -1341,6 +1357,7 @@ async function showDay(ds){
   SEL=ds; $$('.cell').forEach(c=>c.classList.toggle('sel',c.dataset.day===ds));
   $('#dayDetail').innerHTML='<p class="empty">Loading…</p>';
   let f=null; try{ f=await api('dayfull?date='+ds); }catch(e){}
+  DAYF=f;
   const r=CALDATA[ds]||{};
   if(f){
     const e=f.energy||{};
@@ -1369,7 +1386,7 @@ async function showDay(ds){
       ${f.water_entries?.length?`<p class="tiny" style="margin:16px 0 4px">Water</p>
         <p class="tiny" style="margin:0">${f.water_entries.map(w=>Math.round(w.oz)+' oz').join(' · ')}</p>`:''}
       ${f.photo?`<img src="/api/img/${ds}" alt="" style="width:100%;border-radius:12px;margin-top:14px;display:block">`:''}
-    </div>`;
+    </div>`+dayEditorHTML(ds,f);
     return;
   }
   $('#dayDetail').innerHTML=`<div class="card">
@@ -2036,6 +2053,83 @@ function rcPaint(){
            : `tap when a set is done`;
 }
 ['rcReps','rcSets'].forEach(id=>$('#'+id).addEventListener('input',rcPaint));
+
+/* ---------- v53: late-night banner ---------- */
+function nightBar(){
+  const on=lateNight(), ld=logDate(), now=new Date().toLocaleDateString('en-CA');
+  const yday=(()=>{const y=new Date();y.setDate(y.getDate()-1);return y.toLocaleDateString('en-CA');})();
+  $$('[data-nightbar]').forEach(el=>{
+    el.classList.toggle('hide',!on); if(!on) return;
+    el.innerHTML = ld
+      ? `🌙 After midnight — logging to <b>${fmtD(ld)}</b>, the day you’re still in. <button data-nightswap="1">Log to ${fmtD(now)} instead</button>`
+      : `Logging to <b>${fmtD(now)}</b>. <button data-nightswap="0">Back to ${fmtD(yday)}</button>`;
+  });
+}
+
+/* ---------- v53: edit any day from the calendar ---------- */
+let DAYF=null;
+function dayEditorHTML(ds,f){
+  const foods=(f&&f.food_items)||[], wos=(f&&f.workouts)||[];
+  return `<div class="card dayed">
+    <p class="tiny" style="margin:0 0 6px">Add to ${fmtD(ds)}</p>
+    <div class="compose"><textarea id="dSay" placeholder="what you ate or did that day" enterkeyhint="done"></textarea></div>
+    <div class="row" style="margin-top:8px">
+      <button class="btn primary" data-dadd="food">Log food</button>
+      <button class="btn" data-dadd="workout">Log training</button>
+    </div>
+    ${foods.length?`<p class="tiny" style="margin:18px 0 4px">Food — tap to fix, move or delete</p>`+foods.map(i=>
+      `<button class="item dayrow" data-dfe="${i.id}"><span>${esc(i.item)}</span><b>${Math.round(i.kcal)} kcal · ${Math.round(i.protein)}g ›</b></button>`).join(''):''}
+    ${wos.length?`<p class="tiny" style="margin:18px 0 4px">Training — tap to fix, move or delete</p>`+wos.map(w=>
+      `<button class="item dayrow" data-dwe="${w.id}"><span>${esc(w.exercise)}</span><b>${[w.sets&&`${w.sets}×${w.reps??''}`,w.weight&&`${w.weight} lb`,w.minutes&&`${w.minutes} min`].filter(Boolean).join(' · ')||'logged'} ›</b></button>`).join(''):''}
+    <div id="dEdit"></div>
+  </div>`;
+}
+function numIn(id,label,v){ return `<div><label class="tiny">${label}</label><input id="${id}" type="number" inputmode="decimal" value="${v??''}" style="width:100%;margin-top:4px"></div>`; }
+function dayFoodForm(i,ds){
+  return `<div class="card" style="margin-top:12px"><div style="display:flex;align-items:baseline"><b style="font-family:var(--display);font-size:17px;text-transform:uppercase">Fix this food</b><button class="tiny" data-dclose="1" style="margin-left:auto;color:var(--dim)">close</button></div>
+    <input id="deItem" value="${esc(i.item)}" style="width:100%;margin-top:10px">
+    <div class="row" style="margin-top:8px">${numIn('deKcal','Calories',Math.round(i.kcal))}${numIn('deProt','Protein g',Math.round(i.protein))}${numIn('deFib','Fibre g',Math.round(i.fiber||0))}</div>
+    <div class="row" style="margin-top:8px">${numIn('deCarb','Carbs g',Math.round(i.carbs||0))}${numIn('deFat','Fat g',Math.round(i.fat||0))}</div>
+    <label class="tiny" style="display:block;margin-top:12px">Day it belongs to</label><input id="deDay" type="date" value="${ds}" style="width:100%;margin-top:4px">
+    <div class="row" style="margin-top:12px"><button class="btn primary" data-dfsave="${i.id}">Save</button><button class="btn ghost" data-dfdel="${i.id}" style="flex:0 0 78px;color:var(--over)">Delete</button></div></div>`;
+}
+function dayWorkoutForm(w,ds){
+  return `<div class="card" style="margin-top:12px"><div style="display:flex;align-items:baseline"><b style="font-family:var(--display);font-size:17px;text-transform:uppercase">Fix this training</b><button class="tiny" data-dclose="1" style="margin-left:auto;color:var(--dim)">close</button></div>
+    <input id="dwEx" value="${esc(w.exercise)}" style="width:100%;margin-top:10px">
+    <div class="row" style="margin-top:8px">${numIn('dwSets','Sets',w.sets)}${numIn('dwReps','Reps',w.reps)}${numIn('dwWt','Weight lb',w.weight)}${numIn('dwMin','Minutes',w.minutes)}</div>
+    <label class="tiny" style="display:block;margin-top:12px">Day it belongs to</label><input id="dwDay" type="date" value="${ds}" style="width:100%;margin-top:4px">
+    <div class="row" style="margin-top:12px"><button class="btn primary" data-dwsave="${w.id}">Save</button><button class="btn ghost" data-dwdel="${w.id}" style="flex:0 0 78px;color:var(--over)">Delete</button></div></div>`;
+}
+async function dayReload(msg){ if(msg) toast(msg); await drawCal(); refresh(); }
+document.addEventListener('click',async e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  if(b.dataset.nightswap!==undefined){ NIGHT_TODAY=b.dataset.nightswap==='1'; return refresh(); }
+  if(!SEL) return;
+  const n=v=>{ const x=String(v).trim(); return x===''?null:+x; };
+  try{
+    if(b.dataset.dadd){
+      const ta=$('#dSay'), text=ta.value.trim(); if(!text) return toast('Say what you ate or did first.');
+      b.disabled=true; toast('Reading that…');
+      const r=await post(b.dataset.dadd,{text,date:SEL}); ta.value=''; b.disabled=false;
+      return dayReload(b.dataset.dadd==='food'?`Added ${Math.round((r.logged||[]).reduce((a,x)=>a+(+x.kcal||0),0))} kcal to ${fmtD(SEL)}`:`Added to ${fmtD(SEL)}`);
+    }
+    if(b.dataset.dfe){ const i=(DAYF?.food_items||[]).find(x=>x.id==b.dataset.dfe); if(i){ $('#dEdit').innerHTML=dayFoodForm(i,SEL); $('#dEdit').scrollIntoView({behavior:'smooth',block:'center'}); } return; }
+    if(b.dataset.dwe){ const w=(DAYF?.workouts||[]).find(x=>x.id==b.dataset.dwe); if(w){ $('#dEdit').innerHTML=dayWorkoutForm(w,SEL); $('#dEdit').scrollIntoView({behavior:'smooth',block:'center'}); } return; }
+    if(b.dataset.dclose){ $('#dEdit').innerHTML=''; return; }
+    if(b.dataset.dfsave){
+      const day=$('#deDay').value||SEL;
+      await post('food/edit',{id:+b.dataset.dfsave,item:$('#deItem').value.trim(),kcal:+$('#deKcal').value||0,protein:+$('#deProt').value||0,carbs:+$('#deCarb').value||0,fat:+$('#deFat').value||0,fiber:+$('#deFib').value||0,d:day});
+      return dayReload(day!==SEL?`Moved to ${fmtD(day)}`:'Updated.');
+    }
+    if(b.dataset.dfdel){ if(!confirm('Delete this food entry?')) return; await post('food/delete',{id:+b.dataset.dfdel}); return dayReload('Deleted.'); }
+    if(b.dataset.dwsave){
+      const day=$('#dwDay').value||SEL;
+      await post('workout/edit',{id:+b.dataset.dwsave,exercise:$('#dwEx').value.trim(),sets:n($('#dwSets').value),reps:n($('#dwReps').value),weight:n($('#dwWt').value),minutes:n($('#dwMin').value),d:day});
+      return dayReload(day!==SEL?`Moved to ${fmtD(day)}`:'Updated.');
+    }
+    if(b.dataset.dwdel){ if(!confirm('Delete this training entry?')) return; await post('workout/delete',{id:+b.dataset.dwdel}); return dayReload('Deleted.'); }
+  }catch(err){ b.disabled=false; toast('Did not save: '+String(err.message||err).slice(0,60)); }
+});
 
 document.addEventListener('click',async e=>{
   const b=e.target.closest('button');if(!b)return;

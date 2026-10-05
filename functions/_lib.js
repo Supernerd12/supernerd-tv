@@ -1,11 +1,15 @@
 // Fitness Hub — shared library (Cloudflare Pages Functions)
 // Underscore prefix = not routed, importable only.
 
-export const VERSION = 'v52';
+export const VERSION = 'v53';
 export const TZ = 'America/New_York';
 
 export const dayStr = (offset = 0) =>
   new Date(Date.now() + offset * 86400000).toLocaleDateString('en-CA', { timeZone: TZ });
+
+// Late-night rule (v53): before 4am New York time you're still in yesterday.
+export const logDayStr = () =>
+  Number(new Date().toLocaleString('en-US', { timeZone: TZ, hour: '2-digit', hour12: false })) % 24 < 4 ? dayStr(-1) : dayStr();
 
 export const nowStr = () =>
   new Date().toLocaleString('sv-SE', { timeZone: TZ }).replace(' ', 'T');

@@ -3,7 +3,7 @@
 // Add to ChatGPT: Settings > Connectors > MCP server, same URL. Both use the bearer token.
 
 import {
-  json, authed, dayStr, nowStr, run, all,
+  json, authed, dayStr, logDayStr, nowStr, run, all,
   today, trends, contextDoc, checkin, suggestMeal, parseFood, parseWorkout, dayRange,
   coachBrief, exerciseStats, trainingOverview, matchExercise, kitchenDoc
 } from './_lib.js';
@@ -143,7 +143,7 @@ export async function onRequest({ request, env }) {
   if (method !== 'tools/call') return err(id, -32601, `unknown method: ${method}`);
 
   const a = params.arguments || {};
-  const d = a.date || dayStr();
+  const d = a.date || logDayStr();
 
   try {
     switch (params.name) {

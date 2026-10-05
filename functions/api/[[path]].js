@@ -420,7 +420,8 @@ export async function onRequest(ctx) {
       /* ---- editing and deleting anything already logged ---- */
 
       case 'POST food/edit': {
-        const f = ['item','kcal','protein','carbs','fat','fiber'].filter(k => body[k] !== undefined);
+        if (body.d !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(String(body.d))) return json({ error: 'bad date' }, 400);
+        const f = ['item','kcal','protein','carbs','fat','fiber','d'].filter(k => body[k] !== undefined);
         if (!body.id || !f.length) return json({ error: 'nothing to change' }, 400);
         await run(env, `UPDATE food_log SET ${f.map((k,i)=>`${k}=?${i+2}`).join(', ')}, src='edited' WHERE id=?1`,
           [body.id, ...f.map(k => body[k])]);
@@ -442,7 +443,8 @@ export async function onRequest(ctx) {
       }
 
       case 'POST workout/edit': {
-        const f = ['exercise','sets','reps','weight','minutes','distance'].filter(k => body[k] !== undefined);
+        if (body.d !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(String(body.d))) return json({ error: 'bad date' }, 400);
+        const f = ['exercise','sets','reps','weight','minutes','distance','d'].filter(k => body[k] !== undefined);
         if (!body.id || !f.length) return json({ error: 'nothing to change' }, 400);
         await run(env, `UPDATE workout_log SET ${f.map((k,i)=>`${k}=?${i+2}`).join(', ')} WHERE id=?1`,
           [body.id, ...f.map(k => body[k])]);
