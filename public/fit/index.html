@@ -270,6 +270,9 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
 .dayrow{width:100%;display:flex;justify-content:space-between;gap:10px;text-align:left;padding:10px 0;border-bottom:1px solid var(--rule)}
 .dayrow span{color:var(--ink);font-size:14px}
 .dayrow b{font-size:13px;white-space:nowrap}
+.editbar{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:10px;margin:0 0 10px;padding:11px 14px;border-radius:0 0 14px 14px;background:#FFB627;color:#111;font-size:13.5px;line-height:1.35;box-shadow:0 8px 24px -10px rgba(0,0,0,.6)}
+.editbar b{font-weight:800}
+.editbar button{margin-left:auto;flex:0 0 auto;padding:7px 14px;border-radius:9px;border:0;background:#111;color:#FFB627;font-weight:700;font-size:13px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -295,7 +298,7 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
 <div id="app" class="hide">
 <header>
   <h1 id="vtitle">Today</h1>
-  <button id="ver" title="Tap to force a fresh copy">v53</button>
+  <button id="ver" title="Tap to force a fresh copy">v54</button>
   <span style="justify-self:end;display:flex;align-items:center;gap:10px">
     <span class="date" id="vdate"></span>
     <button id="gear" aria-label="Settings" style="width:34px;height:34px;display:grid;place-items:center;color:var(--dim)">
@@ -304,6 +307,7 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
       </svg></button>
   </span>
 </header>
+<div id="editBar" class="editbar hide"></div>
 
 <section class="view" id="v-hub">
   <div class="coach" id="coach"></div>
@@ -430,7 +434,7 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
   <div id="builder" class="hide"></div>
   <div id="meals"></div>
 
-  <h2>Eaten today</h2>
+  <h2 id="fLogH">Eaten today</h2>
   <div id="fLog"></div>
   <div id="fEdit" class="hide" style="margin-top:12px"></div>
 
@@ -532,8 +536,9 @@ label.tiny{display:block;font:10px/1 var(--mono);text-transform:uppercase;letter
     <button class="btn ghost" id="undoTrain" style="flex:0 0 96px">Undo last</button>
   </div>
 
-  <h2>Logged today</h2>
+  <h2 id="tLogH">Logged today</h2>
   <div id="tLog"></div>
+  <div id="tEdit"></div>
   <p class="tiny" id="tBurn" style="margin-top:8px"></p>
 
   <p class="tiny" id="discNote" style="margin-top:10px"></p>
@@ -756,7 +761,8 @@ const api=async(p,o={})=>{const r=await fetch('/api/'+p,{...o,headers:o.body?{'c
 const DAY_START_HOUR=4;
 let NIGHT_TODAY=false;
 const lateNight=()=>new Date().getHours()<DAY_START_HOUR;
-function logDate(){ if(!lateNight()||NIGHT_TODAY) return null; const y=new Date(); y.setDate(y.getDate()-1); return y.toLocaleDateString('en-CA'); }
+let EDIT_DAY=null; // v54: set from the calendar — everything you log goes on this date until Done
+function logDate(){ if(EDIT_DAY) return EDIT_DAY; if(!lateNight()||NIGHT_TODAY) return null; const y=new Date(); y.setDate(y.getDate()-1); return y.toLocaleDateString('en-CA'); }
 const LOG_EPS=new Set(['food','workout','set','water','water/undo','undo','meal/log','product/log']);
 const post=(p,b)=>{ b=b||{}; if(LOG_EPS.has(p)&&!b.date){ const ld=logDate(); if(ld) b.date=ld; } return api(p,{method:'POST',body:JSON.stringify(b)}); };
 const dayQ=p=>{ const ld=logDate(); return ld?p+(p.includes('?')?'&':'?')+'date='+ld:p; };
@@ -815,7 +821,7 @@ function go(v){
 }
 
 async function refresh(){
-  const s=await api(dayQ('status')); S=s; nightBar();
+  const s=await api(dayQ('status')); S=s; nightBar(); editBar();
   const t=s.today, g=t.target, tr=s.trends;
   $('#vdate').textContent=fmtD(t.date);
   const v=$('#ver'), mine=v.textContent.trim().split(' ')[0];
@@ -912,13 +918,14 @@ async function refresh(){
               i.parts.map(p=>esc(p.item.split(',')[0])+' '+Math.round(p.kcal)).join('  ·  ')}</span>`:''}</span>
           <span class="m" style="${bad?'color:var(--over)':''}">${bad?'no macros · tap to fix':`${Math.round(i.kcal)} kcal · ${Math.round(i.protein)}g`}</span>
           <span style="color:var(--faint);margin-left:6px">›</span></button>`;}).join('')
-    : '<p class="empty">Nothing logged yet today.</p>';
+    : '<p class="empty">'+(EDIT_DAY?'Nothing logged for '+fmtD(EDIT_DAY)+' yet.':'Nothing logged yet today.')+'</p>';
   FOODITEMS=t.food_items;
+  $('#fLogH').textContent=EDIT_DAY?'Eaten on '+fmtD(EDIT_DAY):'Eaten today'; $('#tLogH').textContent=EDIT_DAY?'Logged on '+fmtD(EDIT_DAY):'Logged today';
 
   $('#tLog').innerHTML=t.workouts.length
-    ? t.workouts.map(w=>`<button class="item" data-wdel="${w.id}" style="width:100%;text-align:left"><span>${esc(w.exercise)}</span>
+    ? t.workouts.map(w=>`<button class="item" data-twe="${w.id}" style="width:100%;text-align:left"><span>${esc(w.exercise)}</span>
        <span class="m">${[w.sets&&`${w.sets}×${w.reps}`,w.weight&&`${w.weight} lb`,w.minutes&&`${w.minutes} min`,w.kcal&&`≈${Math.round(w.kcal)} kcal`].filter(Boolean).join(' · ')||'logged'}</span>
-       <span style="color:var(--faint);margin-left:6px">×</span></button>`).join('')
+       <span style="color:var(--faint);margin-left:6px">›</span></button>`).join('')
     : '<p class="empty">Nothing logged yet today.</p>';
   $('#tBurn').textContent = t.burn_kcal
     ? `Roughly ${t.burn_kcal} kcal burned. An estimate from effort and bodyweight — it is deliberately not added back to your food target.`
@@ -2056,7 +2063,7 @@ function rcPaint(){
 
 /* ---------- v53: late-night banner ---------- */
 function nightBar(){
-  const on=lateNight(), ld=logDate(), now=new Date().toLocaleDateString('en-CA');
+  const on=lateNight()&&!EDIT_DAY, ld=logDate(), now=new Date().toLocaleDateString('en-CA');
   const yday=(()=>{const y=new Date();y.setDate(y.getDate()-1);return y.toLocaleDateString('en-CA');})();
   $$('[data-nightbar]').forEach(el=>{
     el.classList.toggle('hide',!on); if(!on) return;
@@ -2069,20 +2076,15 @@ function nightBar(){
 /* ---------- v53: edit any day from the calendar ---------- */
 let DAYF=null;
 function dayEditorHTML(ds,f){
-  const foods=(f&&f.food_items)||[], wos=(f&&f.workouts)||[];
-  return `<div class="card dayed">
-    <p class="tiny" style="margin:0 0 6px">Add to ${fmtD(ds)}</p>
-    <div class="compose"><textarea id="dSay" placeholder="what you ate or did that day" enterkeyhint="done"></textarea></div>
-    <div class="row" style="margin-top:8px">
-      <button class="btn primary" data-dadd="food">Log food</button>
-      <button class="btn" data-dadd="workout">Log training</button>
-    </div>
-    ${foods.length?`<p class="tiny" style="margin:18px 0 4px">Food — tap to fix, move or delete</p>`+foods.map(i=>
-      `<button class="item dayrow" data-dfe="${i.id}"><span>${esc(i.item)}</span><b>${Math.round(i.kcal)} kcal · ${Math.round(i.protein)}g ›</b></button>`).join(''):''}
-    ${wos.length?`<p class="tiny" style="margin:18px 0 4px">Training — tap to fix, move or delete</p>`+wos.map(w=>
-      `<button class="item dayrow" data-dwe="${w.id}"><span>${esc(w.exercise)}</span><b>${[w.sets&&`${w.sets}×${w.reps??''}`,w.weight&&`${w.weight} lb`,w.minutes&&`${w.minutes} min`].filter(Boolean).join(' · ')||'logged'} ›</b></button>`).join(''):''}
-    <div id="dEdit"></div>
-  </div>`;
+  return `<div class="row dayed">
+    <button class="btn primary" data-dgo="food">Edit food for ${fmtD(ds)}</button>
+    <button class="btn" data-dgo="train">Edit training</button>
+  </div>
+  <p class="tiny" style="margin-top:8px">Opens the full Food or Training page — saved meals, groceries, the meal builder, the rep counter — logging onto ${fmtD(ds)}.</p>`;
+}
+function editBar(){
+  const el=$('#editBar'); if(!el) return; el.classList.toggle('hide',!EDIT_DAY); document.body.classList.toggle('editing',!!EDIT_DAY);
+  if(EDIT_DAY) el.innerHTML=`<span>✎ Editing <b>${fmtD(EDIT_DAY)}</b> — everything you log goes on that day</span><button data-editdone="1">Done</button>`;
 }
 function numIn(id,label,v){ return `<div><label class="tiny">${label}</label><input id="${id}" type="number" inputmode="decimal" value="${v??''}" style="width:100%;margin-top:4px"></div>`; }
 function dayFoodForm(i,ds){
@@ -2100,11 +2102,15 @@ function dayWorkoutForm(w,ds){
     <label class="tiny" style="display:block;margin-top:12px">Day it belongs to</label><input id="dwDay" type="date" value="${ds}" style="width:100%;margin-top:4px">
     <div class="row" style="margin-top:12px"><button class="btn primary" data-dwsave="${w.id}">Save</button><button class="btn ghost" data-dwdel="${w.id}" style="flex:0 0 78px;color:var(--over)">Delete</button></div></div>`;
 }
-async function dayReload(msg){ if(msg) toast(msg); await drawCal(); refresh(); }
+async function dayReload(msg){ if(msg) toast(msg); if(VIEW==='days') await drawCal(); refresh(); }
 document.addEventListener('click',async e=>{
   const b=e.target.closest('button'); if(!b) return;
   if(b.dataset.nightswap!==undefined){ NIGHT_TODAY=b.dataset.nightswap==='1'; return refresh(); }
-  if(!SEL) return;
+  if(b.dataset.dgo && SEL){ EDIT_DAY=SEL; go(b.dataset.dgo); return refresh(); }
+  if(b.dataset.editdone){ const d=EDIT_DAY; EDIT_DAY=null; SEL=d; if(d){ const p=d.split('-'); CAL=new Date(+p[0],+p[1]-1,1); } go('days'); return refresh(); }
+  if(b.dataset.twe){ const w=(S?.today?.workouts||[]).find(x=>x.id==b.dataset.twe); if(w){ $('#tEdit').innerHTML=dayWorkoutForm(w,S.today.date); $('#tEdit').scrollIntoView({behavior:'smooth',block:'center'}); } return; }
+  if(b.dataset.dclose){ ['#dEdit','#tEdit'].forEach(q=>{ const x=$(q); if(x) x.innerHTML=''; }); return; }
+  if(!SEL && !b.dataset.dwsave && !b.dataset.dwdel) return;
   const n=v=>{ const x=String(v).trim(); return x===''?null:+x; };
   try{
     if(b.dataset.dadd){
@@ -2123,11 +2129,12 @@ document.addEventListener('click',async e=>{
     }
     if(b.dataset.dfdel){ if(!confirm('Delete this food entry?')) return; await post('food/delete',{id:+b.dataset.dfdel}); return dayReload('Deleted.'); }
     if(b.dataset.dwsave){
-      const day=$('#dwDay').value||SEL;
+      const was=$('#dwDay').defaultValue, day=$('#dwDay').value||was;
       await post('workout/edit',{id:+b.dataset.dwsave,exercise:$('#dwEx').value.trim(),sets:n($('#dwSets').value),reps:n($('#dwReps').value),weight:n($('#dwWt').value),minutes:n($('#dwMin').value),d:day});
-      return dayReload(day!==SEL?`Moved to ${fmtD(day)}`:'Updated.');
+      const te=$('#tEdit'); if(te) te.innerHTML='';
+      return dayReload(day!==was?`Moved to ${fmtD(day)}`:'Updated.');
     }
-    if(b.dataset.dwdel){ if(!confirm('Delete this training entry?')) return; await post('workout/delete',{id:+b.dataset.dwdel}); return dayReload('Deleted.'); }
+    if(b.dataset.dwdel){ if(!confirm('Delete this training entry?')) return; await post('workout/delete',{id:+b.dataset.dwdel}); { const te=$('#tEdit'); if(te) te.innerHTML=''; } return dayReload('Deleted.'); }
   }catch(err){ b.disabled=false; toast('Did not save: '+String(err.message||err).slice(0,60)); }
 });
 
@@ -2197,6 +2204,7 @@ document.addEventListener('click',async e=>{
       </div>
       <label class="tiny" style="display:flex;align-items:center;gap:9px;margin-top:12px;text-transform:none;letter-spacing:0;font-size:13px;color:var(--ink)">
         <input type="checkbox" id="feSave" style="width:20px;height:20px;padding:0;flex:0 0 20px"> Remember this food for next time</label>
+      <label class="tiny" style="display:block;margin-top:12px">Day it belongs to</label><input id="feDay" type="date" value="${(S&&S.today&&S.today.date)||''}" style="width:100%;margin-top:4px">
       <div class="row" style="margin-top:12px">
         <button class="btn primary" data-fsave="${i.id}">Save</button>
         <button class="btn ghost" data-fdel="${i.id}" style="flex:0 0 78px;color:var(--over)">Delete</button>
@@ -2208,8 +2216,8 @@ document.addEventListener('click',async e=>{
     await post('food/edit',{id:+b.dataset.fsave,item:$('#feItem').value.trim(),
       kcal:+$('#feKcal').value||0,protein:+$('#feProt').value||0,carbs:+$('#feCarb').value||0,
       fat:+$('#feFat').value||0,fiber:+$('#feFib').value||0,
-      save_as_food:$('#feSave').checked, in_stock:1});
-    $('#fEdit').classList.add('hide');toast('Updated.');return refresh();
+      save_as_food:$('#feSave').checked, in_stock:1, ...(($('#feDay').value&&$('#feDay').value!==S.today.date)?{d:$('#feDay').value}:{})});
+    $('#fEdit').classList.add('hide');toast(($('#feDay').value&&$('#feDay').value!==S.today.date)?'Moved to '+fmtD($('#feDay').value):'Updated.');return refresh();
   }
   if(b.dataset.fdel){await post('food/delete',{id:+b.dataset.fdel});
     $('#fEdit').classList.add('hide');toast('Deleted.');return refresh();}
