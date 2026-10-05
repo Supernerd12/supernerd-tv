@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v66';  // v66: clients + team can add calendar events on their jobs (edit only their own; 'Added by'). v65: calendar events sorted by time within each day. v64: 12-hour times everywhere (calendar, stamps, scheduled sends). v63: per-job custom event types (Edit types + '+ New type' in the event window). v62: calendar is per job — event types are that job's folders, only that job's events load. v61: presentations from any tool (Google Slides, PowerPoint, Figma, Pitch, Gamma, Prezi, PDF/PPTX upload w/ slide player); team can add decks. v60: people lists strictly scoped to the project/company (no cross-client names); company ✕ removes only that company's access. v59: videos upload via resumable Stream (tus, up to 30 GB); readable upload errors. v58: deliverables live in Supabase; owner + team upload from the portal (R2/Stream), edit/move/delete, 'Uploaded by'. v57: partners get the Studio company grid too (no auto-jump), counts show only their projects. v56: route only after sign-in resolves (owner no longer auto-jumped into a lone project). v55: Add company / Add project from the Studio (portal-onboard fn commits CMS files). (v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
+  const VERSION = 'v67';  // v67: Final Deliverables folders can nest (folders inside folders, back goes up a level, New folder creates inside the open folder). v66: clients + team can add calendar events on their jobs (edit only their own; 'Added by'). v65: calendar events sorted by time within each day. v64: 12-hour times everywhere (calendar, stamps, scheduled sends). v63: per-job custom event types (Edit types + '+ New type' in the event window). v62: calendar is per job — event types are that job's folders, only that job's events load. v61: presentations from any tool (Google Slides, PowerPoint, Figma, Pitch, Gamma, Prezi, PDF/PPTX upload w/ slide player); team can add decks. v60: people lists strictly scoped to the project/company (no cross-client names); company ✕ removes only that company's access. v59: videos upload via resumable Stream (tus, up to 30 GB); readable upload errors. v58: deliverables live in Supabase; owner + team upload from the portal (R2/Stream), edit/move/delete, 'Uploaded by'. v57: partners get the Studio company grid too (no auto-jump), counts show only their projects. v56: route only after sign-in resolves (owner no longer auto-jumped into a lone project). v55: Add company / Add project from the Studio (portal-onboard fn commits CMS files). (v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   // v58: deliverables load from Supabase (review_items) after sign-in, so they're no longer
@@ -1335,6 +1335,8 @@ const ADMIN_KEY       = null; // v58: retired — owner is decided only by the s
 .fd-back:hover{color:var(--green)}
 /* folder grid */
 .fd-folders{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,268px));gap:18px;margin-top:26px;justify-content:start}
+.fd-subfolders{margin-bottom:30px}
+.fd-subfolders + .fd-grid{border-top:1px solid rgba(127,127,127,.18);padding-top:26px}
 .fd-folder{position:relative;display:block;text-align:left;border:0;background:transparent;padding:0;cursor:pointer;font:inherit;color:inherit;-webkit-appearance:none;appearance:none}
 .fd-folder:focus-visible{outline:2px solid var(--green);outline-offset:3px;border-radius:26px}
 .fd-folder-shell{display:block;padding:7px;border-radius:26px;background:rgba(255,255,255,.03);border:1px solid var(--hair);transition:transform .5s cubic-bezier(.32,.72,0,1),border-color .5s cubic-bezier(.32,.72,0,1),background .5s cubic-bezier(.32,.72,0,1)}
@@ -5508,6 +5510,10 @@ function fdFolderItems(){
 }
 function fdCount(fid){ return FD.items.filter(function(it){ return (it.folder_id||null)===(fid||null); }).length; }
 function fdUnfiledCount(){ return FD.items.filter(function(it){ return !it.folder_id; }).length; }
+function fdChildren(pid){ return FD.folders.filter(function(f){ return (f.parent_id||null)===(pid||null); }); }
+function fdFolderById(id){ return FD.folders.filter(function(f){ return f.id===id; })[0]||null; }
+function fdPath(id){ var out=[], f=fdFolderById(id), guard=0; while(f && guard++<20){ out.unshift(f); f=f.parent_id?fdFolderById(f.parent_id):null; } return out; }
+function fdPathName(id){ return fdPath(id).map(function(f){ return f.name; }).join(' \u203a '); }
 // Resolve a pushed item's live media (uid / image src / type) from the project by its stack key,
 // so BOTH old and new pushed items get a working Download + Open-in-review, no re-add needed.
 function fdResolveStack(stackKey){
@@ -5560,7 +5566,7 @@ function fdFolderCard(fid, name, unfiled){
     +'<span class="fd-folder-top"><span class="fd-folder-ic">'+(unfiled?'':fdFolderIco())+'</span>'
     +'<span class="fd-strip">'+(strip||'')+'</span></span>'
     +'<span class="fd-folder-name">'+esc(name)+'</span>'
-    +'<span class="fd-folder-n">'+n+' file'+(n===1?'':'s')+'</span>'
+    +'<span class="fd-folder-n">'+(function(){ var k=unfiled?0:fdChildren(fid).length; return (k?k+' folder'+(k===1?'':'s')+(n?' \u00b7 ':''):'')+((n||!k)?n+' file'+(n===1?'':'s'):''); })()+'</span>'
     +'</span></span></div>';
 }
 function fdFileCard(it){
@@ -5609,7 +5615,7 @@ function finalRender(){
   // ---------- LANDING: folders first ----------
   var inDetail = (FD.folder!==null && FD.folder!==undefined);
   if(!inDetail && hasFolders){
-    var cards=FD.folders.map(function(f){ return fdFolderCard(f.id, f.name, false); }).join('');
+    var cards=fdChildren(null).map(function(f){ return fdFolderCard(f.id, f.name, false); }).join('');
     if(unfiledN>0) cards+=fdFolderCard(null, 'Unfiled', true);
     var addNew = isAdmin ? '<div class="fd-folder fd-newfolder" role="button" tabindex="0" id="fdNewFolder"><span class="fd-folder-shell"><span class="fd-folder-core add"><span class="fd-plus">+</span><span class="fd-folder-name">New folder</span></span></span></div>' : '';
     var bar = isAdmin ? '<div class="ca-add"><button class="ca-btn" id="fdBtn">'+caIcon('up')+'Upload final</button><input type="file" id="fdFile" multiple style="display:none"><button class="ca-btn ghost" id="fdFromProj">'+caIcon('plus')+'Add from project</button>'+(FD.items.length?'<button class="ca-btn ghost" id="fdSelect">Select / move</button>':'')+'</div>' : '';
@@ -5630,7 +5636,13 @@ function finalRender(){
   }
 
   // ---------- DETAIL: one folder (or Unfiled) ----------
-  var fname = (FD.folder==='__unfiled__') ? 'Unfiled' : ((FD.folders.filter(function(f){return f.id===FD.folder;})[0]||{}).name || 'Folder');
+  var fname = (FD.folder==='__unfiled__') ? 'Unfiled' : ((fdFolderById(FD.folder)||{}).name || 'Folder');
+  var cur = (FD.folder==='__unfiled__') ? null : fdFolderById(FD.folder);
+  var parent = (cur && cur.parent_id) ? fdFolderById(cur.parent_id) : null;
+  var subs = cur ? fdChildren(cur.id) : [];
+  var subCards = subs.map(function(f){ return fdFolderCard(f.id, f.name, false); }).join('');
+  if(isAdmin && cur && !FD.selMode) subCards += '<div class="fd-folder fd-newfolder" role="button" tabindex="0" id="fdNewFolder"><span class="fd-folder-shell"><span class="fd-folder-core add"><span class="fd-plus">+</span><span class="fd-folder-name">New folder</span></span></span></div>';
+  var subWrap = subCards ? '<div class="fd-folders fd-subfolders">'+subCards+'</div>' : '';
   var items=fdFolderItems();
   var ctr='';
   if(isAdmin){
@@ -5639,16 +5651,18 @@ function finalRender(){
   }
   var movebar='';
   if(FD.selMode){
-    var opts='<option value="">Unfiled</option>'+FD.folders.map(function(f){ return '<option value="'+f.id+'"'+(f.id===FD.folder?' selected':'')+'>'+esc(f.name)+'</option>'; }).join('');
+    var opts='<option value="">Unfiled</option>'+FD.folders.map(function(f){ return {f:f,p:fdPathName(f.id)}; }).sort(function(a,b){ return a.p.localeCompare(b.p); }).map(function(o){ return '<option value="'+o.f.id+'"'+(o.f.id===FD.folder?' selected':'')+'>'+esc(o.p)+'</option>'; }).join('');
     movebar='<div class="fd-movebar"><span class="fd-mb-n">'+selCount+' selected</span><span class="fd-mb-sp"></span><label class="fd-mb-lab">Move to</label><select class="fd-mb-sel" id="fdMoveSel">'+opts+'</select><button class="ca-btn" id="fdMoveGo"'+(selCount?'':' disabled')+'>Move</button></div>';
   }
   var grid = items.length ? '<div class="fd-grid'+(FD.selMode?' selmode':'')+'">'+items.map(fdFileCard).join('')+'</div>'
-    : '<div class="ca-empty fd">Nothing in this folder yet.'+(isAdmin?' Add from project, upload, or move files in here.':'')+'</div>';
-  m.innerHTML='<div class="ca-bar"><div class="ca-bar-l"><button class="fd-back" id="fdBack">\u2190 All folders</button><h3 class="fd-h fd-h-detail">'+esc(fname)+'</h3></div>'+ctr+'</div>'+movebar+grid;
+    : (subs.length ? '' : '<div class="ca-empty fd">Nothing in this folder yet.'+(isAdmin?' Add from project, upload, or move files in here.':'')+'</div>');
+  var backLabel = parent ? '\u2190 '+esc(parent.name) : '\u2190 All folders';
+  var crumb = (cur && cur.parent_id) ? '<div class="fd-eyebrow">'+esc(fdPath(cur.parent_id).map(function(f){return f.name;}).join(' \u203a '))+'</div>' : '';
+  m.innerHTML='<div class="ca-bar"><div class="ca-bar-l"><button class="fd-back" id="fdBack">'+backLabel+'</button>'+crumb+'<h3 class="fd-h fd-h-detail">'+esc(fname)+'</h3></div>'+ctr+'</div>'+movebar+subWrap+grid;
   wireFinalCommon(m, isAdmin);
 }
 function wireFinalCommon(m, isAdmin){
-  var back=document.getElementById('fdBack'); if(back) back.onclick=function(){ FD.folder=null; FD.selMode=false; FD.sel={}; finalRender(); };
+  var back=document.getElementById('fdBack'); if(back) back.onclick=function(){ var c=(FD.folder&&FD.folder!=='__unfiled__')?fdFolderById(FD.folder):null; FD.folder=(c&&c.parent_id)?c.parent_id:null; FD.selMode=false; FD.sel={}; finalRender(); };
   m.querySelectorAll('.fd-folder[data-open]').forEach(function(b){ b.onclick=function(e){ if(e.target.closest&&e.target.closest('.fd-fdel')) return; FD.folder=b.dataset.open; finalRender(); }; b.onkeydown=function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); FD.folder=b.dataset.open; finalRender(); } }; });
   m.querySelectorAll('.fd-fdel').forEach(function(b){ b.onclick=function(e){ e.stopPropagation(); fdDeleteFolder(b.dataset.fdel); }; });
   var nf=document.getElementById('fdNewFolder'); if(nf) nf.onclick=fdNewFolder;
@@ -5681,12 +5695,14 @@ async function fdMoveSelected(){
 }
 async function fdNewFolder(){
   var name=(window.prompt('New folder name')||'').trim(); if(!name) return;
-  try{ var r=await sb.from('final_folders').insert({ review_slug:CONFIG.REVIEW_SLUG, project_key:FD.proj, name:name, ord:FD.folders.length, created_by:myEmail() }).select().single(); if(r.error){ alert('Could not create folder: '+r.error.message); return; } FD.folders.push(r.data); FD.folder=r.data.id; finalRender(); }catch(e){ alert('Could not create folder.'); }
+  var pid=(FD.folder&&FD.folder!=='__unfiled__')?FD.folder:null;
+  try{ var r=await sb.from('final_folders').insert({ review_slug:CONFIG.REVIEW_SLUG, project_key:FD.proj, parent_id:pid, name:name, ord:fdChildren(pid).length, created_by:myEmail() }).select().single(); if(r.error){ alert('Could not create folder: '+r.error.message); return; } FD.folders.push(r.data); FD.folder=r.data.id; finalRender(); }catch(e){ alert('Could not create folder.'); }
 }
 async function fdDeleteFolder(id){
-  if(!confirm('Delete this folder? Its items move to Unfiled.')) return;
-  try{ await sb.from('final_items').update({folder_id:null}).eq('folder_id', id); await sb.from('final_folders').delete().eq('id', id); }catch(e){}
-  FD.folders=FD.folders.filter(function(x){return x.id!==id;}); FD.items.forEach(function(it){ if(it.folder_id===id) it.folder_id=null; }); if(FD.folder===id) FD.folder=null; finalRender();
+  var dead=fdFolderById(id); var up=(dead&&dead.parent_id)?dead.parent_id:null;
+  if(!confirm(up?'Delete this folder? Its files and subfolders move up one level.':'Delete this folder? Its files move to Unfiled and its subfolders move up a level.')) return;
+  try{ await sb.from('final_items').update({folder_id:up}).eq('folder_id', id); await sb.from('final_folders').update({parent_id:up}).eq('parent_id', id); await sb.from('final_folders').delete().eq('id', id); }catch(e){}
+  FD.folders=FD.folders.filter(function(x){return x.id!==id;}); FD.folders.forEach(function(f){ if(f.parent_id===id) f.parent_id=up; }); FD.items.forEach(function(it){ if(it.folder_id===id) it.folder_id=up; }); if(FD.folder===id) FD.folder=up; finalRender();
 }
 async function fdUploadFile(file){
   var MAXB=45*1024*1024;
