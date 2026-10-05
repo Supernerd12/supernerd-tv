@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v63';  // v63: per-job custom event types (Edit types + '+ New type' in the event window). v62: calendar is per job — event types are that job's folders, only that job's events load. v61: presentations from any tool (Google Slides, PowerPoint, Figma, Pitch, Gamma, Prezi, PDF/PPTX upload w/ slide player); team can add decks. v60: people lists strictly scoped to the project/company (no cross-client names); company ✕ removes only that company's access. v59: videos upload via resumable Stream (tus, up to 30 GB); readable upload errors. v58: deliverables live in Supabase; owner + team upload from the portal (R2/Stream), edit/move/delete, 'Uploaded by'. v57: partners get the Studio company grid too (no auto-jump), counts show only their projects. v56: route only after sign-in resolves (owner no longer auto-jumped into a lone project). v55: Add company / Add project from the Studio (portal-onboard fn commits CMS files). (v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
+  const VERSION = 'v64';  // v64: 12-hour times everywhere (calendar, stamps, scheduled sends). v63: per-job custom event types (Edit types + '+ New type' in the event window). v62: calendar is per job — event types are that job's folders, only that job's events load. v61: presentations from any tool (Google Slides, PowerPoint, Figma, Pitch, Gamma, Prezi, PDF/PPTX upload w/ slide player); team can add decks. v60: people lists strictly scoped to the project/company (no cross-client names); company ✕ removes only that company's access. v59: videos upload via resumable Stream (tus, up to 30 GB); readable upload errors. v58: deliverables live in Supabase; owner + team upload from the portal (R2/Stream), edit/move/delete, 'Uploaded by'. v57: partners get the Studio company grid too (no auto-jump), counts show only their projects. v56: route only after sign-in resolves (owner no longer auto-jumped into a lone project). v55: Add company / Add project from the Studio (portal-onboard fn commits CMS files). (v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   // v58: deliverables load from Supabase (review_items) after sign-in, so they're no longer
@@ -776,6 +776,8 @@ const ADMIN_KEY       = null; // v58: retired — owner is decided only by the s
   .legend-edit{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--dim);background:none;border:1px solid var(--hair-2);border-radius:7px;padding:5px 11px;cursor:pointer}
   .legend-edit:hover{color:var(--green);border-color:rgba(186,192,30,.4)}
   .et-name{flex:1;font-size:14px;color:var(--bone)}
+  .sch-dt{display:flex;gap:8px}
+  .sch-dt .sch-in{flex:1;min-width:0}
   .et-tag{font-style:normal;font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--dim);border:1px solid var(--line);border-radius:3px;padding:1px 5px;margin-left:8px}
   .cev-newtype{display:flex;gap:8px;margin-top:8px}
   .cev-newtype .cev-in{flex:1}
@@ -2169,9 +2171,14 @@ function dropMine(id){ try { localStorage.setItem(MINE_KEY, JSON.stringify(myCom
 function parseTimecode(tc){ if(!tc) return null; const parts=String(tc).trim().split(':').map(p=>parseInt(p,10)); if(parts.some(isNaN)) return null; let s=0; for(const p of parts){ s=s*60+p; } return s; }
 function secsToTc(s){ s=Math.max(0,Math.floor(s||0)); var h=Math.floor(s/3600), m=Math.floor((s%3600)/60), sec=s%60; function p(n){ return (n<10?'0':'')+n; } return h>0 ? (h+':'+p(m)+':'+p(sec)) : (p(m)+':'+p(sec)); }
 function relTime(iso){ const d=(Date.now()-new Date(iso).getTime())/1000; if(d<60) return 'just now'; if(d<3600) return Math.floor(d/60)+'m ago'; if(d<86400) return Math.floor(d/3600)+'h ago'; return Math.floor(d/86400)+'d ago'; }
-function fmtTime(iso){ const d=new Date(iso); return d.toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}); }
+// v64: 12-hour clock everywhere (never follow a 24h system setting).
+function t12(hhmm, short){ if(!hhmm) return ''; var m=String(hhmm).match(/^(\d{1,2}):(\d{2})/); if(!m) return String(hhmm); var h=+m[1], ap=h>=12?'PM':'AM'; h=h%12||12; return h+((short&&m[2]==='00')?'':':'+m[2])+(short?ap.charAt(0).toLowerCase():' '+ap); }
+function timeOptions(cur, noneLabel){ cur=cur?String(cur).slice(0,5):''; var out=(noneLabel===false?'':'<option value="">'+(noneLabel||'No time (all day)')+'</option>'), seen=false;
+  [6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,0,1,2,3,4,5].forEach(function(h){ for(var mi=0;mi<60;mi+=15){ var v=String(h).padStart(2,'0')+':'+String(mi).padStart(2,'0'); if(cur===v) seen=true; out+='<option value="'+v+'"'+(cur===v?' selected':'')+'>'+t12(v)+'</option>'; } });
+  if(cur && !seen) out='<option value="'+esc(cur)+'" selected>'+t12(cur)+'</option>'+out; return out; }
+function fmtTime(iso){ const d=new Date(iso); return d.toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit',hour12:true}); }
 function fmtDate(iso){ if(!iso) return ''; let d; const m=String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/); if(m){ d=new Date(+m[1], +m[2]-1, +m[3], 12); } else { d=new Date(iso); } if(isNaN(d.getTime())) return ''; return d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}); }
-function fmtStamp(iso){ if(!iso) return ''; let d; const m=String(iso).match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/); if(m){ d=new Date(+m[1], +m[2]-1, +m[3], +m[4], +m[5]); } else { d=new Date(iso); } if(isNaN(d.getTime())) return ''; return d.toLocaleString(undefined,{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'}); }
+function fmtStamp(iso){ if(!iso) return ''; let d; const m=String(iso).match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/); if(m){ d=new Date(+m[1], +m[2]-1, +m[3], +m[4], +m[5]); } else { d=new Date(iso); } if(isNaN(d.getTime())) return ''; return d.toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit',hour12:true}); }
 function esc(s){ const d=document.createElement('div'); d.textContent=(s==null?'':s); return d.innerHTML; }
 function itemFallback(it){ return it.type==='audio' ? 'Audio' : (it.type==='file' ? 'File' : (it.type==='video' ? 'Video' : 'Untitled')); }
 function itemTitle(it){ return it.title || it.label || itemFallback(it); }
@@ -3686,7 +3693,7 @@ function adminStrip(proj, sec){
   return '<div class="admin-strip"><span class="admin-tag">'+(ADMIN?'Admin':'Team')+'</span><input id="ann-msg-'+sec.id+'" class="admin-input" placeholder="Optional message — e.g. \'New work is up for review\'"><button class="admin-btn" id="ann-btn-'+sec.id+'">Notify Team</button><button class="admin-btn ghost" id="ann-sch-'+sec.id+'" title="Schedule this for later">\u23f1 Schedule</button><span class="admin-msg" id="ann-status-'+sec.id+'"></span></div>';
 }
 /* ---------- scheduled email helpers (shared by Notify Team + Newsletter) ---------- */
-function schedFmt(iso){ try{ return new Date(iso).toLocaleString([], {weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}); }catch(e){ return iso; } }
+function schedFmt(iso){ try{ return new Date(iso).toLocaleString('en-US', {weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',hour12:true}); }catch(e){ return iso; } }
 function schedLocalValue(d){ var p=function(n){return String(n).padStart(2,'0');}; return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'T'+p(d.getHours())+':'+p(d.getMinutes()); }
 function schedDefault(){ var d=new Date(); d.setDate(d.getDate()+1); d.setHours(9,0,0,0); return schedLocalValue(d); }
 async function schedInsert(row){ try{ var r=await sb.from('scheduled_emails').insert(row).select().single(); if(r.error) return {error:r.error}; return {data:r.data}; }catch(e){ return {error:{message:(e&&e.message)||'insert failed'}}; } }
@@ -3695,7 +3702,7 @@ async function schedCancel(id){ try{ var r=await sb.from('scheduled_emails').upd
 function openSchedulePicker(opts){
   openOverlay('<div class="sch-wrap"><div class="sch-head">'+esc(opts.title||'Schedule send')+'</div>'
     +(opts.note?'<div class="sch-note">'+esc(opts.note)+'</div>':'')
-    +'<label class="sch-l">Send at \u2014 your local time</label><input type="datetime-local" id="schAt" class="sch-in" value="'+schedDefault()+'">'
+    +'<label class="sch-l">Send at \u2014 your local time</label><div class="sch-dt"><input type="date" id="schDay" class="sch-in" value="'+schedDefault().slice(0,10)+'" onchange="document.getElementById(\'schAt\').value=this.value+\'T\'+document.getElementById(\'schTime\').value"><select id="schTime" class="sch-in" onchange="document.getElementById(\'schAt\').value=document.getElementById(\'schDay\').value+\'T\'+this.value">'+timeOptions(schedDefault().slice(11,16), false)+'</select></div><input type="hidden" id="schAt" value="'+schedDefault()+'">'
     +'<div class="sch-quick"><button type="button" class="sch-q" data-q="am">Tomorrow 9:00 AM</button><button type="button" class="sch-q" data-q="mon">Mon 9:00 AM</button><button type="button" class="sch-q" data-q="1h">In 1 hour</button></div>'
     +'<div class="sch-foot"><button class="ca-btn ghost" onclick="closeOverlay()">Cancel</button><button class="ca-btn" id="schGo">Schedule</button></div>'
     +'<div class="sch-msg" id="schMsg"></div></div>', true);
@@ -4462,7 +4469,7 @@ function calMonthHTML(){
       var ch='<div class="evchips" style="margin-top:'+(majors.length*6+4)+'px">'+majors.map(function(e){return '<span class="evchip cal-ev" '+calEvAttrs(e)+' style="border-left-color:'+calEvColor(e)+';color:'+calLighten(calEvColor(e))+'">'+esc(e.title)+'</span>';}).join('')+'</div>';
       inner=bars+'<div class="dnum" style="margin-top:'+(majors.length*6)+'px">'+dt.getDate()+'</div>'+ch;
     } else { inner='<div class="dnum">'+dt.getDate()+'</div>'; }
-    inner+=mtgs.map(function(e){return '<div class="mtg cal-ev" '+calEvAttrs(e)+'><span class="mdot"></span>'+(e.time?esc(String(e.time).replace(':00',''))+' ':'')+esc(e.title)+'</div>';}).join('');
+    inner+=mtgs.map(function(e){return '<div class="mtg cal-ev" '+calEvAttrs(e)+'><span class="mdot"></span>'+(e.time?esc(t12(e.time,true))+' ':'')+esc(e.title)+'</div>';}).join('');
     cells+='<div class="'+cls+'" data-calday="'+calKey(dt)+'" '+cellAttrs+'>'+inner+'</div>';
   }
   return dow+'<div class="cal-grid">'+cells+'</div>';
@@ -4473,7 +4480,7 @@ function calWeekHTML(){
   var s=calWeekStart(CAL.cursor),T=calToday(),cols='';
   for(var i=0;i<7;i++){ var dt=new Date(s); dt.setDate(s.getDate()+i);
     var evs=calEvOn(dt).sort(function(a,b){return (a.kind==='meeting'?1:0)-(b.kind==='meeting'?1:0);});
-    var items=evs.map(function(e){return '<div class="wev cal-ev" '+calEvAttrs(e)+' data-calgoday="'+e.d+'" style="border-left-color:'+calEvColor(e)+';color:'+calLighten(calEvColor(e))+'">'+esc(e.title)+(e.time?'<span class="wt">'+esc(e.time)+'</span>':'')+'</div>';}).join('')||'<div class="wkemp">\u2014</div>';
+    var items=evs.map(function(e){return '<div class="wev cal-ev" '+calEvAttrs(e)+' data-calgoday="'+e.d+'" style="border-left-color:'+calEvColor(e)+';color:'+calLighten(calEvColor(e))+'">'+esc(e.title)+(e.time?'<span class="wt">'+esc(t12(e.time))+'</span>':'')+'</div>';}).join('')||'<div class="wkemp">\u2014</div>';
     cols+='<div class="wcol'+(calSameDay(dt,T)?' today':'')+'"><h4 data-calgoday="'+calKey(dt)+'">'+CAL_DOW[dt.getDay()]+'<b>'+dt.getDate()+'</b></h4>'+items+'</div>';
   }
   return '<div class="week">'+cols+'</div>';
@@ -4482,7 +4489,7 @@ function calDayTitle(dt){ return CAL_DOWF[dt.getDay()]+', '+CAL_MON[dt.getMonth(
 function calDayHTML(dt){
   var evs=calEvOn(dt).sort(function(a,b){return (a.kind==='meeting'?1:0)-(b.kind==='meeting'?1:0)||String(a.title).localeCompare(String(b.title));});
   if(!evs.length) return '<div class="day-wrap"><div class="day-empty">No events on '+calDayTitle(dt)+'.</div></div>';
-  var rows=evs.map(function(e){return '<div class="dayrow cal-ev" '+calEvAttrs(e)+' style="border-left-color:'+calEvColor(e)+'"><div class="dtime">'+(e.time?esc(e.time):'All day')+'</div><div><div class="dttl">'+esc(e.title)+'</div><div class="dmeta">'+esc(calTypeL(e.type))+' \u00b7 '+esc(calProjName(e.proj))+(e.notes?' \u2014 '+esc(e.notes):'')+'</div></div></div>';}).join('');
+  var rows=evs.map(function(e){return '<div class="dayrow cal-ev" '+calEvAttrs(e)+' style="border-left-color:'+calEvColor(e)+'"><div class="dtime">'+(e.time?esc(t12(e.time)):'All day')+'</div><div><div class="dttl">'+esc(e.title)+'</div><div class="dmeta">'+esc(calTypeL(e.type))+' \u00b7 '+esc(calProjName(e.proj))+(e.notes?' \u2014 '+esc(e.notes):'')+'</div></div></div>';}).join('');
   return '<div class="day-wrap">'+rows+'</div>';
 }
 function calNav(dir){ var d=CAL.cursor;
@@ -4493,7 +4500,7 @@ function calNav(dir){ var d=CAL.cursor;
 }
 function calPopEl(){ var p=document.getElementById('calpop'); if(!p){ p=document.createElement('div'); p.id='calpop'; p.className='cal-pop'; document.body.appendChild(p); } return p; }
 function calShowPop(el){ var p=calPopEl(),t=el.dataset.type,col=el.dataset.col||calTypeC(t);
-  p.innerHTML='<div class="pt"><span class="psw" style="background:'+col+'"></span>'+esc(el.dataset.ttl)+'</div><div class="pmeta">'+esc(calTypeL(t))+'<br>'+esc(el.dataset.proj)+'<br>'+calPretty(el.dataset.date)+(el.dataset.time?' \u00b7 '+esc(el.dataset.time):'')+'</div>'+(el.dataset.notes?'<div class="ptag">'+esc(el.dataset.notes)+'</div>':'');
+  p.innerHTML='<div class="pt"><span class="psw" style="background:'+col+'"></span>'+esc(el.dataset.ttl)+'</div><div class="pmeta">'+esc(calTypeL(t))+'<br>'+esc(el.dataset.proj)+'<br>'+calPretty(el.dataset.date)+(el.dataset.time?' \u00b7 '+esc(t12(el.dataset.time)):'')+'</div>'+(el.dataset.notes?'<div class="ptag">'+esc(el.dataset.notes)+'</div>':'');
   p.classList.add('show');
 }
 function calHidePop(){ var p=document.getElementById('calpop'); if(p) p.classList.remove('show'); }
@@ -4523,7 +4530,7 @@ function calEvOpen(ev, dayKey){
     '<div class="cev-h">'+(ev?'Edit event':'New event')+'<button class="cev-x" data-cevx>\u00d7</button></div>'
    +'<label class="cev-l">Title</label><input id="cevTitle" class="cev-in" value="'+esc(e.title||'')+'" placeholder="What\u2019s happening">'
    +'<div class="cev-row"><div><label class="cev-l">Date</label><input id="cevDate" class="cev-in" type="date" value="'+esc(dflt)+'"></div>'
-   +'<div><label class="cev-l">Time \u00b7 optional</label><input id="cevTime" class="cev-in" type="time" value="'+esc(e.time||'')+'"></div></div>'
+   +'<div><label class="cev-l">Time \u00b7 optional</label><select id="cevTime" class="cev-in">'+timeOptions(e.time||'')+'</select></div></div>'
    +'<div class="cev-row"><div><label class="cev-l">Type</label><select id="cevType" class="cev-in">'+typeOpts+'<option value="__new__">+ New type\u2026</option></select><div class="cev-newtype" id="cevNewType" hidden><input id="cevNewName" class="cev-in" placeholder="e.g. Kickoff call"><input id="cevNewColor" type="color" value="#7bd88f"></div></div>'
    +'<div><label class="cev-l">Style</label><select id="cevKind" class="cev-in"><option value="major"'+((e.kind||'major')==='major'?' selected':'')+'>Full-day block</option><option value="meeting"'+(e.kind==='meeting'?' selected':'')+'>Meeting \u00b7 small</option></select></div></div>'
    +'<label class="cev-l">Notes \u00b7 optional</label><textarea id="cevNotes" class="cev-in cev-area" placeholder="Anything to add">'+esc(e.notes||'')+'</textarea>'
@@ -5225,7 +5232,7 @@ function caCopy(val, btn){
   catch(e){ caCopyFallback(val); done(); }
 }
 function caCopyFallback(val){ try{ var ta=document.createElement('textarea'); ta.value=val; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); }catch(e){} }
-function caLocalTime(tz){ if(!tz) return ''; try{ return new Intl.DateTimeFormat([], {timeZone:tz, hour:'numeric', minute:'2-digit'}).format(new Date()); }catch(e){ return ''; } }
+function caLocalTime(tz){ if(!tz) return ''; try{ return new Intl.DateTimeFormat('en-US', {timeZone:tz, hour:'numeric', minute:'2-digit', hour12:true}).format(new Date()); }catch(e){ return ''; } }
 function caTzShort(tz){ if(!tz) return ''; var p=String(tz).split('/'); return (p[p.length-1]||tz).replace(/_/g,' '); }
 function caAgo(iso){ try{ var d=new Date(iso), s=(Date.now()-d.getTime())/1000; if(s<60) return 'just now'; if(s<3600) return Math.floor(s/60)+'m ago'; if(s<86400) return Math.floor(s/3600)+'h ago'; return d.toLocaleDateString([], {month:'short', day:'numeric'}); }catch(e){ return ''; } }
 
