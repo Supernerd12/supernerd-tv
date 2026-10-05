@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v61';  // v61: presentations from any tool (Google Slides, PowerPoint, Figma, Pitch, Gamma, Prezi, PDF/PPTX upload w/ slide player); team can add decks. v60: people lists strictly scoped to the project/company (no cross-client names); company ✕ removes only that company's access. v59: videos upload via resumable Stream (tus, up to 30 GB); readable upload errors. v58: deliverables live in Supabase; owner + team upload from the portal (R2/Stream), edit/move/delete, 'Uploaded by'. v57: partners get the Studio company grid too (no auto-jump), counts show only their projects. v56: route only after sign-in resolves (owner no longer auto-jumped into a lone project). v55: Add company / Add project from the Studio (portal-onboard fn commits CMS files). (v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
+  const VERSION = 'v62';  // v62: calendar is per job — event types are that job's folders, only that job's events load. v61: presentations from any tool (Google Slides, PowerPoint, Figma, Pitch, Gamma, Prezi, PDF/PPTX upload w/ slide player); team can add decks. v60: people lists strictly scoped to the project/company (no cross-client names); company ✕ removes only that company's access. v59: videos upload via resumable Stream (tus, up to 30 GB); readable upload errors. v58: deliverables live in Supabase; owner + team upload from the portal (R2/Stream), edit/move/delete, 'Uploaded by'. v57: partners get the Studio company grid too (no auto-jump), counts show only their projects. v56: route only after sign-in resolves (owner no longer auto-jumped into a lone project). v55: Add company / Add project from the Studio (portal-onboard fn commits CMS files). (v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   // v58: deliverables load from Supabase (review_items) after sign-in, so they're no longer
@@ -775,6 +775,8 @@ const ADMIN_KEY       = null; // v58: retired — owner is decided only by the s
   .leg .sw{width:11px;height:11px;border-radius:3px}
   .legend-edit{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--dim);background:none;border:1px solid var(--hair-2);border-radius:7px;padding:5px 11px;cursor:pointer}
   .legend-edit:hover{color:var(--green);border-color:rgba(186,192,30,.4)}
+  .et-name{flex:1;font-size:14px;color:var(--bone)}
+  .et-note{font-family:var(--mono);font-size:11px;color:var(--dim);margin-top:10px;line-height:1.5}
   .cal-editor{border:1px solid var(--hair-2);border-radius:12px;padding:12px 13px;margin:2px 0 14px;background:#0f1012}
   .ed-h{display:flex;align-items:center;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:11px}
   .ed-done{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--green);background:none;border:1px solid rgba(186,192,30,.4);border-radius:7px;padding:4px 13px;cursor:pointer}
@@ -2527,8 +2529,7 @@ function nbOpen(company){
   NB={ co:company||null, name:'', coKey:'', coKeyTouched:false, logo:null, title:'', tagline:'', pKey:'', pKeyTouched:false,
        phases:PSTAT_DEFAULTS.map(function(p){ return {name:p.name,color:p.color}; }), cur:PSTAT_DEFAULTS[0].name,
        calOn:false, ev:[{title:'Kickoff',date:'',type:'milestone'},{title:'Final delivery',date:'',type:'delivery'}],
-       types:CAL_DEFAULT_TYPES.map(function(d){ return {key:d[0],label:d[1]}; }), busy:false };
-  try{ sb.from('calendar_types').select('key,label,sort').eq('review_slug',CONFIG.REVIEW_SLUG).order('sort',{ascending:true}).then(function(r){ if(r&&r.data&&r.data.length&&NB){ NB.types=r.data.map(function(t){ return {key:t.key,label:t.label}; }); nbFixEvTypes(); nbRenderCal(); } },function(){}); }catch(e){}
+       types:[{key:'general',label:'General'}], busy:false }; // v62: a new job has no folders yet
   var ov=document.createElement('div'); ov.className='nb'; ov.id='nbOv';
   document.body.appendChild(ov); document.body.style.overflow='hidden';
   nbRenderForm();
@@ -3910,6 +3911,8 @@ var INVITES_READY=null;
 
 /* ===================== CALENDAR ===================== */
 var CAL = { view:'month', cursor:null, filter:'all', day:null, editing:false, pendingDel:null, TYPES:{}, ORDER:[], EV:[], projId:null };
+var CAL_PAL=['#8e6fe0','#4a90d9','#e5484d','#46b758','#d9b23c','#d6489e','#3fb6c4','#f08c3a','#9aa66a'];
+function calFolderKey(n){ return String(n||'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'')||'general'; }
 var CAL_DEFAULT_TYPES = [
  ['milestone','Milestone','#8e6fe0'],['meeting','Meeting','#4a90d9'],['deadline','Deadline','#e5484d'],
  ['shoot','Shoot day','#46b758'],['review','Review','#d9b23c'],['delivery','Delivery','#d6489e'],
@@ -4405,26 +4408,22 @@ function calRender(){
   var T=calToday();
   var title=CAL.view==='month'?(CAL_MON[CAL.cursor.getMonth()]+' '+CAL.cursor.getFullYear()):CAL.view==='week'?calWeekTitle():calDayTitle(CAL.day||CAL.cursor);
   var seg=['month','week','day'].map(function(v){return '<button class="'+(CAL.view===v?'on':'')+'" data-cv="'+v+'">'+v.charAt(0).toUpperCase()+v.slice(1)+'</button>';}).join('');
-  var chips='<button class="cal-chip '+(CAL.filter==='all'?'on':'')+'" data-cf="all">All projects</button>'+calProjs().map(function(p){return '<button class="cal-chip '+(CAL.filter===p?'on':'')+'" data-cf="'+esc(p)+'"><span class="dot" style="background:'+(CAL.EV.filter(function(e){return e.proj===p;})[0]?calEvColor(CAL.EV.filter(function(e){return e.proj===p;})[0]):'#888')+'"></span>'+esc(p)+'</button>';}).join('');
   var body=CAL.view==='month'?calMonthHTML():CAL.view==='week'?calWeekHTML():calDayHTML(CAL.day||CAL.cursor);
   var addBtn=(typeof ADMIN!=='undefined' && ADMIN)?'<button class="cal-addev" data-cnew>+ Add event</button>':'';
-  c.innerHTML='<div class="cal-top"><div class="cal-nav"><button class="cal-arrow" data-cnav="-1">\u2039</button><button class="cal-arrow" data-cnav="1">\u203a</button></div><div class="cal-title">'+esc(title)+'</div><button class="cal-today" data-ctoday>Today</button><div class="spacer"></div>'+addBtn+'<div class="seg">'+seg+'</div></div><div class="cal-projs">'+chips+'</div>'+calLegendHTML()+body;
+  c.innerHTML='<div class="cal-top"><div class="cal-nav"><button class="cal-arrow" data-cnav="-1">\u2039</button><button class="cal-arrow" data-cnav="1">\u203a</button></div><div class="cal-title">'+esc(title)+'</div><button class="cal-today" data-ctoday>Today</button><div class="spacer"></div>'+addBtn+'<div class="seg">'+seg+'</div></div>'+calLegendHTML()+body;
   calWire();
 }
 function calLegendHTML(){
   if(CAL.editing) return calEditorHTML();
   var used={}; CAL.EV.forEach(function(e){ if(CAL.filter==='all'||e.proj===CAL.filter) used[e.type]=1; });
   var items=CAL.ORDER.filter(function(t){return used[t]&&CAL.TYPES[t];}).map(function(t){return '<span class="leg"><span class="sw" style="background:'+calTypeC(t)+'"></span>'+esc(calTypeL(t))+'</span>';}).join('');
-  return '<div class="cal-legend">'+items+'<button class="legend-edit" data-cedit>\u270e Edit key</button></div>';
+  return '<div class="cal-legend">'+items+(ADMIN?'<button class="legend-edit" data-cedit>\u270e Edit colors</button>':'')+'</div>';
 }
 function calEditorHTML(){
-  var rows=CAL.ORDER.filter(function(t){return CAL.TYPES[t];}).map(function(t){var TT=CAL.TYPES[t];
-    if(CAL.pendingDel===t){ var up=CAL.EV.filter(function(e){return e.type===t&&!calIsPast(e);}).length;
-      return '<div class="etrow etwarn"><span class="warn-ic">\u26a0</span><span class="warn-tx">'+up+' upcoming event'+(up>1?'s':'')+' use \u201c'+esc(TT.l)+'\u201d \u2014 delete anyway? Past ones keep their color.</span><button class="etconfirm" data-cconfirmdel="'+esc(t)+'">Delete</button><button class="etcancel" data-ccancel>Cancel</button></div>';
-    }
-    return '<div class="etrow" data-ct="'+esc(t)+'"><input type="color" value="'+TT.c+'" data-ccc><input type="text" value="'+esc(TT.l)+'" data-cnn><button class="etdel" title="Remove type">\u00d7</button></div>';
-  }).join('');
-  return '<div class="cal-editor"><div class="ed-h">Event types \u2014 color &amp; label<button class="ed-done" data-cedit>Done</button></div>'+rows+'<div class="etrow etadd"><input type="color" value="#7bd88f" id="calnewC"><input type="text" id="calnewN" placeholder="Add a new event type\u2026"><button class="etaddbtn" data-cadd>+ Add type</button></div></div>';
+  var rows=(CAL.FOLDER_TYPES||[]).filter(function(t){return CAL.TYPES[t];}).map(function(t){ var TT=CAL.TYPES[t];
+    return '<div class="etrow" data-ct="'+esc(t)+'"><input type="color" value="'+TT.c+'" data-ccc><span class="et-name">'+esc(TT.l)+'</span></div>'; }).join('');
+  return '<div class="cal-editor"><div class="ed-h">Event colors for this job<button class="ed-done" data-cedit>Done</button></div>'+rows
+    +'<div class="et-note">Event types are this job\u2019s folders. Add a folder by uploading deliverables into it.</div></div>';
 }
 function calMonthHTML(){
   var y=CAL.cursor.getFullYear(),m=CAL.cursor.getMonth(),T=calToday();
@@ -4483,7 +4482,7 @@ function calShowPop(el){ var p=calPopEl(),t=el.dataset.type,col=el.dataset.col||
 function calHidePop(){ var p=document.getElementById('calpop'); if(p) p.classList.remove('show'); }
 function calPosPop(ev){ var p=calPopEl(),pw=p.offsetWidth,ph=p.offsetHeight,x=ev.clientX+14,y=ev.clientY+14; if(x+pw>innerWidth-8)x=ev.clientX-pw-14; if(y+ph>innerHeight-8)y=ev.clientY-ph-14; p.style.left=Math.max(8,x)+'px'; p.style.top=Math.max(8,y)+'px'; }
 function calPretty(s){ var d=calParse(s); return CAL_DOW[d.getDay()]+', '+CAL_MON[d.getMonth()].slice(0,3)+' '+d.getDate(); }
-function calUpsertType(t){ try{ sb.from('calendar_types').upsert({review_slug:CONFIG.REVIEW_SLUG,key:t,label:CAL.TYPES[t].l,color:CAL.TYPES[t].c,sort:CAL.ORDER.indexOf(t)},{onConflict:'review_slug,key'}).then(function(){},function(){}); }catch(e){} }
+function calUpsertType(t){ try{ sb.from('calendar_types').upsert({review_slug:CONFIG.REVIEW_SLUG,key:(CAL.projId?CAL.projId+'/':'')+t,label:CAL.TYPES[t].l,color:CAL.TYPES[t].c,sort:CAL.ORDER.indexOf(t)},{onConflict:'review_slug,key'}).then(function(){},function(){}); }catch(e){} }
 function calDeleteTypeDB(t){ try{ sb.from('calendar_types').delete().eq('review_slug',CONFIG.REVIEW_SLUG).eq('key',t).then(function(){},function(){}); }catch(e){} }
 function calReloadEv(){
   return sb.from('calendar_events').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).order('date',{ascending:true}).then(function(re){
@@ -4499,9 +4498,10 @@ function calEvOpen(ev, dayKey){
   if(!ov){ ov=document.createElement('div'); ov.className='onb'; ov.id='calEvOv'; ov.innerHTML='<div class="cev-card" id="cevCard"></div>'; document.body.appendChild(ov); ov.addEventListener('click',function(e){ if(e.target===ov) calEvClose(); }); }
   ov.classList.add('show');
   var e=ev||{}, dflt=ev?ev.d:(dayKey||calTodayK());
-  var firstType=CAL.ORDER.filter(function(t){return CAL.TYPES[t];})[0]||'note';
+  var ftypes=(CAL.FOLDER_TYPES||[]).slice(); if(e.type && ftypes.indexOf(e.type)<0 && CAL.TYPES[e.type]) ftypes.push(e.type);
+  var firstType=ftypes[0]||'general';
   var curType=e.type||firstType;
-  var typeOpts=CAL.ORDER.filter(function(t){return CAL.TYPES[t];}).map(function(t){return '<option value="'+esc(t)+'"'+(curType===t?' selected':'')+'>'+esc(CAL.TYPES[t].l)+'</option>';}).join('');
+  var typeOpts=ftypes.filter(function(t){return CAL.TYPES[t];}).map(function(t){return '<option value="'+esc(t)+'"'+(curType===t?' selected':'')+'>'+esc(CAL.TYPES[t].l)+'</option>';}).join('');
   document.getElementById('cevCard').innerHTML=
     '<div class="cev-h">'+(ev?'Edit event':'New event')+'<button class="cev-x" data-cevx>\u00d7</button></div>'
    +'<label class="cev-l">Title</label><input id="cevTitle" class="cev-in" value="'+esc(e.title||'')+'" placeholder="What\u2019s happening">'
@@ -4509,7 +4509,6 @@ function calEvOpen(ev, dayKey){
    +'<div><label class="cev-l">Time \u00b7 optional</label><input id="cevTime" class="cev-in" type="time" value="'+esc(e.time||'')+'"></div></div>'
    +'<div class="cev-row"><div><label class="cev-l">Type</label><select id="cevType" class="cev-in">'+typeOpts+'</select></div>'
    +'<div><label class="cev-l">Style</label><select id="cevKind" class="cev-in"><option value="major"'+((e.kind||'major')==='major'?' selected':'')+'>Full-day block</option><option value="meeting"'+(e.kind==='meeting'?' selected':'')+'>Meeting \u00b7 small</option></select></div></div>'
-   +'<label class="cev-l">Project \u00b7 optional</label><input id="cevProj" class="cev-in" value="'+esc(e.proj&&e.proj!=='project'?e.proj:(CAL.projId||''))+'" placeholder="'+esc(CAL.projId||'project')+'">'
    +'<label class="cev-l">Notes \u00b7 optional</label><textarea id="cevNotes" class="cev-in cev-area" placeholder="Anything to add">'+esc(e.notes||'')+'</textarea>'
    +'<div class="cev-foot">'+(ev?'<button type="button" class="cev-del" data-cevdel>Delete</button>':'<span></span>')+'<div class="cev-actions"><button type="button" class="cev-cancel" data-cevx>Cancel</button><button type="button" class="cev-save" data-cevsave>'+(ev?'Save':'Add event')+'</button></div></div>'
    +'<div class="cev-msg" id="cevMsg"></div>';
@@ -4525,7 +4524,7 @@ async function calEvSave(){
   var type=document.getElementById('cevType').value;
   var kind=document.getElementById('cevKind').value;
   var time=document.getElementById('cevTime').value||null;
-  var proj=(document.getElementById('cevProj').value||'').trim()||CAL.projId||'project';
+  var proj=CAL.projId||'project';
   var notes=(document.getElementById('cevNotes').value||'').trim()||null;
   if(!title){ msg.textContent='Add a title.'; return; }
   if(!date){ msg.textContent='Pick a date.'; return; }
@@ -4570,16 +4569,20 @@ function calWire(){
 async function calLoad(projId){
   CAL.projId=projId; CAL.cursor=calToday(); CAL.cursor.setDate(1); CAL.day=calToday();
   CAL.view='month'; CAL.filter='all'; CAL.editing=false; CAL.pendingDel=null; CAL.TYPES={}; CAL.ORDER=[]; CAL.EV=[];
+  // v62: event types = this job's deliverable folders (colors saved per job). Nothing is shared
+  // between jobs: no other job's types, and only this job's events load.
+  var saved={};
+  try{ var rt=await sb.from('calendar_types').select('key,label,color').eq('review_slug',CONFIG.REVIEW_SLUG); ((rt&&rt.data)||[]).forEach(function(r){ saved[r.key]={l:r.label,c:r.color}; }); }catch(e){}
+  CAL.FOLDER_TYPES=[];
+  var proj=CONFIG.PROJECTS.find(function(p){ return p.id===projId; })||{sections:[]};
+  (proj.sections||[]).forEach(function(sec,i){ var k=calFolderKey(sec.name); if(CAL.TYPES[k]) return; var sv=saved[projId+'/'+k]||saved[k]; CAL.TYPES[k]={l:sec.name,c:(sv&&sv.c)||CAL_PAL[i%CAL_PAL.length]}; CAL.ORDER.push(k); CAL.FOLDER_TYPES.push(k); });
+  if(!CAL.FOLDER_TYPES.length){ var gv=saved[projId+'/general']; CAL.TYPES.general={l:'General',c:(gv&&gv.c)||'#8b8f98'}; CAL.ORDER.push('general'); CAL.FOLDER_TYPES.push('general'); }
   try{
-    var rt=await sb.from('calendar_types').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).order('sort',{ascending:true});
-    var rows=(rt&&rt.data)||[];
-    if(rows.length){ rows.forEach(function(r){ CAL.TYPES[r.key]={l:r.label,c:r.color}; CAL.ORDER.push(r.key); }); }
-    else { CAL_DEFAULT_TYPES.forEach(function(d){ CAL.TYPES[d[0]]={l:d[1],c:d[2]}; CAL.ORDER.push(d[0]); }); }
-  }catch(e){ CAL_DEFAULT_TYPES.forEach(function(d){ CAL.TYPES[d[0]]={l:d[1],c:d[2]}; CAL.ORDER.push(d[0]); }); }
-  try{
-    var re=await sb.from('calendar_events').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).order('date',{ascending:true});
+    var re=await sb.from('calendar_events').select('*').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_id',projId).order('date',{ascending:true});
     CAL.EV=((re&&re.data)||[]).map(function(r){ return { id:r.id, d:r.date, type:r.type, title:r.title, proj:r.project_id||'project', kind:r.kind||'major', time:r.time||'', notes:r.notes||'', frozen:r.frozen_color||null }; });
   }catch(e){ CAL.EV=[]; }
+  // older events whose type isn't a folder keep their original label + color
+  CAL.EV.forEach(function(e){ if(e.type && !CAL.TYPES[e.type]){ var sv=saved[projId+'/'+e.type]||saved[e.type]; CAL.TYPES[e.type]={l:(sv&&sv.l)||e.type,c:(sv&&sv.c)||'#8b8f98'}; CAL.ORDER.push(e.type); } });
   // tasks with a due date show up on the calendar too
   try{
     var rtk=await sb.from('tasks').select('id,title,due_date,owner_name,owner_names,status').eq('review_slug',CONFIG.REVIEW_SLUG).eq('project_key',projId).not('due_date','is',null);
