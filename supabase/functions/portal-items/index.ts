@@ -93,22 +93,26 @@ async function presignPut(key: string, type: string) {
 // retried automatically if the connection blips. The browser never sees our API token.
 const b64 = (s: string) => btoa(String.fromCharCode(...new TextEncoder().encode(s)));
 async function streamTusUpload(name: string, size: number) {
-  const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${ACCT}/stream?direct_user=true`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${Deno.env.get('CF_STREAM_TOKEN')}`,
-      'Tus-Resumable': '1.0.0',
-      'Upload-Length': String(size),
-      'Upload-Metadata': `maxdurationseconds ${b64('21600')},name ${b64(name)}`,
-    },
-  });
-  const loc = res.headers.get('Location'), uid = res.headers.get('stream-media-id');
-  if (!res.ok || !loc || !uid) {
-    const t = await res.text().catch(() => '');
-    throw new HttpError(502, 'Cloudflare Stream would not accept the upload (' + res.status + ') ' + t.slice(0, 160));
+  // Cloudflare throttles bursts with 429 (code 971): back off and retry a few times before giving up.
+  const waits = [0, 2000, 5000, 10000, 20000];
+  let last = '';
+  for (const w of waits) {
+    if (w) await new Promise((r) => setTimeout(r, w));
+    const res = await fetch(`https://api.cloudflare.com/client/v4/accounts/${ACCT}/stream?direct_user=true`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${Deno.env.get('CF_STREAM_TOKEN')}`,
+        'Tus-Resumable': '1.0.0',
+        'Upload-Length': String(size),
+        'Upload-Metadata': `maxdurationseconds ${b64('7200')},name ${b64(name)}`,
+      },
+    });
+    const loc = res.headers.get('Location'), uid = res.headers.get('stream-media-id');
+    if (res.ok && loc && uid) { await res.body?.cancel(); return { uploadURL: loc, uid }; }
+    last = '(' + res.status + ') ' + (await res.text().catch(() => '')).slice(0, 160);
+    if (res.status !== 429 && res.status < 500) break;
   }
-  await res.body?.cancel();
-  return { uploadURL: loc, uid };
+  throw new HttpError(502, 'Cloudflare Stream would not accept the upload ' + last + ' — wait a minute and try again.');
 }
 
 async function r2Delete(key: string) {
