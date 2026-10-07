@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v69';  // v69: Canva short links (canva.link/…) are turned into the full design link on save (portal-api/canva-link) so public-view decks embed. v68: review folders can nest ("Parent / Child" names) and exist empty (review_sections) so the team can work out of them; sidebar + folder page list subfolders. v67: Final Deliverables folders can nest (folders inside folders, back goes up a level, New folder creates inside the open folder). v66: clients + team can add calendar events on their jobs (edit only their own; 'Added by'). v65: calendar events sorted by time within each day. v64: 12-hour times everywhere (calendar, stamps, scheduled sends). v63: per-job custom event types (Edit types + '+ New type' in the event window). v62: calendar is per job — event types are that job's folders, only that job's events load. v61: presentations from any tool (Google Slides, PowerPoint, Figma, Pitch, Gamma, Prezi, PDF/PPTX upload w/ slide player); team can add decks. v60: people lists strictly scoped to the project/company (no cross-client names); company ✕ removes only that company's access. v59: videos upload via resumable Stream (tus, up to 30 GB); readable upload errors. v58: deliverables live in Supabase; owner + team upload from the portal (R2/Stream), edit/move/delete, 'Uploaded by'. v57: partners get the Studio company grid too (no auto-jump), counts show only their projects. v56: route only after sign-in resolves (owner no longer auto-jumped into a lone project). v55: Add company / Add project from the Studio (portal-onboard fn commits CMS files). (v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
+  const VERSION = 'v70';  // v70: versions stack when titles match ignoring case, spaces and punctuation ("AV07 - Obama 01" = "AV07 Obama 01"). v69: Canva short links (canva.link/…) are turned into the full design link on save (portal-api/canva-link) so public-view decks embed. v68: review folders can nest ("Parent / Child" names) and exist empty (review_sections) so the team can work out of them; sidebar + folder page list subfolders. v67: Final Deliverables folders can nest (folders inside folders, back goes up a level, New folder creates inside the open folder). v66: clients + team can add calendar events on their jobs (edit only their own; 'Added by'). v65: calendar events sorted by time within each day. v64: 12-hour times everywhere (calendar, stamps, scheduled sends). v63: per-job custom event types (Edit types + '+ New type' in the event window). v62: calendar is per job — event types are that job's folders, only that job's events load. v61: presentations from any tool (Google Slides, PowerPoint, Figma, Pitch, Gamma, Prezi, PDF/PPTX upload w/ slide player); team can add decks. v60: people lists strictly scoped to the project/company (no cross-client names); company ✕ removes only that company's access. v59: videos upload via resumable Stream (tus, up to 30 GB); readable upload errors. v58: deliverables live in Supabase; owner + team upload from the portal (R2/Stream), edit/move/delete, 'Uploaded by'. v57: partners get the Studio company grid too (no auto-jump), counts show only their projects. v56: route only after sign-in resolves (owner no longer auto-jumped into a lone project). v55: Add company / Add project from the Studio (portal-onboard fn commits CMS files). (v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   // v58: deliverables load from Supabase (review_items) after sign-in, so they're no longer
@@ -73,7 +73,7 @@ export async function getStaticPaths() {
           // group by Title into version stacks
           const stOrder = []; const stMap = new Map();
           for (const it of list) {
-            const key = ((it.title || '').trim().toLowerCase()) || ('__' + it.id);
+            const key = ((it.title || '').toLowerCase().replace(/[^a-z0-9]+/g, '')) || ('__' + it.id);
             if (!stMap.has(key)) { stMap.set(key, []); stOrder.push(key); }
             stMap.get(key).push(it);
           }
@@ -2762,7 +2762,7 @@ function itemsToSections(list){
   list.forEach(function(it){ if(!secMap[it.section]){ secMap[it.section]=[]; secOrder.push(it.section); } secMap[it.section].push(it); });
   return secOrder.map(function(sName){
     var stOrder=[], stMap={}, used={};
-    secMap[sName].forEach(function(it){ var k=(it.title||'').trim().toLowerCase()||('__'+it.id); if(!stMap[k]){ stMap[k]=[]; stOrder.push(k); } stMap[k].push(it); });
+    secMap[sName].forEach(function(it){ var k=(it.title||'').toLowerCase().replace(/[^a-z0-9]+/g,'')||('__'+it.id); if(!stMap[k]){ stMap[k]=[]; stOrder.push(k); } stMap[k].push(it); });
     var stacks=stOrder.map(function(k){
       var versions=stMap[k].slice().sort(function(a,b){ return (itemPv(b.version)-itemPv(a.version)) || String(b.date||'').localeCompare(String(a.date||'')); });
       var title=versions[0].title||'Untitled', base=(itemSlug(sName)||'sec')+'--'+(itemSlug(title)||'item'), sid=base, n=2;
@@ -2812,9 +2812,10 @@ function upFolderOptions(proj, sel){
     +'<option value="__new__"'+(sel==='__new__'||!names.length?' selected':'')+'>+ New folder…</option>';
 }
 function upNextVersion(proj, folder, title){
-  var t=String(title||'').trim().toLowerCase(); if(!t) return 'v1';
+  var nk=function(x){ return String(x||'').toLowerCase().replace(/[^a-z0-9]+/g,''); };
+  var t=nk(title); if(!t) return 'v1';
   var sec=(proj.sections||[]).find(function(s){ return s.name===folder; }); if(!sec) return 'v1';
-  var st=sec.stacks.find(function(x){ return String(x.title||'').trim().toLowerCase()===t; }); if(!st) return 'v1';
+  var st=sec.stacks.find(function(x){ return nk(x.title)===t; }); if(!st) return 'v1';
   return 'v'+(st.versions.reduce(function(m,v){ return Math.max(m,itemPv(v.version)); },0)+1);
 }
 function upTitleFromFile(name){ return String(name||'').replace(/\.[^.]+$/,'').replace(/[_-]+/g,' ').replace(/\s+/g,' ').trim().replace(/^./,function(c){ return c.toUpperCase(); }) || 'Untitled'; }
