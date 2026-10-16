@@ -1,0 +1,141 @@
+/* ───────── THE ART HAUS · Design Directions · base ─────────
+   Site chrome + the shared "spread" mechanics.
+   Every spread is a container; all type/space inside is sized in
+   --u (1% of spread width) so a spread is a true-proportion page comp.
+   Trim assumption: US Letter (8.5 × 11 in) pages → 17 × 11 in spread.      */
+
+:root{
+  --chrome:#15130f; --chrome-soft:#6c675d; --chrome-line:rgba(21,19,15,.16);
+  --sans:'Instrument Sans',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;scroll-padding-top:64px}
+body{font-family:var(--sans);background:#e4e0d8;color:var(--chrome);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+img{display:block;width:100%;height:100%;object-fit:cover}
+a{color:inherit}
+.wrap{max-width:1380px;margin:0 auto;padding:0 clamp(16px,4vw,56px)}
+.ic{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+/* ── top nav ── */
+.nav{position:sticky;top:0;z-index:50;background:rgba(228,224,216,.88);backdrop-filter:blur(10px);border-bottom:1px solid var(--chrome-line)}
+.nav .wrap{display:flex;align-items:center;gap:28px;height:52px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+.nav .brand{margin-right:auto;letter-spacing:.2em}
+.nav a{text-decoration:none;opacity:.62;transition:opacity .2s}
+.nav a:hover,.nav a.on{opacity:1}
+.nav .sw{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;vertical-align:-1px}
+@media(max-width:720px){.nav .wrap{gap:14px}.nav .hide-s{display:none}}
+
+/* ── intro ── */
+.intro{padding:clamp(48px,8vw,110px) 0 clamp(36px,5vw,64px)}
+.intro .kick{font-size:12px;letter-spacing:.22em;text-transform:uppercase;font-weight:600;color:var(--chrome-soft)}
+.intro h1{font-family:'Big Shoulders Display',sans-serif;font-weight:900;text-transform:uppercase;font-size:clamp(64px,13vw,190px);line-height:.82;letter-spacing:-.01em;margin:.18em 0 .2em}
+.intro h1 em{font-family:'Instrument Serif',serif;font-style:italic;font-weight:400;text-transform:none;letter-spacing:-.02em;color:#a8322a;font-size:.92em}
+.intro .cols{display:grid;grid-template-columns:1.1fr 1fr;gap:clamp(24px,5vw,80px);align-items:start}
+.intro p{font-size:16px;line-height:1.55;max-width:60ch}
+.intro .notes{font-size:13px;line-height:1.6;color:var(--chrome-soft);border-left:2px solid var(--chrome);padding-left:18px}
+.intro .notes b{color:var(--chrome)}
+@media(max-width:860px){.intro .cols{grid-template-columns:1fr}}
+
+.picker{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;padding-bottom:clamp(48px,7vw,96px)}
+.pick{display:flex;flex-direction:column;text-decoration:none;border-radius:4px;overflow:hidden;box-shadow:0 18px 40px -22px rgba(0,0,0,.5);transition:transform .35s cubic-bezier(.2,.7,.2,1)}
+.pick:hover{transform:translateY(-6px)}
+.pick .thumb{aspect-ratio:5/6;position:relative;overflow:hidden;container-type:inline-size}
+.pick .meta{padding:18px 20px 20px;display:grid;gap:10px}
+.pick .meta .n{font-size:11px;letter-spacing:.2em;text-transform:uppercase;font-weight:600;opacity:.7}
+.pick .meta .t{font-size:22px;line-height:1.1;font-weight:600;letter-spacing:-.01em}
+.pick .meta .d{font-size:13px;line-height:1.5;opacity:.82}
+.pick .chips{display:flex;height:10px;border-radius:2px;overflow:hidden;margin-top:4px}
+.pick .chips i{flex:1}
+@media(max-width:860px){.picker{grid-template-columns:1fr}}
+
+/* ── direction header ── */
+.dir{padding:clamp(56px,7vw,100px) 0 clamp(64px,8vw,120px);position:relative}
+.dir-head{display:grid;grid-template-columns:auto 1fr;gap:clamp(20px,4vw,64px);align-items:end;margin-bottom:clamp(28px,4vw,56px)}
+.dir-head .big{font-size:clamp(120px,22vw,320px);line-height:.72;font-weight:900;letter-spacing:-.04em}
+.dir-head h2{font-size:clamp(34px,5.4vw,82px);line-height:.92;letter-spacing:-.02em;font-weight:700}
+.dir-head .sub{font-size:12px;letter-spacing:.2em;text-transform:uppercase;font-weight:600;opacity:.65;margin-bottom:14px}
+.dir-head p{font-size:16px;line-height:1.55;max-width:62ch;margin-top:18px}
+@media(max-width:760px){.dir-head{grid-template-columns:1fr}}
+
+.dna{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;margin:0 0 clamp(28px,4vw,48px);border-top:1px solid currentColor;border-bottom:1px solid currentColor}
+.dna div{padding:16px 18px 18px;font-size:13px;line-height:1.5;border-left:1px solid currentColor}
+.dna div:first-child{border-left:0;padding-left:0}
+.dna b{display:block;font-size:11px;letter-spacing:.18em;text-transform:uppercase;margin-bottom:6px;opacity:.7;font-weight:600}
+@media(max-width:860px){.dna{grid-template-columns:1fr}.dna div{border-left:0;padding-left:0;border-top:1px solid currentColor}.dna div:first-child{border-top:0}}
+
+/* board: palette + type + rules */
+.label{font-size:11px;letter-spacing:.22em;text-transform:uppercase;font-weight:600;margin:clamp(36px,5vw,64px) 0 14px;display:flex;align-items:center;gap:14px}
+.label::after{content:"";flex:1;height:1px;background:currentColor;opacity:.35}
+.label span{opacity:.55}
+.swatches{display:flex;min-height:230px;border-radius:3px;overflow:hidden;box-shadow:0 14px 34px -20px rgba(0,0,0,.55)}
+.sw-c{padding:16px 16px 14px;display:flex;flex-direction:column;justify-content:space-between;font-size:12px;line-height:1.35;min-width:0}
+.sw-c b{font-size:15px;font-weight:600;letter-spacing:-.005em;display:block;margin-bottom:3px}
+.sw-c code{font-family:'IBM Plex Mono',ui-monospace,monospace;font-size:11px;opacity:.85}
+.sw-c .pct{font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:.75}
+@media(max-width:760px){.swatches{flex-wrap:wrap}.sw-c{flex:1 1 33% !important;min-height:120px}}
+
+.type-board{display:grid;grid-template-columns:1.25fr 1fr;gap:20px}
+.spec{padding:clamp(18px,2.4vw,30px);border-radius:3px;position:relative;overflow:hidden}
+.spec .tag{font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;font-weight:600;opacity:.6;display:flex;justify-content:space-between;gap:12px;margin-bottom:14px}
+.spec .nm{font-size:13px;margin-top:14px;opacity:.78;line-height:1.45}
+.spec .nm b{font-weight:600;opacity:1}
+.type-board .full{grid-column:1/-1}
+.type-board .two{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:860px){.type-board,.type-board .two{grid-template-columns:1fr}}
+
+.scale{display:grid;grid-template-columns:repeat(2,1fr);gap:0 clamp(20px,4vw,56px);font-size:13px}
+.scale div{display:grid;grid-template-columns:1fr auto;gap:12px;padding:9px 0;border-top:1px solid currentColor;border-color:color-mix(in srgb,currentColor 28%,transparent)}
+.scale b{font-weight:600}
+.scale span{opacity:.7;font-family:'IBM Plex Mono',monospace;font-size:11.5px;text-align:right}
+@media(max-width:760px){.scale{grid-template-columns:1fr}}
+
+.rules{columns:2;column-gap:clamp(20px,4vw,56px);font-size:14px;line-height:1.5}
+.rules li{list-style:none;break-inside:avoid;padding:11px 0 11px 34px;border-top:1px solid color-mix(in srgb,currentColor 28%,transparent);position:relative}
+.rules li::before{content:attr(data-n);position:absolute;left:0;top:11px;font-family:'IBM Plex Mono',monospace;font-size:11px;opacity:.6}
+.rules b{font-weight:600}
+@media(max-width:760px){.rules{columns:1}}
+
+/* ── spreads ── */
+.sheet-title{display:flex;align-items:baseline;gap:16px;margin:clamp(40px,5vw,72px) 0 16px;font-size:12px;letter-spacing:.18em;text-transform:uppercase;font-weight:600}
+.sheet-title i{font-style:normal;font-family:'IBM Plex Mono',monospace;opacity:.55;letter-spacing:.04em}
+.sheet-title em{font-style:normal;margin-left:auto;opacity:.55;letter-spacing:.08em;text-transform:none;font-weight:500;font-size:12px;text-align:right}
+.spread{container-type:inline-size;--u:1cqw;position:relative;width:100%;aspect-ratio:17/11;display:grid;grid-template-columns:1fr 1fr;overflow:hidden;box-shadow:0 2px 3px rgba(0,0,0,.18),0 34px 70px -30px rgba(0,0,0,.65);isolation:isolate}
+.spread::after{content:"";position:absolute;inset:0 calc(50% - 3.2cqw) 0 calc(50% - 3.2cqw);pointer-events:none;z-index:40;background:linear-gradient(90deg,rgba(0,0,0,0) 0,rgba(0,0,0,.07) 42%,rgba(0,0,0,.2) 50%,rgba(0,0,0,.07) 58%,rgba(0,0,0,0) 100%);mix-blend-mode:multiply}
+.pg{position:relative;overflow:hidden}
+.abs{position:absolute}
+.fill{position:absolute;inset:0}
+.fill img,.abs img{position:absolute;inset:0}
+.u{--s:1;font-size:calc(var(--u)*var(--s))}
+.folio{position:absolute;bottom:calc(var(--u)*2.1);font-size:calc(var(--u)*.72);letter-spacing:.14em;text-transform:uppercase;font-weight:600;z-index:6}
+.folio.l{left:calc(var(--u)*3.6)}.folio.r{right:calc(var(--u)*3.6)}
+
+/* body-copy helpers */
+.cols2{column-count:2;column-gap:calc(var(--u)*1.7)}
+.cols3{column-count:3;column-gap:calc(var(--u)*1.5)}
+.body p{margin:0 0 .72em}
+.body p:last-child{margin-bottom:0}
+
+/* image treatments (SVG filters live in the hidden defs) */
+.bw{filter:grayscale(1) contrast(1.18) brightness(1.02)}
+.duo-brick{filter:url(#f-brick) contrast(1.08)}
+.duo-brickbone{filter:url(#f-brickbone)}
+.duo-forest{filter:url(#f-forest)}
+.duo-ink{filter:url(#f-inkvermil)}
+.duo-gold{filter:url(#f-inkgold)}
+.mult{mix-blend-mode:multiply}
+
+/* roadmap list base */
+.road{list-style:none;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));position:relative}
+
+/* moments gallery — small cards that show one typographic treatment each */
+.moments{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.moment{container-type:inline-size;--u:1cqw;position:relative;aspect-ratio:4/5;overflow:hidden;box-shadow:0 20px 40px -26px rgba(0,0,0,.6);isolation:isolate}
+.moment.w2{grid-column:span 2;aspect-ratio:8/5}
+.moment .cap{position:absolute;left:calc(var(--u)*5);bottom:calc(var(--u)*4.5);font-size:calc(var(--u)*3.1);letter-spacing:.14em;text-transform:uppercase;font-weight:600;opacity:.75;z-index:9}
+.moment.w2 .cap{font-size:calc(var(--u)*1.55);left:calc(var(--u)*2.5);bottom:calc(var(--u)*2.2)}
+@media(max-width:980px){.moments{grid-template-columns:repeat(2,1fr)}}
+
+.foot{padding:56px 0 80px;font-size:13px;line-height:1.6;color:var(--chrome-soft)}
+.foot b{color:var(--chrome)}
+.foot .wrap{display:grid;grid-template-columns:1.2fr 1fr;gap:40px}
+@media(max-width:860px){.foot .wrap{grid-template-columns:1fr}}
