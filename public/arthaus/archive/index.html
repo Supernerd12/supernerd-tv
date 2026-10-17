@@ -1,0 +1,975 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex,nofollow">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Archive: The Art Haus design directions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,100..900;1,62..125,100..900&family=Big+Shoulders+Display:wght@500;700;800;900&family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900&family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=IBM+Plex+Mono:wght@400;500;600&family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/base.css">
+<link rel="stylesheet" href="../css/a.css">
+<link rel="stylesheet" href="../css/b.css">
+<link rel="stylesheet" href="../css/c.css">
+</head>
+<body>
+<div style="background:#17382a;color:#f5efe0;padding:12px 20px;font:600 14px Archivo,sans-serif;position:relative;z-index:99"><a href="../" style="color:#c9a24b">&larr; Back to the toolkit</a> &nbsp;·&nbsp; These are the older design options, saved in case you want to look back.</div>
+
+<!-- ── shared defs: duotone filters + icon sprite ── -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <filter id="f-brick" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values=".33 .33 .33 0 0 .33 .33 .33 0 0 .33 .33 .33 0 0 0 0 0 1 0"/><feComponentTransfer><feFuncR type="table" tableValues=".10 .93"/><feFuncG type="table" tableValues=".035 .33"/><feFuncB type="table" tableValues=".03 .26"/></feComponentTransfer></filter>
+    <filter id="f-brickbone" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values=".33 .33 .33 0 0 .33 .33 .33 0 0 .33 .33 .33 0 0 0 0 0 1 0"/><feComponentTransfer><feFuncR type="table" tableValues=".17 .70 .95"/><feFuncG type="table" tableValues=".06 .16 .92"/><feFuncB type="table" tableValues=".05 .13 .86"/></feComponentTransfer></filter>
+    <filter id="f-forest" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values=".33 .33 .33 0 0 .33 .33 .33 0 0 .33 .33 .33 0 0 0 0 0 1 0"/><feComponentTransfer><feFuncR type="table" tableValues=".05 .95"/><feFuncG type="table" tableValues=".13 .92"/><feFuncB type="table" tableValues=".09 .84"/></feComponentTransfer></filter>
+    <filter id="f-inkvermil" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values=".33 .33 .33 0 0 .33 .33 .33 0 0 .33 .33 .33 0 0 0 0 0 1 0"/><feComponentTransfer><feFuncR type="table" tableValues=".03 .95"/><feFuncG type="table" tableValues=".03 .33"/><feFuncB type="table" tableValues=".04 .18"/></feComponentTransfer></filter>
+    <filter id="f-inkgold" color-interpolation-filters="sRGB"><feColorMatrix type="matrix" values=".33 .33 .33 0 0 .33 .33 .33 0 0 .33 .33 .33 0 0 0 0 0 1 0"/><feComponentTransfer><feFuncR type="table" tableValues=".04 .95"/><feFuncG type="table" tableValues=".035 .85"/><feFuncB type="table" tableValues=".03 .64"/></feComponentTransfer></filter>
+
+    <symbol id="i-art" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="1"/><path d="M3 16l5-5 4 4 3-3 6 6"/><circle cx="16.5" cy="9" r="1.4"/></symbol>
+    <symbol id="i-music" viewBox="0 0 24 24"><path d="M9 18V6l11-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/></symbol>
+    <symbol id="i-people" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.6 2.7-6 6-6s6 2.4 6 6"/><circle cx="17" cy="9" r="2.4"/><path d="M17 14c2.6 0 4.5 1.9 4.5 5"/></symbol>
+    <symbol id="i-brief" viewBox="0 0 24 24"><rect x="3" y="7.5" width="18" height="12.5" rx="1.2"/><path d="M9 7.5V5.5h6v2M3 13h18"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 6C9.5 4.5 6 4.5 3 5.5V19c3-1 6.5-1 9 .5 2.5-1.500 6-1.500 9-.5V5.5c-3-1-6.500-1-9 .5zM12 6v13.500"/></symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20S3.500 14.800 3.500 9A4.500 4.500 0 0112 7a4.500 4.500 0 018.500 2c0 5.800-8.500 11-8.500 11z"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l2.100 6L20 11l-5.900 2L12 20l-2.100-7L4 11l5.900-2z"/></symbol>
+    <symbol id="i-tree" viewBox="0 0 24 24"><circle cx="12" cy="9" r="6"/><path d="M12 15v6M9 21h6M12 12l-2.500-2M12 14l3-3"/></symbol>
+    <symbol id="i-building" viewBox="0 0 24 24"><path d="M3.500 21V9.500L12 3l8.500 6.500V21M9 21v-6.500a3 3 0 016 0V21M2 21h20"/></symbol>
+    <symbol id="i-sprout" viewBox="0 0 24 24"><path d="M12 21v-9M12 12C12 8 9.500 6 5 6c0 4 2.500 6 7 6zM12 14c0-3.500 2.200-5.500 7-5.500 0 3.500-2.200 5.500-7 5.500z"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s7-6 7-11.500a7 7 0 10-14 0C5 15 12 21 12 21z"/><circle cx="12" cy="9.500" r="2.500"/></symbol>
+    <symbol id="i-store" viewBox="0 0 24 24"><path d="M3.500 9.500L5 4h14l1.500 5.500M3.500 9.500c0 1.700 1.300 2.800 2.800 2.800S9 11.200 9 9.500c0 1.700 1.300 2.800 3 2.800s3-1.100 3-2.800c0 1.700 1.300 2.800 2.800 2.800s2.700-1.100 2.700-2.800M5 12.500V20h14v-7.500M10 20v-4.500h4V20"/></symbol>
+    <symbol id="i-cap" viewBox="0 0 24 24"><path d="M2 9l10-5 10 5-10 5zM6 11.500V16c3 2.200 9 2.200 12 0v-4.500M22 9v6"/></symbol>
+    <symbol id="i-health" viewBox="0 0 24 24"><rect x="3.500" y="3.500" width="17" height="17" rx="3"/><path d="M12 8v8M8 12h8"/></symbol>
+    <symbol id="i-bank" viewBox="0 0 24 24"><path d="M3 9.500L12 4l9 5.500M5 10v8M9.500 10v8M14.500 10v8M19 10v8M3 21h18"/></symbol>
+    <symbol id="i-coin" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.500"/><path d="M14.800 9.200c-.6-1-1.600-1.400-2.800-1.400-1.600 0-2.700.8-2.700 2 0 3 5.600 1.300 5.600 4.200 0 1.200-1.200 2-2.900 2-1.300 0-2.400-.5-3-1.500M12 6.200v1.600M12 16.200v1.600"/></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24"><circle cx="9" cy="12" r="6"/><circle cx="15" cy="12" r="6"/></symbol>
+    <symbol id="i-roof" viewBox="0 0 24 24"><path d="M3 13.500L12 5l9 8.500M6 12v8h12v-8"/></symbol>
+  </defs>
+</svg>
+
+<nav class="nav">
+  <div class="wrap">
+    <span class="brand">The Art Haus · Design Directions</span>
+    <a href="#a"><span class="sw" style="background:#b2372b"></span><span class="hide-s">A ·</span> Brick &amp; Bone</a>
+    <a href="#b"><span class="sw" style="background:#1f4a35"></span><span class="hide-s">B ·</span> Camp Greene</a>
+    <a href="#c"><span class="sw" style="background:#14100d;box-shadow:inset 0 0 0 2px #e9b44c"></span><span class="hide-s">C ·</span> Night Gallery</a>
+  </div>
+</nav>
+
+<header class="intro">
+  <div class="wrap">
+    <div class="kick">Partnership &amp; Investment Prospectus · Round 01 · Three directions</div>
+    <h1>Not a <em>proposal.</em><br>A legacy, in type.</h1>
+    <div class="cols">
+      <p>Three ways the book could look and feel — each one a complete system: colorway, typefaces, how a cover, an invitation, a chapter opener, the centerpiece spread and the infographic pages are built. Pick one (or mix) and every remaining page follows its rules. All of them take the inspo folder's cues — oversized type that bleeds off pages, split-color letters, text laid over photography, duotone and halftone images, rotated titles, giant numerals — and tune them to the brief's <i>elegant, timeless, historic, modern</i>.</p>
+      <div class="notes">
+        <b>How to read this.</b> Every page below is drawn as a true-proportion <b>Letter-size spread (17 × 11 in)</b> — change the trim and it all reflows. Imagery is Cynthia's current renderings and portraits, as placeholders. Copy is lifted from the prospectus draft. Numbers shown as <b>000</b> are placeholders — the dashboard needs real figures. The one hard number used is <b>250</b>, the occupancy on the architect's G‑3 sheet.
+      </div>
+    </div>
+  </div>
+</header>
+
+<section class="wrap picker" aria-label="Directions">
+  <a class="pick" href="#a" style="background:#1d1b1a;color:#efe9db">
+    <div class="thumb" style="background:#efe9db;--u:1cqw">
+      <div class="a-disp" style="position:absolute;left:-2cqw;top:2cqw;font-size:50cqw;color:#b2372b;line-height:.8">Art</div>
+      <div class="a-disp" style="position:absolute;left:-2cqw;top:38cqw;font-size:50cqw;color:#1d1b1a;line-height:.8;z-index:2;mix-blend-mode:multiply">Haus</div>
+      <div style="position:absolute;left:0;right:0;bottom:0;height:42%"><img class="bw" src="../assets/black-house.jpg" alt="" style="object-position:50% 55%"></div>
+    </div>
+    <div class="meta"><div class="n">Direction A</div><div class="t">Brick &amp; Bone</div><div class="d">Monument-scale condensed type, bleeding across the gutter. Brick red, bone, charcoal. The loudest of the three.</div><div class="chips"><i style="background:#b2372b"></i><i style="background:#7c1f18"></i><i style="background:#efe9db"></i><i style="background:#1d1b1a;box-shadow:inset 0 0 0 1px #555"></i><i style="background:#c9a75f"></i></div></div>
+  </a>
+  <a class="pick" href="#b" style="background:#f2ecdc;color:#17382a">
+    <div class="thumb" style="background:#17382a;--u:1cqw">
+      <div class="b-wide" style="position:absolute;left:8cqw;top:14cqw;width:50cqw;height:76cqw"><img src="../assets/garden-mural.jpg" alt="" style="object-position:50% 40%;border-radius:25cqw 25cqw 0 0"></div>
+      <div class="b-wide" style="position:absolute;left:4cqw;top:4cqw;font-size:19cqw;color:#f5efe0;line-height:.86;z-index:3">Art<br>Haus</div>
+      <div style="position:absolute;right:6cqw;top:60cqw;width:18cqw;height:18cqw;background:#c9a24b;z-index:2"></div>
+      <div style="position:absolute;right:6cqw;top:42cqw;width:18cqw;height:18cqw;background:#c4572f;z-index:2"></div>
+    </div>
+    <div class="meta"><div class="n">Direction B</div><div class="t">Camp Greene</div><div class="d">Wide, confident grotesk meeting a warm serif. Arches, color-block mosaics, forest green and brass.</div><div class="chips"><i style="background:#17382a"></i><i style="background:#f5efe0;box-shadow:inset 0 0 0 1px #ccc"></i><i style="background:#c9a24b"></i><i style="background:#c4572f"></i><i style="background:#8a5a3b"></i></div></div>
+  </a>
+  <a class="pick" href="#c" style="background:#14100d;color:#f4ead6">
+    <div class="thumb" style="background:#14100d;--u:1cqw">
+      <img src="../assets/night-front.jpg" alt="" style="object-position:48% 50%;opacity:.9;filter:url(#f-inkgold) contrast(1.1)">
+      <div class="c-bodoni" style="position:absolute;left:7cqw;top:8cqw;font-size:19cqw;line-height:.86;color:#fff4de;z-index:3">The<br>Art<br><i style="color:#f0502f">Haus</i></div>
+      <div style="position:absolute;inset:auto 0 0 0;height:50%;background:linear-gradient(transparent,#14100d)"></div>
+    </div>
+    <div class="meta"><div class="n">Direction C</div><div class="t">Night Gallery</div><div class="d">High-contrast serif, halftone and blueprint. The building after dark — marquee gold on ink. The most luxurious.</div><div class="chips"><i style="background:#14100d;box-shadow:inset 0 0 0 1px #555"></i><i style="background:#e9b44c"></i><i style="background:#f4ead6"></i><i style="background:#f0502f"></i><i style="background:#8d877b"></i></div></div>
+  </a>
+</section>
+<!-- ═════════════════ DIRECTION A ═════════════════ -->
+<section class="dir dir-a" id="a" data-dir="a">
+<div class="wrap">
+
+  <div class="dir-head">
+    <div class="big">A</div>
+    <div>
+      <div class="sub">Direction A · “Monument Type”</div>
+      <h2>Brick <em>&amp;</em> Bone</h2>
+      <p>The building is made of brick; the book is made of type. Condensed capitals are stacked like courses of masonry, cropped by the page edge and carried across the gutter, while a quiet italic serif does the speaking voice. It reads as an exhibition catalogue for a very confident cultural institution — loud headlines, generous calm everywhere else.</p>
+    </div>
+  </div>
+
+  <div class="dna">
+    <div><b>Borrowed from the inspo</b>“Anthropocene”, “Free Culture” and “NY” — headline letters too big for the page, split between two colors, bleeding across the spine.</div>
+    <div><b>Image treatment</b>Black-and-white or brick duotone photography; type laid over with multiply so letters sit <i>inside</i> the picture, as in the NY and Brutalism spreads.</div>
+    <div><b>Where the brief lives</b>Warm brick, charcoal, ivory and a hairline of gold from the brief's palette — all pulled from Camp Greene's actual brickwork and the building's red door.</div>
+  </div>
+
+  <div class="label">Colorway <span>— by share of the page</span></div>
+  <div class="swatches">
+    <div class="sw-c" style="flex:34;background:#efe9db;color:#1d1b1a"><div><b>Bone</b><code>#EFE9DB</code></div><div class="pct">Paper · 34%</div></div>
+    <div class="sw-c" style="flex:26;background:#1d1b1a;color:#efe9db"><div><b>Historic Charcoal</b><code>#1D1B1A</code></div><div class="pct">Type, full-bleed pages · 26%</div></div>
+    <div class="sw-c" style="flex:24;background:#b2372b;color:#efe9db"><div><b>Camp Greene Brick</b><code>#B2372B</code></div><div class="pct">The one loud color · 24%</div></div>
+    <div class="sw-c" style="flex:7;background:#7c1f18;color:#efe9db"><div><b>Kiln</b><code>#7C1F18</code></div><div class="pct">Shadows · 7%</div></div>
+    <div class="sw-c" style="flex:5;background:#1f3b2d;color:#efe9db"><div><b>Forest</b><code>#1F3B2D</code></div><div class="pct">Data only · 5%</div></div>
+    <div class="sw-c" style="flex:4;background:#c9a75f;color:#1d1b1a"><div><b>Foil</b><code>#C9A75F</code></div><div class="pct">Hairlines · 4%</div></div>
+  </div>
+
+  <div class="label">Typography <span>— three voices, no more</span></div>
+  <div class="type-board">
+    <div class="spec" style="background:#efe9db">
+      <div class="tag"><span>Display · Chapter titles, numerals, statements</span><span>Big Shoulders Display 900</span></div>
+      <div class="a-disp" style="font-size:clamp(56px,8.4vw,128px);line-height:.84">Every<br><span class="a-brick">legacy</span><br>begins</div>
+      <div class="nm"><b>Always uppercase, always tight (−0.5%, leading 84%).</b> Set so large it must be cropped by the trim at least once per chapter. One word per headline may turn brick.</div>
+    </div>
+    <div class="spec" style="background:#1d1b1a;color:#efe9db">
+      <div class="tag"><span>Voice · Quotes, ledes, signatures</span><span>Instrument Serif Italic</span></div>
+      <div class="a-serif" style="font-size:clamp(34px,4.6vw,70px);line-height:1;color:#efe9db">“Some projects begin with a business opportunity. Others begin with a <span style="color:#e2705f">calling.</span>”</div>
+      <div class="nm"><b>The human register.</b> Pull quotes, the founder's signature, “you are here.” Never for body copy.</div>
+    </div>
+    <div class="spec full" style="background:#f7f3ea">
+      <div class="two" style="grid-template-columns:1.3fr 1fr 1fr">
+        <div>
+          <div class="tag"><span>Text · Instrument Sans 400/500</span><span>9 / 13.5 pt</span></div>
+          <p style="font-size:14px;line-height:1.55;max-width:46ch">The Art Haus was never intended to be simply another venue. It was envisioned as a place where creativity is celebrated, history is preserved, relationships are built, and communities come together. <span class="a-hi">Restoring possibilities</span> — not just buildings.</p>
+        </div>
+        <div>
+          <div class="tag"><span>Label · Instrument Sans 600</span><span>7 pt · +22%</span></div>
+          <div class="a-label" style="font-size:12px;line-height:1.8">Historic Camp Greene<br>Chapter One<br>Fig. 02 — The Garden at Dusk</div>
+        </div>
+        <div>
+          <div class="tag"><span>Numerals</span><span>Big Shoulders 900</span></div>
+          <div class="a-disp" style="font-size:72px;color:transparent;-webkit-text-stroke:1.5px #b2372b;line-height:.9">250</div>
+          <div class="nm" style="margin-top:6px"><b>Outline</b> for placeholders, <b>solid</b> for confirmed data.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="scale" style="margin-top:22px">
+    <div><b>Cover / divider numerals</b><span>260–400 pt · cropped</span></div>
+    <div><b>Chapter title</b><span>96–130 pt · display</span></div>
+    <div><b>Statement / section head</b><span>48–64 pt · display</span></div>
+    <div><b>Pull quote</b><span>28–36 pt · serif italic</span></div>
+    <div><b>Lede</b><span>14 / 17 pt · serif italic</span></div>
+    <div><b>Body</b><span>9 / 13.5 pt · sans</span></div>
+    <div><b>Caption</b><span>6.5 / 9 pt · sans</span></div>
+    <div><b>Folio &amp; labels</b><span>6.5 pt · caps +22%</span></div>
+  </div>
+
+  <div class="label">The rules of the book <span>— what every remaining page obeys</span></div>
+  <ul class="rules">
+    <li data-n="01"><b>The brick line.</b> A 0.5 pt brick rule runs the full height of the page at the outer margin of every text page. It is the book's spine of color.</li>
+    <li data-n="02"><b>Crop once.</b> Every chapter opener lets one display word run off the trim or across the gutter. Never twice on a spread.</li>
+    <li data-n="03"><b>One red word.</b> A headline gets at most one brick word; a page gets at most one brick object bigger than a label.</li>
+    <li data-n="04"><b>Photography is B&amp;W or brick duotone</b> inside the book. Full color is saved for the cover, the two night plates, and portraits of people.</li>
+    <li data-n="05"><b>Type goes on the picture.</b> Display words overprint photos with <i>multiply</i> (dark type) or <i>screen</i> (light type) — never a box behind a headline.</li>
+    <li data-n="06"><b>Gold is hairline only.</b> 0.5 pt foil rules, one per spread at most. It never fills an area.</li>
+    <li data-n="07"><b>Grid.</b> 12 columns, 0.75 in margins, 0.125 in bleed. Text lives in 3-column-wide measures (≈ 45 characters) with at least one empty column beside it.</li>
+    <li data-n="08"><b>White space is a color.</b> At least a third of every text page is untouched bone.</li>
+  </ul>
+
+  <!-- 01 · covers -->
+  <div class="sheet-title"><span>01</span><i>/</i><span>Back cover &amp; front cover</span><em>Full-page architectural rendering, minimal text</em></div>
+  <div class="spread">
+    <div class="pg char a-back">
+      <div class="abs a-disp q">Every<br>partnership<br>leaves a<br><b>legacy.</b></div>
+      <div class="a-back rule" style="position:absolute;left:calc(var(--u)*4);right:calc(var(--u)*4);bottom:calc(var(--u)*13.5);height:1px;background:var(--gold)"></div>
+      <div class="abs a-body addr"><b>Cynthia Harrison</b>Founder &amp; Developer<br>The Art Haus Cultural Venue LLC<br>2229 Weyland Avenue<br>Charlotte, North Carolina 28208</div>
+      <svg class="ic a-roof mark" style="right:calc(var(--u)*4);bottom:calc(var(--u)*4.2);color:var(--gold)"><use href="#i-roof"/></svg>
+    </div>
+    <div class="pg bone a-front">
+      <div class="abs img"><img class="bw" src="../assets/black-house.jpg" alt="The Art Haus, front elevation rendering"></div>
+      <div class="abs grad"></div>
+      <div class="abs a-label top"><span>Partnership &amp; Investment Prospectus</span></div>
+      <div class="abs a-serif the">The</div>
+      <div class="abs a-disp ttl"><span>Art</span><span class="haus">Haus</span></div>
+      <div class="abs redbar"></div>
+      <div class="abs a-serif tag">Where history inspires<br><em>the future.</em></div>
+      <div class="abs a-label ftr">Historic Camp Greene · Charlotte, NC</div>
+    </div>
+  </div>
+
+  <!-- 02 · inside cover -->
+  <div class="sheet-title"><span>02</span><i>/</i><span>Inside cover — “Our Invitation”</span><em>Simple, clean, lots of white space</em></div>
+  <div class="spread a-inv">
+    <div class="pg bone">
+      <div class="a-line" style="left:calc(var(--u)*2.2)"></div>
+      <div class="abs a-label l-label">Our invitation</div>
+      <div class="abs a-disp l-title"><span>You are</span><span class="not">not</span><span>reading</span><span>the</span><span>proposal.</span></div>
+    </div>
+    <div class="pg" style="background:var(--paper2)">
+      <div class="abs a-label r-label">Welcome</div>
+      <div class="abs a-serif r-pull">You are exploring the <span class="a-ul">future</span> of a community.</div>
+      <div class="abs a-body r-body body">
+        <p>Within these pages is an opportunity to preserve history, inspire creativity, strengthen neighborhoods, and create lasting economic impact.</p>
+        <p>Whether you are a public agency, philanthropic foundation, corporate leader, community advocate, or individual supporter, we invite you to imagine what is possible when vision meets partnership.</p>
+      </div>
+      <div class="abs a-disp r-welcome">Welcome to<br>The Art Haus.</div>
+    </div>
+  </div>
+
+  <!-- 03 · founder letter -->
+  <div class="sheet-title"><span>03</span><i>/</i><span>Letter from the Founder</span><em>One full-page portrait · lifestyle, not corporate</em></div>
+  <div class="spread a-let">
+    <div class="pg">
+      <div class="abs photo"><img class="duo-brickbone" src="../assets/cynthia-lifestyle.jpg" alt="Cynthia Harrison"></div>
+      <div class="abs a-label l-label">Letter from the founder</div>
+      <div class="abs a-disp vt">Letter</div>
+      <div class="abs a-label capn">Cynthia Harrison<b>Founder &amp; Developer</b></div>
+    </div>
+    <div class="pg bone">
+      <div class="a-line" style="right:calc(var(--u)*2.2)"></div>
+      <div class="abs a-serif head">Dear friends, partners, and community leaders,</div>
+      <div class="abs a-body txt body cols2">
+        <p>Thank you for taking the time to learn about The Art Haus Cultural Venue. I am grateful that you have chosen to spend a few moments exploring a vision that has become deeply personal to my family and me.</p>
+        <p>The Art Haus was never intended to be simply another venue. It was envisioned as a place where creativity is celebrated, history is preserved, relationships are built, and communities come together.</p>
+        <p>As I have worked to bring this vision to life, I have discovered that meaningful development is about far more than restoring buildings. It is about <span class="a-hi">restoring possibilities.</span> It is about honoring the history of a community while preparing it for the opportunities of tomorrow.</p>
+        <p>Together, we have an opportunity to create more than a destination. Together, we can create a legacy.</p>
+      </div>
+      <div class="abs a-serif sign">Cynthia Harrison</div>
+      <div class="abs a-label role">Founder &amp; Developer · The Art Haus</div>
+      <div class="folio r">04</div>
+    </div>
+  </div>
+
+  <!-- 04 · section divider -->
+  <div class="sheet-title"><span>04</span><i>/</i><span>Section divider</span><em>Every major section gets a full-page image</em></div>
+  <div class="spread a-div">
+    <div class="pg char">
+      <div class="abs a-disp num">01</div>
+      <div class="abs a-label sec">Section one — The Vision</div>
+      <div class="abs a-serif qt">Every transformational project begins with a vision.</div>
+    </div>
+    <div class="pg">
+      <div class="abs fill"><img class="duo-brick" src="../assets/garden-mural.jpg" alt="" style="object-position:50% 30%"></div>
+      <div class="abs a-disp vt">Vision</div>
+      <div class="abs a-label small">Fig. 01 — The garden at dusk</div>
+    </div>
+  </div>
+
+  <!-- 05 · chapter opener -->
+  <div class="sheet-title"><span>05</span><i>/</i><span>Chapter opener</span><em>Large title · short quote · hero image · pull quote · clean margins</em></div>
+  <div class="spread a-ch">
+    <div class="pg bone">
+      <div class="a-line" style="left:calc(var(--u)*2.2)"></div>
+      <div class="abs a-label chl"><b>Chapter One</b> &nbsp;/&nbsp; The Vision</div>
+      <div class="abs a-disp t1"><span>Every</span><span>Legacy</span><span>Begins</span><span>With a</span></div>
+      <div class="abs a-serif qt">Some projects begin with a business opportunity. Others begin with a personal calling.</div>
+      <div class="abs a-disp t2">Vision</div>
+      <div class="folio l">02</div>
+    </div>
+    <div class="pg" style="background:var(--paper2)">
+      <div class="abs hero"><img class="bw" src="../assets/yard-party.jpg" alt="" style="mix-blend-mode:normal"></div>
+      <div class="abs a-label hcap">Fig. 02 — Gathering on the lawn</div>
+      <div class="abs a-serif pq">It is about restoring <span class="a-brick">possibilities.</span></div>
+      <div class="abs a-body bd body cols2" style="column-gap:calc(var(--u)*1.4)">
+        <p>Some projects begin with a business opportunity. Others begin with a personal calling. The Art Haus Cultural Venue began with both. For as long as I can remember, my family has been rooted in the arts and entertainment.</p>
+        <p>Having the opportunity to develop property in Historic Camp Greene transformed that vision into something tangible — the chance not only to restore a historic space, but to create a destination that would inspire pride throughout the neighborhood I have called home.</p>
+      </div>
+      <div class="a-line" style="right:calc(var(--u)*2.2)"></div>
+      <div class="folio r">03</div>
+    </div>
+  </div>
+
+  <!-- 06 · at a glance -->
+  <div class="sheet-title"><span>06</span><i>/</i><span>The Art Haus at a Glance</span><em>★ The signature two-page spread</em></div>
+  <div class="spread a-gl">
+    <div class="pg">
+      <div class="abs photo"><img src="../assets/night-front.jpg" alt="" style="object-position:50% 50%;filter:contrast(1.05) saturate(.9)"></div>
+      <div class="abs a-label tl">The Art Haus at a glance</div>
+      <div class="abs a-disp stmt"><span>Where history</span><span>inspires the</span><span class="hi">future.</span></div>
+    </div>
+    <div class="pg bone">
+      <div class="abs info">
+        <div class="a-disp h">At a <em>glance</em></div>
+        <div class="grid">
+          <div class="blk br"><div class="a-label">Our mission</div><p>To preserve history, celebrate creativity, and strengthen community through arts, culture, entrepreneurship, and meaningful partnerships.</p></div>
+          <div class="blk br"><div class="a-label">Our vision</div><p>To become one of Charlotte’s premier cultural destinations where history inspires the future and every partnership leaves a legacy.</p></div>
+
+          <div class="blk"><div class="a-label">Project snapshot</div>
+            <dl><dt>Location</dt><dd>Historic Camp Greene, Charlotte NC</dd><dt>Type</dt><dd>Adaptive reuse &amp; historic redevelopment</dd><dt>Founder</dt><dd>Cynthia Harrison</dd><dt>Ownership</dt><dd>Family-owned LLC</dd><dt>Capacity</dt><dd>250 people, indoors &amp; out</dd></dl></div>
+          <div class="blk"><div class="a-label">Current status</div>
+            <div class="prog"><i></i><i></i><i></i><i></i><i class="n"></i><i class="f"></i><i class="f"></i><i class="f"></i></div>
+            <p><b>Phase 5 of 8</b> — Strategic partnerships. Pre-construction &amp; partnership development.</p></div>
+
+          <div class="blk" style="grid-column:1/-1"><div class="a-label">What you’ll experience</div>
+            <div class="icons" style="grid-template-columns:repeat(8,1fr)">
+              <div><svg class="ic"><use href="#i-art"/></svg>Art exhibitions</div>
+              <div><svg class="ic"><use href="#i-music"/></svg>Live performances</div>
+              <div><svg class="ic"><use href="#i-people"/></svg>Community events</div>
+              <div><svg class="ic"><use href="#i-brief"/></svg>Corporate gatherings</div>
+              <div><svg class="ic"><use href="#i-book"/></svg>Educational workshops</div>
+              <div><svg class="ic"><use href="#i-heart"/></svg>Nonprofit programming</div>
+              <div><svg class="ic"><use href="#i-spark"/></svg>Private celebrations</div>
+              <div><svg class="ic"><use href="#i-tree"/></svg>Outdoor cultural events</div>
+            </div></div>
+
+          <div class="blk"><div class="a-label">Why it matters</div>
+            <ul><li>Historic preservation</li><li>Neighborhood revitalization</li><li>Creative economy</li><li>Small business support</li></ul></div>
+          <div class="blk"><div class="a-label">Current momentum</div>
+            <ul><li>Property acquired</li><li>Architectural design completed</li><li>REDI graduate · Shark Tank showcase</li><li>Mecklenburg County Business Launch Pad</li></ul></div>
+
+          <div class="blk br" style="grid-column:1/-1"><div class="a-label">Partnership opportunities</div>
+            <p style="font-weight:600;letter-spacing:.04em">Public sector · Foundations · Corporations · Arts &amp; culture · Education · Healthcare &amp; wellness · Community organizations · Entrepreneurs</p></div>
+        </div>
+      </div>
+      <div class="folio r">07</div>
+    </div>
+  </div>
+
+  <!-- 07 · data pages -->
+  <div class="sheet-title"><span>07</span><i>/</i><span>Roadmap · Impact dashboard · Partnership network</span><em>Graphics simplify, never overwhelm</em></div>
+  <div class="spread a-dt">
+    <div class="pg bone">
+      <div class="a-line" style="left:calc(var(--u)*2.2)"></div>
+      <div class="abs a-disp h">The road <em>ahead</em></div>
+      <ol class="road" data-roadmap></ol>
+      <div class="abs dash">
+        <div class="live"><b>250</b><span>Guest capacity</span><small>Architect sheet G-3</small></div>
+        <div><b>000</b><span>Jobs created</span><small>data to confirm</small></div>
+        <div><b>000</b><span>Visitors / year</span><small>data to confirm</small></div>
+        <div><b>000</b><span>Artists served</span><small>data to confirm</small></div>
+        <div><b>000</b><span>Community events</span><small>data to confirm</small></div>
+        <div><b>000</b><span>Educational programs</span><small>data to confirm</small></div>
+        <div><b>$00M</b><span>Neighborhood investment</span><small>data to confirm</small></div>
+        <div><b>000</b><span>Volunteer hours</span><small>data to confirm</small></div>
+      </div>
+      <div class="abs a-label note">Outline numerals = placeholder · solid = confirmed</div>
+      <div class="folio l">22</div>
+    </div>
+    <div class="pg" style="background:var(--paper2)">
+      <div class="abs wheel-w"><svg class="wheel" data-wheel viewBox="0 0 500 500"></svg></div>
+      <div class="abs a-disp h2">One network.<br><em>Eight</em> equal seats.</div>
+      <div class="abs streams"><span>Rentals</span><span>Performances</span><span>Exhibitions</span><span>Workshops</span><span>Corporate</span><span>Celebrations</span><span>Community</span><span>Sponsors</span><span>Merchandise</span><span>Partners</span></div>
+      <div class="a-line" style="right:calc(var(--u)*2.2)"></div>
+      <div class="folio r">23</div>
+    </div>
+  </div>
+
+  <!-- 08 · moments -->
+  <div class="sheet-title"><span>08</span><i>/</i><span>Typographic moments</span><em>The “not always journalistic” toolkit — reusable anywhere in the book</em></div>
+  <div class="moments">
+    <div class="moment a-m1"><div class="abs a-disp w"><span class="p1">Leg</span><span class="p2">acy</span></div><div class="cap">Split-color word</div></div>
+    <div class="moment a-m2"><div class="abs fill img"><img class="bw" src="../assets/black-house.jpg" alt=""></div><div class="abs a-disp w">Brick</div><div class="cap" style="color:#efe9db">Overprint · multiply</div></div>
+    <div class="moment a-m3"><div class="in"><p>Preserve <span class="a-hi">history.</span> Celebrate <span class="a-hi k">creativity.</span> Strengthen <span class="a-hi">community.</span></p></div><div class="cap">Reverse highlight</div></div>
+    <div class="moment a-m4"><div class="abs a-serif w2">the history we keep</div><div class="abs a-disp w">Hope</div><div class="cap">Rotated + serif voice</div></div>
+    <div class="moment w2 a-m5"><div class="abs a-disp n">05</div><div class="abs a-serif t">Phase five.<br>You are here.</div><div class="cap" style="color:#efe9db">Giant numeral · cropped</div></div>
+    <div class="moment a-m6"><div class="abs fill img"><img class="duo-brickbone" src="../assets/cynthia-studio.jpg" alt="" style="object-position:50% 30%"></div><div class="abs a-serif q">Every <em>brick</em> restored, every artist supported.</div><div class="cap">Quote over duotone</div></div>
+    <div class="moment a-m8"><div class="abs a-label l">Chapter ten</div><div class="abs a-label n">10</div><div class="abs a-disp big">Join<br><em>us.</em></div><div class="cap">Closing call</div></div>
+  </div>
+
+</div>
+</section>
+<!-- ═════════════════ DIRECTION B ═════════════════ -->
+<section class="dir dir-b" id="b" data-dir="b">
+<div class="wrap">
+
+  <div class="dir-head">
+    <div class="big">B</div>
+    <div>
+      <div class="sub">Direction B · “Arch &amp; Mosaic”</div>
+      <h2>Camp <em>Greene</em></h2>
+      <p>The warmest of the three. A wide, confident grotesk — letters stretched like a porch — meets a soft, old-style serif for the voice. Photographs are cut into <b>arches</b> (the doorway, the window, the portico) and broken up by <b>color-block mosaics</b>, so the community's faces and the building's brickwork feel stitched together like a quilt. Forest green, brass and clay on ivory: heritage, garden, hospitality.</p>
+    </div>
+  </div>
+
+  <div class="dna">
+    <div><b>Borrowed from the inspo</b>“World of Black Film” and “Ao lado de Lina” — wide type crossing a photograph; “Encircling” — color blocks that step over a portrait; “Letter from the Editors” — tracked caps.</div>
+    <div><b>Image treatment</b>Full-color warm photography cut to arch windows, or forest–ivory duotone. Blocks of flat color step across the picture and carry the captions and quotes.</div>
+    <div><b>Where the brief lives</b>Deep forest green, soft gold and natural wood tones — plus the brick red re-tuned as a warm “clay” accent. The most literal reading of the brief's palette.</div>
+  </div>
+
+  <div class="label">Colorway <span>— by share of the page</span></div>
+  <div class="swatches">
+    <div class="sw-c" style="flex:34;background:#f5efe0;color:#0f1f17"><div><b>Ivory</b><code>#F5EFE0</code></div><div class="pct">Paper · 34%</div></div>
+    <div class="sw-c" style="flex:28;background:#17382a;color:#f5efe0"><div><b>Camp Greene Forest</b><code>#17382A</code></div><div class="pct">Full-bleed pages, type · 28%</div></div>
+    <div class="sw-c" style="flex:12;background:#c9a24b;color:#0f1f17"><div><b>Brass</b><code>#C9A24B</code></div><div class="pct">Highlights · 12%</div></div>
+    <div class="sw-c" style="flex:10;background:#c4572f;color:#f5efe0"><div><b>Clay</b><code>#C4572F</code></div><div class="pct">Accent word · 10%</div></div>
+    <div class="sw-c" style="flex:10;background:#cbd5c0;color:#0f1f17"><div><b>Sage</b><code>#CBD5C0</code></div><div class="pct">Data blocks · 10%</div></div>
+    <div class="sw-c" style="flex:6;background:#8a5a3b;color:#f5efe0"><div><b>Heart Pine</b><code>#8A5A3B</code></div><div class="pct">Wood tone · 6%</div></div>
+  </div>
+
+  <div class="label">Typography <span>— a wide grotesk and a soft serif</span></div>
+  <div class="type-board">
+    <div class="spec" style="background:#17382a;color:#f5efe0">
+      <div class="tag"><span>Display · Cover, dividers, numerals</span><span>Archivo Expanded 800 (wdth 125)</span></div>
+      <div class="b-wide" style="font-size:clamp(46px,8vw,124px);line-height:.88">Art<br><span style="color:#c9a24b">Haus</span></div>
+      <div class="nm"><b>Always uppercase, always expanded to 125% width.</b> Tracking −1%. Stacked, with the second line indented one “brick.” It may cross a photograph or an arch — never sit in a box.</div>
+    </div>
+    <div class="spec" style="background:#f5efe0">
+      <div class="tag"><span>Voice · Chapter titles, quotes, signatures</span><span>Fraunces Light + Italic</span></div>
+      <div class="b-serif" style="font-size:clamp(34px,4.9vw,76px);line-height:1;color:#17382a">Every legacy begins with a <i style="color:#c4572f">vision.</i></div>
+      <div class="nm"><b>Light weight, huge optical size</b> (opsz 144, tracking −2.5%). One italic phrase per title picks up clay or brass.</div>
+    </div>
+    <div class="spec full" style="background:#faf6ea">
+      <div class="two" style="grid-template-columns:1.3fr 1fr 1fr">
+        <div>
+          <div class="tag"><span>Text · Archivo 400/500</span><span>9 / 14 pt</span></div>
+          <p style="font-size:14px;line-height:1.56;max-width:46ch;font-family:Archivo">Every organization, foundation, business, public agency, and individual who joins this journey can have the opportunity to leave a legacy — <span class="b-hi">not only within this building, but throughout the community it is designed to serve.</span></p>
+        </div>
+        <div>
+          <div class="tag"><span>Label · Archivo Expanded 700</span><span>6.5 pt · +20%</span></div>
+          <div class="b-label" style="font-size:11.5px;line-height:1.9">Chapter Five<br>Why Partnership Matters<br>Fig. 04 — The Porch</div>
+        </div>
+        <div>
+          <div class="tag"><span>Numerals</span><span>Fraunces 300</span></div>
+          <div class="b-serif" style="font-size:78px;color:#17382a;line-height:.9;opacity:.9">250</div>
+          <div class="nm" style="margin-top:6px"><b>Light</b> for data, <b>outlined</b> for chapter numbers.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="scale" style="margin-top:22px">
+    <div><b>Cover / divider display</b><span>120–170 pt · expanded</span></div>
+    <div><b>Chapter title</b><span>64–84 pt · Fraunces Light</span></div>
+    <div><b>Chapter numerals</b><span>200 pt · outline brass</span></div>
+    <div><b>Pull quote</b><span>26–32 pt · Fraunces</span></div>
+    <div><b>Lede</b><span>13 / 16 pt · Fraunces italic</span></div>
+    <div><b>Body</b><span>9 / 14 pt · Archivo</span></div>
+    <div><b>Caption</b><span>6.5 / 9 pt · Archivo</span></div>
+    <div><b>Labels</b><span>6.5 pt · expanded caps +20%</span></div>
+  </div>
+
+  <div class="label">The rules of the book <span>— what every remaining page obeys</span></div>
+  <ul class="rules">
+    <li data-n="01"><b>Everything stands in an arch.</b> Portraits, hero images and plates that are “about people” are cropped to an arch window — flat edge at the bottom, as if standing on the floor of the page.</li>
+    <li data-n="02"><b>The mosaic module.</b> Color blocks are always one square (⅛ of the page width). They step diagonally across a photograph, never more than five per page, and may carry a caption, a number or nothing.</li>
+    <li data-n="03"><b>Marker highlights.</b> One key phrase per page is marked in brass (or clay with ivory type) — the hand-highlighted look, never a bold or underline.</li>
+    <li data-n="04"><b>Wide type touches the photo.</b> Display words must overlap their image by at least a letter-height; they run in ivory or brass over dark pictures.</li>
+    <li data-n="05"><b>Forest is the night.</b> Section dividers and the contents page go full forest; ivory pages always follow a forest page.</li>
+    <li data-n="06"><b>Brass hairline = new idea.</b> A 0.5 pt brass rule is used once per page to open a new thought or caption group.</li>
+    <li data-n="07"><b>Grid.</b> 8 × 8 square module, 0.75 in margins, 0.125 in bleed. Text measure 40–46 characters. Two columns on facing pages, never three.</li>
+    <li data-n="08"><b>Warm, not corporate.</b> Photographs keep their warmth; nothing is cooled, desaturated or flattened.</li>
+  </ul>
+
+  <!-- 01 · covers -->
+  <div class="sheet-title"><span>01</span><i>/</i><span>Back cover &amp; front cover</span><em>Full-page architectural rendering, minimal text</em></div>
+  <div class="spread">
+    <div class="pg ivory b-back">
+      <div class="abs b-body addr b-label">Cynthia Harrison<br>Founder &amp; Developer<br>The Art Haus Cultural Venue LLC<br>2229 Weyland Avenue<br>Charlotte, NC 28208</div>
+      <div class="b-sq f" style="right:calc(var(--u)*3.6);top:calc(var(--u)*4);width:calc(var(--u)*13);height:calc(var(--u)*13)"></div>
+      <div class="b-sq b" style="right:calc(var(--u)*16.6);top:calc(var(--u)*17);width:calc(var(--u)*6.5);height:calc(var(--u)*6.5)"></div>
+      <div class="b-sq ph abs" style="right:calc(var(--u)*3.6);top:calc(var(--u)*17);width:calc(var(--u)*13);height:calc(var(--u)*13);overflow:hidden"><img src="../assets/night-banners.jpg" style="object-position:30% 50%" alt=""></div>
+      <div class="b-sq c" style="right:calc(var(--u)*3.6);top:calc(var(--u)*30);width:calc(var(--u)*6.5);height:calc(var(--u)*6.5)"></div>
+      <div class="abs b-serif q">Every partnership leaves a <i>legacy.</i></div>
+    </div>
+    <div class="pg forest b-front">
+      <div class="abs b-label lab">Partnership &amp;<br>Investment Prospectus</div>
+      <div class="abs arch"><img src="../assets/garden-mural.jpg" alt="The Art Haus garden at dusk"></div>
+      <div class="abs b-serif the">The</div>
+      <div class="abs b-wide ttl"><span class="l1">Art</span><span class="l2">Haus</span></div>
+      <div class="b-sq b" style="right:calc(var(--u)*4.6);top:calc(var(--u)*32);width:calc(var(--u)*6.2);height:calc(var(--u)*6.2)"></div>
+      <div class="b-sq c" style="right:calc(var(--u)*10.8);top:calc(var(--u)*38.2);width:calc(var(--u)*6.2);height:calc(var(--u)*6.2)"></div>
+      <div class="b-sq s" style="right:calc(var(--u)*4.6);top:calc(var(--u)*44.4);width:calc(var(--u)*6.2);height:calc(var(--u)*6.2)"></div>
+      <div class="abs b-serif tag">Where community, creativity &amp; culture <i>come together.</i></div>
+    </div>
+  </div>
+
+  <!-- 02 · inside cover -->
+  <div class="sheet-title"><span>02</span><i>/</i><span>Inside cover — “Our Invitation”</span><em>Simple, clean, lots of white space</em></div>
+  <div class="spread b-inv">
+    <div class="pg ivory">
+      <div class="abs b-label l-label">Our invitation</div>
+      <div class="abs arch-o"></div><div class="abs arch-o in"></div><div class="abs ground"></div>
+      <div class="abs b-label l-cap">An open door</div>
+    </div>
+    <div class="pg" style="background:var(--paper2)">
+      <div class="abs b-label r-label">Welcome</div>
+      <div class="abs b-serif pull">You are not reading the proposal. You are <span class="b-hi">exploring the future</span> of a <i>community.</i></div>
+      <div class="abs b-body bd body">
+        <p>Within these pages is an opportunity to preserve history, inspire creativity, strengthen neighborhoods, and create lasting economic impact.</p>
+        <p>Whether you are a public agency, philanthropic foundation, corporate leader, community advocate, or individual supporter, we invite you to imagine what is possible when vision meets partnership.</p>
+      </div>
+      <div class="abs b-wide wel">Welcome to The Art Haus.</div>
+    </div>
+  </div>
+
+  <!-- 03 · founder letter -->
+  <div class="sheet-title"><span>03</span><i>/</i><span>Letter from the Founder</span><em>One full-page portrait · lifestyle, not corporate</em></div>
+  <div class="spread b-let">
+    <div class="pg forest">
+      <div class="abs ar-o"></div>
+      <div class="abs ar"><img src="../assets/cynthia-lifestyle.jpg" alt="Cynthia Harrison"></div>
+      <div class="abs b-wide vt">Letter from the founder</div>
+      <div class="abs b-label cap">Cynthia Harrison · Founder &amp; Developer</div>
+    </div>
+    <div class="pg ivory">
+      <div class="abs b-serif head">Dear friends, partners, and <i>community leaders,</i></div>
+      <div class="abs b-body txt body cols2">
+        <p>Thank you for taking the time to learn about The Art Haus Cultural Venue. I am grateful that you have chosen to spend a few moments exploring a vision that has become deeply personal to my family and me.</p>
+        <p>The Art Haus was never intended to be simply another venue. It was envisioned as a place where creativity is celebrated, history is preserved, relationships are built, and communities come together.</p>
+        <p>As I have worked to bring this vision to life, I have discovered that meaningful development is about far more than restoring buildings. It is about <span class="b-hi">restoring possibilities.</span> It is about honoring the history of a community while preparing it for the opportunities of tomorrow.</p>
+        <p>Together, we have an opportunity to create more than a destination. Together, we can create a legacy.</p>
+      </div>
+      <div class="abs b-serif sign"><i>Cynthia Harrison</i></div>
+      <div class="abs b-label role">Founder &amp; Developer · The Art Haus</div>
+      <div class="folio r b-label">04</div>
+    </div>
+  </div>
+
+  <!-- 04 · divider -->
+  <div class="sheet-title"><span>04</span><i>/</i><span>Section divider</span><em>Every major section gets a full-page image</em></div>
+  <div class="spread b-div">
+    <div class="pg forest">
+      <div class="abs b-wide big">01</div>
+      <div class="abs b-serif qt">Every transformational project begins with a vision.</div>
+      <ul class="abs toc">
+        <li class="on"><b>01</b>The Vision<span>pp. 05–16</span></li>
+        <li><b>02</b>The Place<span>pp. 17–26</span></li>
+        <li><b>03</b>The Impact<span>pp. 27–34</span></li>
+        <li><b>04</b>The Opportunity<span>pp. 35–46</span></li>
+        <li><b>05</b>The Roadmap<span>pp. 47–54</span></li>
+        <li><b>06</b>The Legacy<span>pp. 55–64</span></li>
+      </ul>
+    </div>
+    <div class="pg ph">
+      <div class="abs fill"><img class="duo-forest" src="../assets/yard-party.jpg" alt="" style="object-position:34% 50%"></div>
+      <div class="abs b-label n">Section one</div>
+      <div class="abs b-wide t"><span>The</span><span class="l2">Vision</span></div>
+    </div>
+  </div>
+
+  <!-- 05 · chapter opener -->
+  <div class="sheet-title"><span>05</span><i>/</i><span>Chapter opener</span><em>Large title · short quote · hero image · pull quote · clean margins</em></div>
+  <div class="spread b-ch">
+    <div class="pg ivory">
+      <div class="abs b-label lab"><b>Chapter One</b> &nbsp;·&nbsp; The Vision</div>
+      <div class="abs b-serif t">Every legacy begins with a <i>vision.</i></div>
+      <div class="abs qt">Some projects begin with a business opportunity. Others begin with a personal calling.</div>
+      <div class="b-sq b" style="left:calc(var(--u)*29);top:calc(var(--u)*39.2);width:calc(var(--u)*6.2);height:calc(var(--u)*6.2)"></div>
+      <div class="b-sq c" style="left:calc(var(--u)*35.2);top:calc(var(--u)*45.4);width:calc(var(--u)*6.2);height:calc(var(--u)*6.2)"></div>
+      <div class="b-sq s" style="left:calc(var(--u)*41.4);top:calc(var(--u)*39.2);width:calc(var(--u)*6.2);height:calc(var(--u)*6.2)"></div>
+      <div class="b-sq f" style="left:calc(var(--u)*29);top:calc(var(--u)*51.6);width:calc(var(--u)*6.2);height:calc(var(--u)*6.2)"></div>
+      <div class="folio l b-label">02</div>
+    </div>
+    <div class="pg" style="background:var(--paper2)">
+      <div class="abs hero"><img src="../assets/night-banners.jpg" alt=""></div>
+      <div class="b-sq f" style="right:calc(var(--u)*3);top:calc(var(--u)*3);width:calc(var(--u)*6.2);height:calc(var(--u)*6.2)"></div>
+      <div class="b-sq b" style="right:calc(var(--u)*9.2);top:calc(var(--u)*9.2);width:calc(var(--u)*6.2);height:calc(var(--u)*6.2)"></div>
+      <div class="abs b-serif pq">It is about restoring <i>possibilities.</i></div>
+      <div class="abs b-body bd body cols2" style="column-gap:calc(var(--u)*1.5)">
+        <p>Some projects begin with a business opportunity. Others begin with a personal calling. The Art Haus Cultural Venue began with both. For as long as I can remember, my family has been rooted in the arts and entertainment.</p>
+        <p>Having the opportunity to develop property in Historic Camp Greene transformed that vision into something tangible — the chance not only to restore a historic space, but to create a destination that would inspire pride throughout the neighborhood I have called home.</p>
+      </div>
+      <div class="folio r b-label">03</div>
+    </div>
+  </div>
+
+  <!-- 06 · at a glance -->
+  <div class="sheet-title"><span>06</span><i>/</i><span>The Art Haus at a Glance</span><em>★ The signature two-page spread</em></div>
+  <div class="spread b-gl">
+    <div class="pg">
+      <div class="abs ph"><img src="../assets/interior-b.jpg" alt=""></div>
+      <div class="abs b-label tl">The Art Haus at a glance</div>
+      <div class="abs b-serif stmt">Where community, creativity &amp; culture <i>come together.</i></div>
+    </div>
+    <div class="pg ivory">
+      <div class="abs info">
+        <div class="b-serif ttl">At a <i>glance</i></div>
+        <div class="cd f c3"><div class="b-label">Our mission</div><p>To preserve history, celebrate creativity, and strengthen community through arts, culture, entrepreneurship, and meaningful partnerships.</p></div>
+        <div class="cd c3"><div class="b-label">Our vision</div><p>To become one of Charlotte’s premier cultural destinations where history inspires the future and every partnership leaves a legacy.</p></div>
+
+        <div class="cd c3"><div class="b-label">Project snapshot</div>
+          <dl><dt>Location</dt><dd>Historic Camp Greene, Charlotte NC</dd><dt>Type</dt><dd>Adaptive reuse &amp; historic redevelopment</dd><dt>Founder</dt><dd>Cynthia Harrison</dd><dt>Ownership</dt><dd>Family-owned LLC</dd><dt>Capacity</dt><dd>250 people, indoors &amp; out</dd></dl></div>
+        <div class="cd f c3"><div class="b-label">Current status · Phase 5 of 8</div>
+          <div class="step"><i></i><i></i><i></i><i></i><i class="n"></i><i class="f"></i><i class="f"></i><i class="f"></i></div>
+          <p>Strategic partnerships. Pre-construction &amp; partnership development.</p></div>
+
+        <div class="cd s c6"><div class="b-label">What you’ll experience</div>
+          <div class="icons">
+            <div><svg class="ic"><use href="#i-art"/></svg>Art exhibitions</div>
+            <div><svg class="ic"><use href="#i-music"/></svg>Live performances</div>
+            <div><svg class="ic"><use href="#i-people"/></svg>Community events</div>
+            <div><svg class="ic"><use href="#i-brief"/></svg>Corporate gatherings</div>
+            <div><svg class="ic"><use href="#i-book"/></svg>Educational workshops</div>
+            <div><svg class="ic"><use href="#i-heart"/></svg>Nonprofit programming</div>
+            <div><svg class="ic"><use href="#i-spark"/></svg>Private celebrations</div>
+            <div><svg class="ic"><use href="#i-tree"/></svg>Outdoor cultural events</div>
+          </div></div>
+
+        <div class="cd c3"><div class="b-label">Why it matters</div><ul><li>Historic preservation</li><li>Neighborhood revitalization</li><li>Creative economy</li><li>Small business support</li></ul></div>
+        <div class="cd c3"><div class="b-label">Current momentum</div><ul><li>Property acquired</li><li>Architectural design completed</li><li>REDI graduate · Shark Tank showcase</li><li>Mecklenburg Business Launch Pad</li></ul></div>
+
+        <div class="cd b c6"><div class="b-label">Partnership opportunities</div><p style="font-weight:600">Public sector · Foundations · Corporations · Arts &amp; culture · Education · Healthcare &amp; wellness · Community organizations · Entrepreneurs</p></div>
+      </div>
+      <div class="folio r b-label">07</div>
+    </div>
+  </div>
+
+  <!-- 07 · data -->
+  <div class="sheet-title"><span>07</span><i>/</i><span>Roadmap · Impact dashboard · Partnership network</span><em>Graphics simplify, never overwhelm</em></div>
+  <div class="spread b-dt">
+    <div class="pg ivory">
+      <div class="abs b-serif h">The road <i>ahead</i></div>
+      <div class="abs b-body sub">Eight phases, each one standing taller on the last. We are in the fifth.</div>
+      <ol class="road" data-roadmap></ol>
+      <div class="abs ground"></div>
+      <div class="abs dash">
+        <div class="live"><b>250</b><span>Guest capacity</span><small>Architect sheet G-3</small></div>
+        <div><b>000</b><span>Jobs created</span><small>data to confirm</small></div>
+        <div><b>000</b><span>Visitors / year</span><small>data to confirm</small></div>
+        <div><b>000</b><span>Artists served</span><small>data to confirm</small></div>
+        <div><b>000</b><span>Community events</span><small>data to confirm</small></div>
+        <div><b>000</b><span>Educational programs</span><small>data to confirm</small></div>
+        <div><b>$00M</b><span>Neighborhood investment</span><small>data to confirm</small></div>
+        <div><b>000</b><span>Volunteer hours</span><small>data to confirm</small></div>
+      </div>
+      <div class="folio l b-label">22</div>
+    </div>
+    <div class="pg" style="background:var(--paper2)">
+      <div class="abs wheel-w"><svg class="wheel" data-wheel viewBox="0 0 500 500"></svg></div>
+      <div class="abs b-serif h2">One network.<br><i>Eight</i> equal seats.</div>
+      <div class="abs streams"><span>Rentals</span><span>Performances</span><span>Exhibitions</span><span>Workshops</span><span>Corporate</span><span>Celebrations</span><span>Community</span><span>Sponsors</span><span>Merchandise</span><span>Partners</span></div>
+      <div class="folio r b-label">23</div>
+    </div>
+  </div>
+
+  <!-- 08 · moments -->
+  <div class="sheet-title"><span>08</span><i>/</i><span>Typographic moments</span><em>The “not always journalistic” toolkit — reusable anywhere in the book</em></div>
+  <div class="moments">
+    <div class="moment b-m1"><div class="in"><p>Preserve <span class="b-hi">history,</span> celebrate <span class="b-hi c">creativity,</span> build <span class="b-hi">community.</span></p></div><div class="cap" style="color:#17382a">Marker highlight</div></div>
+    <div class="moment b-m2"><div class="abs ar"><img src="../assets/garden-mural.jpg" alt=""></div><div class="abs b-wide w"><span>Come</span><span>Home</span></div><div class="cap" style="color:#f5efe0">Wide type · arch</div></div>
+    <div class="moment b-m3"><div class="abs ph"><img src="../assets/night-banners.jpg" alt="" style="object-position:70% 50%"></div><div class="abs b-serif t">Every brick restored.</div><div class="cap" style="color:#f5efe0">Block quote · over photo</div></div>
+    <div class="moment b-m4"><div class="abs b-wide n">05</div><div class="abs b-serif t">Phase five.<br><i>You are here.</i></div><div class="cap" style="color:#f5efe0">Outline numeral</div></div>
+    <div class="moment w2 b-m5"><div class="in"><div class="q">Every <span>partnership</span> leaves a legacy.</div></div><div class="cap">Wide statement · brass</div></div>
+    <div class="moment b-m6"><div class="abs b-serif q">The greatest investment we can make is in the places that bring people together.</div><div class="abs b-label a">— The Art Haus</div><div class="cap">Serif quote</div></div>
+    <div class="moment b-m7"><div class="abs b-wide t"><span>Art</span><span class="c">Haus</span><span class="bb">Arts</span></div><div class="cap">Stacked color words</div></div>
+  </div>
+
+</div>
+</section>
+<!-- ═════════════════ DIRECTION C ═════════════════ -->
+<section class="dir dir-c" id="c" data-dir="c">
+<div class="wrap">
+
+  <div class="dir-head">
+    <div class="big">C</div>
+    <div>
+      <div class="sub">Direction C · “Marquee &amp; Blueprint”</div>
+      <h2>Night <em>Gallery</em></h2>
+      <p>The building after dark, as a book. A razor-sharp didone serif set enormous — roman and italic mixed inside a single headline — glows like the neon sign over the door. Photographs are printed in halftone and red or gold ink; the architect's own drawings (Circa Architecture, G‑3 and AS‑1) are laid over them as blueprint line-work. Information pages borrow the grammar of a drawing sheet: hairline frames, mono annotations, a title block. The most luxurious and the most “information-driven” of the three.</p>
+    </div>
+  </div>
+
+  <div class="dna">
+    <div><b>Borrowed from the inspo</b>“Anthropocene” — monumental type on black with one word in red; “Le Corbusier” and “Laurie Anderson” — halftone photography and rotated titles; the coral serif quote page; “Born to Run” — mono captions.</div>
+    <div><b>Image treatment</b>Halftone dot screens in black, vermilion or gold ink; full-color night renderings kept dark and cinematic; white-line blueprint overlays from the real construction set.</div>
+    <div><b>Where the brief lives</b>“Architectural prospectus” and “luxury real-estate publication” read most literally here — historic charcoal, warm white, soft gold, with the red door's vermilion as the signal color.</div>
+  </div>
+
+  <div class="label">Colorway <span>— by share of the page</span></div>
+  <div class="swatches">
+    <div class="sw-c" style="flex:34;background:#0f0e0e;color:#f4e9d2"><div><b>Ink</b><code>#0F0E0E</code></div><div class="pct">Dark pages · 34%</div></div>
+    <div class="sw-c" style="flex:26;background:#f6eedb;color:#0f0e0e"><div><b>Warm White</b><code>#F6EEDB</code></div><div class="pct">Reading pages · 26%</div></div>
+    <div class="sw-c" style="flex:14;background:#172640;color:#f4e9d2"><div><b>Midnight</b><code>#172640</code></div><div class="pct">Dusk · 14%</div></div>
+    <div class="sw-c" style="flex:12;background:#e8b14b;color:#0f0e0e"><div><b>Marquee Gold</b><code>#E8B14B</code></div><div class="pct">Light, hairlines · 12%</div></div>
+    <div class="sw-c" style="flex:8;background:#e5472b;color:#f4e9d2"><div><b>Door Vermilion</b><code>#E5472B</code></div><div class="pct">Signal · 8%</div></div>
+    <div class="sw-c" style="flex:6;background:#8e887b;color:#0f0e0e"><div><b>Stone</b><code>#8E887B</code></div><div class="pct">Captions · 6%</div></div>
+  </div>
+
+  <div class="label">Typography <span>— a didone, a sans, a drawing-board mono</span></div>
+  <div class="type-board">
+    <div class="spec" style="background:#0f0e0e;color:#f4e9d2;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)">
+      <div class="tag"><span>Display · Everything big</span><span>Bodoni Moda 400 + Italic</span></div>
+      <div class="c-bodoni" style="font-size:clamp(60px,10vw,160px);line-height:.84">The <i style="color:#e8b14b">Art</i><br>Haus</div>
+      <div class="nm"><b>Roman and italic in the same line, tight (−4.5%).</b> Set at an optical size so high the hairlines nearly vanish — the italic word takes gold or vermilion and, on dark pages, a soft glow.</div>
+    </div>
+    <div class="spec" style="background:#f6eedb;color:#0f0e0e">
+      <div class="tag"><span>Voice · Quotes, ledes, signatures</span><span>Bodoni Moda Italic</span></div>
+      <div class="c-bodoni" style="font-size:clamp(34px,4.6vw,72px);line-height:.96;font-style:italic">“Every brick restored, every artist supported.”</div>
+      <div class="nm"><b>Pull quotes go over the photograph</b> and change color at the gutter — light on the picture, ink on the paper — so a quote can cross two pages.</div>
+    </div>
+    <div class="spec full" style="background:#171413;color:#f4e9d2;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)">
+      <div class="two" style="grid-template-columns:1.3fr 1fr 1fr">
+        <div>
+          <div class="tag"><span>Text · Instrument Sans 400/500</span><span>9 / 14 pt</span></div>
+          <p style="font-size:14px;line-height:1.56;max-width:46ch;opacity:.9">Historic Camp Greene is more than the location of this development. It is the community where I have lived, served, and invested my time for many years. <span class="c-hi">It is a neighborhood that has shaped my understanding of leadership.</span></p>
+        </div>
+        <div>
+          <div class="tag"><span>Annotation · IBM Plex Mono 500</span><span>6 pt · +10%</span></div>
+          <div class="c-mono" style="font-size:11px;line-height:1.9;color:#e8b14b">FIG. 02 — 2229 WEYLAND AVE<br>ELEV. A-2 · SCALE 1/4″ = 1′<br>ISSUED 10/29/2025</div>
+        </div>
+        <div>
+          <div class="tag"><span>Numerals · Bodoni Moda</span><span>outline → solid</span></div>
+          <div class="c-bodoni" style="font-size:78px;color:transparent;-webkit-text-stroke:1.2px rgba(244,233,210,.7);line-height:.9">250</div>
+          <div class="nm" style="margin-top:6px"><b>Outline</b> = to confirm, <b>gold glow</b> = confirmed.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="scale" style="margin-top:22px">
+    <div><b>Cover / divider display</b><span>110–200 pt · Bodoni</span></div>
+    <div><b>Chapter title</b><span>72–96 pt · roman + italic</span></div>
+    <div><b>Chapter numerals</b><span>240 pt · outline italic gold</span></div>
+    <div><b>Pull quote</b><span>40–56 pt · italic · crosses gutter</span></div>
+    <div><b>Lede</b><span>14 / 16 pt · Bodoni italic</span></div>
+    <div><b>Body</b><span>9 / 14 pt · Instrument Sans</span></div>
+    <div><b>Annotation / caption</b><span>6 / 9 pt · Plex Mono caps</span></div>
+    <div><b>Labels</b><span>6.5 pt · caps +24%</span></div>
+  </div>
+
+  <div class="label">The rules of the book <span>— what every remaining page obeys</span></div>
+  <ul class="rules" style="color:var(--cream)">
+    <li data-n="01"><b>Dark opens, light reads.</b> Covers, dividers, chapter plates and the infographic pages run on ink; running text always sits on warm white.</li>
+    <li data-n="02"><b>One glowing word.</b> Each dark spread may light a single word in gold (or vermilion for “you are here”). No other element glows.</li>
+    <li data-n="03"><b>Roman + italic in one line.</b> Every Bodoni headline switches to italic at least once. The italic word carries the meaning.</li>
+    <li data-n="04"><b>Blueprint under picture.</b> Every chapter plate has a white-line drawing — floor plan, site plan or elevation — blended under or over the photograph, as the Roadmap section's signature.</li>
+    <li data-n="05"><b>Halftone for people, full color for the building.</b> Portraits and community photographs are printed in dot screen (ink, vermilion or gold); the night renderings stay in full color.</li>
+    <li data-n="06"><b>Every fact gets a mono caption.</b> Figure number + address or drawing reference (“FIG. 06 — A-2 FRONT ELEVATION”). Real references to the architect's sheets add credibility.</li>
+    <li data-n="07"><b>The sheet frame.</b> Data pages carry a 0.5 pt gold border and a title block (project · address · drawings by · issue date) in the lower right.</li>
+    <li data-n="08"><b>Grid.</b> 6-column drawing grid, 0.75 in margins, 0.125 in bleed. Text measure 45 characters; captions hang in the outer margin.</li>
+  </ul>
+
+  <!-- 01 · covers -->
+  <div class="sheet-title"><span>01</span><i>/</i><span>Back cover &amp; front cover</span><em>Full-page architectural rendering, minimal text</em></div>
+  <div class="spread">
+    <div class="pg ink c-back">
+      <div class="abs c-bp bp"><img src="../assets/plan-2.png" alt="" style="object-position:30% 50%;transform:scale(1.7) rotate(0deg);transform-origin:20% 60%"></div>
+      <div class="abs c-bodoni q">Every partnership leaves a <i>legacy.</i></div>
+      <div class="abs c-mono addr"><b>Cynthia Harrison</b>Founder &amp; Developer<br>The Art Haus Cultural Venue LLC<br>2229 Weyland Avenue · Charlotte, NC 28208</div>
+      <svg class="ic abs mk" style="width:calc(var(--u)*2.4);height:calc(var(--u)*2.4);stroke-width:1.5"><use href="#i-roof"/></svg>
+    </div>
+    <div class="pg ink c-front">
+      <div class="abs ph"><img src="../assets/night-front.jpg" alt="The Art Haus at night"></div>
+      <div class="c-frame" style="inset:calc(var(--u)*2.4)"></div>
+      <div class="abs c-bodoni the">The</div>
+      <div class="abs c-bodoni ttl c-glow-none"><span>Art</span><span class="l2">Haus</span></div>
+      <div class="abs c-mono vol">Vol. 01<br>2026</div>
+      <div class="abs c-mono cap"><span>Partnership &amp; Investment Prospectus</span><span>Historic Camp Greene</span></div>
+    </div>
+  </div>
+
+  <!-- 02 · inside cover -->
+  <div class="sheet-title"><span>02</span><i>/</i><span>Inside cover — “Our Invitation”</span><em>Simple, clean, lots of white space</em></div>
+  <div class="spread c-inv">
+    <div class="pg ink">
+      <div class="abs c-bp bp"><img src="../assets/plan-3.png" alt="" style="object-position:40% 50%"></div>
+      <div class="abs c-label l-label">Our invitation</div>
+      <div class="abs c-mono l-cap">Site plan · AS-1<br>2229 Weyland Ave — where the invitation begins</div>
+    </div>
+    <div class="pg" style="background:var(--ink2);color:var(--cream)">
+      <div class="abs c-label r-label">Welcome</div>
+      <svg class="ic abs mk" style="width:calc(var(--u)*2.2);height:calc(var(--u)*2.2);right:calc(var(--u)*12);top:calc(var(--u)*4.4)"><use href="#i-roof"/></svg>
+      <div class="abs c-bodoni pull">You are not reading the proposal. You are <span class="gl c-glow">exploring</span> the future of a community.</div>
+      <div class="abs c-body bd body">
+        <p>Within these pages is an opportunity to preserve history, inspire creativity, strengthen neighborhoods, and create lasting economic impact.</p>
+        <p>Whether you are a public agency, philanthropic foundation, corporate leader, community advocate, or individual supporter, we invite you to imagine what is possible when vision meets partnership.</p>
+      </div>
+      <div class="abs c-bodoni wel">Welcome to The Art Haus.</div>
+    </div>
+  </div>
+
+  <!-- 03 · founder letter -->
+  <div class="sheet-title"><span>03</span><i>/</i><span>Letter from the Founder</span><em>One full-page portrait · lifestyle, not corporate</em></div>
+  <div class="spread c-let">
+    <div class="pg ink">
+      <div class="c-ht red ht"><img src="../assets/cynthia-lifestyle.jpg" alt="Cynthia Harrison" style="object-position:26% 50%"></div>
+      <div class="abs c-label l-label">Letter from the founder</div>
+      <div class="abs c-mono l-cap">Fig. 03 — Cynthia Harrison, Founder &amp; Developer</div>
+    </div>
+    <div class="pg cream">
+      <div class="abs c-bodoni head">Dear friends, <i>partners,</i> and community leaders,</div>
+      <div class="abs c-body txt body cols2">
+        <p>Thank you for taking the time to learn about The Art Haus Cultural Venue. I am grateful that you have chosen to spend a few moments exploring a vision that has become deeply personal to my family and me.</p>
+        <p>The Art Haus was never intended to be simply another venue. It was envisioned as a place where creativity is celebrated, history is preserved, relationships are built, and communities come together.</p>
+        <p>As I have worked to bring this vision to life, I have discovered that meaningful development is about far more than restoring buildings. It is about <span class="c-hi">restoring possibilities.</span> It is about honoring the history of a community while preparing it for the opportunities of tomorrow.</p>
+        <p>Together, we have an opportunity to create more than a destination. Together, we can create a legacy.</p>
+      </div>
+      <div class="abs c-bodoni sign">Cynthia Harrison</div>
+      <div class="abs c-label role">Founder &amp; Developer · The Art Haus</div>
+      <div class="folio r c-mono">04</div>
+    </div>
+    <div class="c-split l"><div class="c-bodoni name"><span>Cynthia</span><span class="l2">Harrison</span></div></div>
+    <div class="c-split r"><div class="c-bodoni name"><span>Cynthia</span><span class="l2">Harrison</span></div></div>
+  </div>
+
+  <!-- 04 · divider -->
+  <div class="sheet-title"><span>04</span><i>/</i><span>Section divider</span><em>Every major section gets a full-page image</em></div>
+  <div class="spread c-div">
+    <div class="pg ink">
+      <div class="abs c-bp bp"><img src="../assets/plan-3.png" alt="" style="object-position:30% 40%"></div>
+      <div class="abs c-bodoni vt">The <i>Vision</i></div>
+      <div class="abs c-mono sec">Section one</div>
+      <div class="abs c-bodoni qt">Every transformational project begins with a vision.</div>
+    </div>
+    <div class="pg ink">
+      <div class="c-ht gold ph"><img src="../assets/black-house.jpg" alt=""></div>
+      <div class="abs c-bodoni num">01</div>
+      <div class="abs c-mono cap">Fig. 01 — Front elevation, as imagined</div>
+    </div>
+  </div>
+
+  <!-- 05 · chapter opener -->
+  <div class="sheet-title"><span>05</span><i>/</i><span>Chapter opener</span><em>Large title · short quote · hero image · pull quote · clean margins</em></div>
+  <div class="spread c-ch">
+    <div class="pg cream">
+      <div class="abs c-label lab"><b>Chapter One</b> The Vision</div>
+      <div class="abs c-bodoni t">Every <i>legacy</i> begins with a vision.</div>
+      <div class="abs c-bodoni qt">Some projects begin with a business opportunity. Others begin with a personal calling.</div>
+      <div class="folio l c-mono">02</div>
+    </div>
+    <div class="pg cream">
+      <div class="abs hero"><img src="../assets/yard-party.jpg" alt=""></div>
+      <div class="abs c-mono hcap">Fig. 02 — The lawn on a summer evening</div>
+      <div class="abs c-body bd body cols2" style="column-gap:calc(var(--u)*1.5)">
+        <p>Some projects begin with a business opportunity. Others begin with a personal calling. The Art Haus Cultural Venue began with both. For as long as I can remember, my family has been rooted in the arts and entertainment.</p>
+        <p>Having the opportunity to develop property in Historic Camp Greene transformed that vision into something tangible — the chance not only to restore a historic space, but to create a destination that would inspire pride throughout the neighborhood I have called home.</p>
+      </div>
+      <div class="folio r c-mono">03</div>
+    </div>
+    <div class="c-split l"><div class="c-bodoni pq">It is about restoring <i>possibilities.</i></div></div>
+    <div class="c-split r"><div class="c-bodoni pq">It is about restoring <i>possibilities.</i></div></div>
+  </div>
+
+  <!-- 06 · at a glance -->
+  <div class="sheet-title"><span>06</span><i>/</i><span>The Art Haus at a Glance</span><em>★ The signature two-page spread</em></div>
+  <div class="spread c-gl">
+    <div class="pg ink">
+      <div class="abs ph"><img src="../assets/interior-b.jpg" alt=""></div>
+      <div class="abs c-label tl">The Art Haus at a glance</div>
+      <div class="abs c-bodoni stmt">Where history inspires the <i class="c-glow">future.</i></div>
+    </div>
+    <div class="pg ink">
+      <div class="abs sheet">
+        <div class="hd"><div class="c-bodoni">At a <i>glance</i></div><div class="c-mono" style="color:var(--gold)">Sheet 07 · Project summary</div></div>
+        <div class="c3"><div class="c-mono"><span style="color:var(--gold);opacity:1">Our mission</span><span>M—01</span></div><p>To preserve history, celebrate creativity, and strengthen community through arts, culture, entrepreneurship, and meaningful partnerships.</p></div>
+        <div class="c3"><div class="c-mono"><span style="color:var(--gold);opacity:1">Our vision</span><span>V—01</span></div><p>To become one of Charlotte’s premier cultural destinations where history inspires the future and every partnership leaves a legacy.</p></div>
+
+        <div class="c3"><div class="c-mono"><span style="color:var(--gold);opacity:1">Project snapshot</span><span>P—02</span></div>
+          <dl><dt>Location</dt><dd>Historic Camp Greene, Charlotte NC</dd><dt>Type</dt><dd>Adaptive reuse &amp; historic redevelopment</dd><dt>Founder</dt><dd>Cynthia Harrison</dd><dt>Ownership</dt><dd>Family-owned LLC</dd><dt>Capacity</dt><dd>250 people, indoors &amp; out</dd></dl></div>
+        <div class="c3"><div class="c-mono"><span style="color:var(--gold);opacity:1">Current status</span><span>Phase 5 / 8</span></div>
+          <div class="prog"><i></i><i></i><i></i><i></i><i class="n"></i><i class="f"></i><i class="f"></i><i class="f"></i></div>
+          <p>Strategic partnerships. Pre-construction &amp; partnership development.</p></div>
+
+        <div class="c6"><div class="c-mono"><span style="color:var(--gold);opacity:1">What you’ll experience</span><span>Programming</span></div>
+          <div class="icons">
+            <div><svg class="ic"><use href="#i-art"/></svg>Art exhibitions</div>
+            <div><svg class="ic"><use href="#i-music"/></svg>Live performances</div>
+            <div><svg class="ic"><use href="#i-people"/></svg>Community events</div>
+            <div><svg class="ic"><use href="#i-brief"/></svg>Corporate gatherings</div>
+            <div><svg class="ic"><use href="#i-book"/></svg>Educational workshops</div>
+            <div><svg class="ic"><use href="#i-heart"/></svg>Nonprofit programming</div>
+            <div><svg class="ic"><use href="#i-spark"/></svg>Private celebrations</div>
+            <div><svg class="ic"><use href="#i-tree"/></svg>Outdoor cultural events</div>
+          </div></div>
+
+        <div class="c3"><div class="c-mono"><span style="color:var(--gold);opacity:1">Why it matters</span><span>W—03</span></div><ul><li>Historic preservation</li><li>Neighborhood revitalization</li><li>Creative economy</li><li>Small business support</li></ul></div>
+        <div class="c3"><div class="c-mono"><span style="color:var(--gold);opacity:1">Current momentum</span><span>M—04</span></div><ul><li>Property acquired</li><li>Architectural design completed</li><li>REDI graduate · Shark Tank showcase</li><li>Mecklenburg Business Launch Pad</li></ul></div>
+
+        <div class="c6"><div class="c-mono"><span style="color:var(--gold);opacity:1">Partnership opportunities</span><span>08 sectors</span></div><p style="font-weight:600">Public sector · Foundations · Corporations · Arts &amp; culture · Education · Healthcare &amp; wellness · Community organizations · Entrepreneurs</p></div>
+
+        <div class="c6 tb c-mono"><div>Project<b>The Art Haus Cultural Venue</b></div><div>Address<b>2229 Weyland Ave, Charlotte NC 28208</b></div><div>Drawings<b>Circa Architecture · 10/29/2025</b></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 07 · data -->
+  <div class="sheet-title"><span>07</span><i>/</i><span>Roadmap · Impact dashboard · Partnership network</span><em>Graphics simplify, never overwhelm</em></div>
+  <div class="spread c-dt">
+    <div class="pg ink">
+      <div class="abs c-bodoni h">The road <i class="c-glow">ahead</i></div>
+      <ol class="road" data-roadmap></ol>
+      <div class="abs dash c-mono">
+        <div class="live"><b>250</b><span>Guest capacity</span><small>Sheet G-3 · confirmed</small></div>
+        <div><b>000</b><span>Jobs created</span><small>to confirm</small></div>
+        <div><b>000</b><span>Visitors / year</span><small>to confirm</small></div>
+        <div><b>000</b><span>Artists served</span><small>to confirm</small></div>
+        <div><b>000</b><span>Community events</span><small>to confirm</small></div>
+        <div><b>000</b><span>Educational programs</span><small>to confirm</small></div>
+        <div><b>$00M</b><span>Neighborhood investment</span><small>to confirm</small></div>
+        <div><b>000</b><span>Volunteer hours</span><small>to confirm</small></div>
+      </div>
+      <div class="abs c-mono note"><b>You are here —</b> Phase 5 · Strategic partnerships. Foundations, public-private, corporate, grants, community and programming partners.</div>
+      <div class="folio l c-mono">22</div>
+    </div>
+    <div class="pg ink" style="background:var(--ink2)">
+      <div class="abs wheel-w"><svg class="wheel" data-wheel viewBox="0 0 500 500"></svg></div>
+      <div class="abs c-bodoni h2">One network. <i>Eight</i><br>equal seats.</div>
+      <div class="abs streams"><span>Rentals</span><span>Performances</span><span>Exhibitions</span><span>Workshops</span><span>Corporate</span><span>Celebrations</span><span>Community</span><span>Sponsors</span><span>Merchandise</span><span>Partners</span></div>
+      <div class="folio r c-mono">23</div>
+    </div>
+  </div>
+
+  <!-- 08 · moments -->
+  <div class="sheet-title"><span>08</span><i>/</i><span>Typographic moments</span><em>The “not always journalistic” toolkit — reusable anywhere in the book</em></div>
+  <div class="moments">
+    <div class="moment c-m1"><div class="abs c-bodoni t"><span>The</span><span><i>Art</i></span><span>Haus</span></div><div class="cap">Roman + italic</div></div>
+    <div class="moment c-m2"><div class="abs c-bodoni t c-glow v" style="text-shadow:0 0 calc(var(--u)*2) rgba(232,177,75,.85),0 0 calc(var(--u)*7) rgba(232,177,75,.5)">Open</div><div class="abs c-mono u">Neon · one glowing word</div><div class="cap" style="color:#f4e9d2">Marquee glow</div></div>
+    <div class="moment c-m3"><div class="c-ht red ph"><img src="../assets/cynthia-lifestyle.jpg" alt="" style="object-position:30% 40%"></div><div class="abs c-bodoni n">Her<br><i>story</i></div><div class="cap" style="color:#f4e9d2">Halftone + type overprint</div></div>
+    <div class="moment c-m4"><div class="abs c-bp bp"><img src="../assets/plan-2.png" alt="" style="object-position:30% 60%;transform:scale(2.2);transform-origin:25% 60%"></div><div class="abs c-bodoni t">Built <i>to last</i></div><div class="abs c-mono tag">Plan G-3<br>First floor</div><div class="cap" style="color:#f4e9d2">Blueprint overlay</div></div>
+    <div class="moment w2 c-m5"><div class="abs c-bodoni n">05</div><div class="abs c-bodoni t">Phase five.<br><i>You are here.</i></div><div class="cap" style="color:#0f0e0e">Giant italic numeral</div></div>
+    <div class="moment c-m6"><div class="abs g"><div>Phases<b>8</b></div><div>Capacity<b>250</b></div><div>Sectors<b>8</b></div><div>Streams<b>10</b></div></div><div class="cap" style="color:#0f0e0e">Spec-sheet data</div></div>
+    <div class="moment c-m7"><div class="abs c-label l">Chapter ten</div><div class="abs c-bodoni t">Join <i>us</i></div><div class="cap" style="color:#f4e9d2">Rotated title</div></div>
+  </div>
+
+</div>
+</section>
+
+<footer class="foot">
+  <div class="wrap">
+    <div><b>Next step.</b> Choose a direction (or tell me which pieces to cross: e.g. A's chapter openers with C's type for the data pages). I'll then lock the system — final colors, type licensing, trim size, grid — and build the full 40-page layout in the winning style, ready to hand to print.</div>
+    <div><b>Open items for the real book.</b> Real photography (Historic Camp Greene streets, markers, events, Cynthia lifestyle), maps, headshots for Leadership, and confirmed impact numbers for the dashboard. Renderings here are placeholders at screen resolution.</div>
+  </div>
+</footer>
+
+<script>
+/* shared data-driven graphics — styled per direction in CSS */
+(function(){
+  var phases=[["Foundation"],["Acquisition"],["Planning"],["Capacity"],["Partners"],["Pre-build"],["Build"],["Opening"]];
+  var NOW=4;
+  document.querySelectorAll('[data-roadmap]').forEach(function(ol){
+    ol.innerHTML=phases.map(function(p,i){
+      var c=i<NOW?'done':(i===NOW?'now':'next');
+      return '<li class="'+c+'"><i></i><b>'+String(i+1).padStart(2,'0')+'</b><span>'+p[0]+'</span></li>';
+    }).join('');
+  });
+
+  var items=[["Government","bank"],["Foundations","coin"],["Corporations","brief"],["Arts & culture","art"],["Education","cap"],["Healthcare","health"],["Community","people"],["Entrepreneurs","sprout"]];
+  var iconPaths={
+    bank:'M3 9.5L12 4l9 5.5M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 21h18',
+    coin:'M12 3.5a8.5 8.5 0 100 17 8.5 8.5 0 000-17zM14.8 9.2c-.6-1-1.600-1.400-2.800-1.400-1.600 0-2.700.8-2.700 2 0 3 5.600 1.300 5.600 4.200 0 1.200-1.200 2-2.900 2-1.300 0-2.400-.5-3-1.500',
+    brief:'M3 8h18v12H3zM9 8V5.500h6V8M3 13h18',
+    art:'M3 4h18v16H3zM3 16l5-5 4 4 3-3 6 6',
+    cap:'M2 9l10-5 10 5-10 5zM6 11.500V16c3 2.200 9 2.200 12 0v-4.500',
+    health:'M4 4h16v16H4zM12 8v8M8 12h8',
+    people:'M9 5a3.200 3.200 0 100 6.400A3.200 3.200 0 009 5zM3 20c0-3.600 2.700-6 6-6s6 2.400 6 6M17 7a2.400 2.400 0 100 4.800M17 14c2.600 0 4.500 1.900 4.500 5',
+    sprout:'M12 21v-9M12 12C12 8 9.500 6 5 6c0 4 2.500 6 7 6zM12 14c0-3.500 2.200-5.500 7-5.500 0 3.500-2.200 5.500-7 5.500z'
+  };
+  function pt(cx,cy,r,a){return [cx+r*Math.cos(a),cy+r*Math.sin(a)]}
+  function arc(cx,cy,r0,r1,a0,a1){
+    var p=pt(cx,cy,r1,a0),q=pt(cx,cy,r1,a1),s=pt(cx,cy,r0,a1),t=pt(cx,cy,r0,a0);
+    return 'M'+p+' A'+r1+' '+r1+' 0 0 1 '+q+' L'+s+' A'+r0+' '+r0+' 0 0 0 '+t+' Z';
+  }
+  document.querySelectorAll('[data-wheel]').forEach(function(svg){
+    var cx=250,cy=250,R0=104,R1=236,n=items.length,gap=.012,h='';
+    items.forEach(function(it,i){
+      var a0=-Math.PI/2+i*2*Math.PI/n+gap, a1=-Math.PI/2+(i+1)*2*Math.PI/n-gap, am=(a0+a1)/2;
+      var tp=pt(cx,cy,(R0+R1)/2+2,am);
+      var words=it[0].split(' '), t;
+      if(words.length>1) t='<text x="'+tp[0]+'" y="'+(tp[1]+16)+'" text-anchor="middle"><tspan x="'+tp[0]+'">'+words[0]+'</tspan><tspan x="'+tp[0]+'" dy="13">'+words.slice(1).join(' ')+'</tspan></text>';
+      else t='<text x="'+tp[0]+'" y="'+(tp[1]+22)+'" text-anchor="middle">'+it[0]+'</text>';
+      h+='<g class="seg"><path d="'+arc(cx,cy,R0,R1,a0,a1)+'"/>'+
+         '<g class="ic-w" transform="translate('+(tp[0]-12)+' '+(tp[1]-20)+')"><path d="'+iconPaths[it[1]]+'"/></g>'+t+'</g>';
+    });
+    h+='<circle class="ring" cx="250" cy="250" r="'+(R0-8)+'"/><circle class="hub" cx="250" cy="250" r="'+(R0-14)+'"/>'+
+       '<text class="hub-t" x="250" y="236" text-anchor="middle">Every</text>'+
+       '<text class="hub-t" x="250" y="266" text-anchor="middle">partnership</text>'+
+       '<text class="hub-t sm" x="250" y="288" text-anchor="middle">leaves a legacy</text>';
+    svg.innerHTML=h;
+  });
+})();
+</script>
+</body>
+</html>
