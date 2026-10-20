@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 
 export async function getStaticPaths() {
-  const VERSION = 'v70';  // v70: versions stack when titles match ignoring case, spaces and punctuation ("AV07 - Obama 01" = "AV07 Obama 01"). v69: Canva short links (canva.link/…) are turned into the full design link on save (portal-api/canva-link) so public-view decks embed. v68: review folders can nest ("Parent / Child" names) and exist empty (review_sections) so the team can work out of them; sidebar + folder page list subfolders. v67: Final Deliverables folders can nest (folders inside folders, back goes up a level, New folder creates inside the open folder). v66: clients + team can add calendar events on their jobs (edit only their own; 'Added by'). v65: calendar events sorted by time within each day. v64: 12-hour times everywhere (calendar, stamps, scheduled sends). v63: per-job custom event types (Edit types + '+ New type' in the event window). v62: calendar is per job — event types are that job's folders, only that job's events load. v61: presentations from any tool (Google Slides, PowerPoint, Figma, Pitch, Gamma, Prezi, PDF/PPTX upload w/ slide player); team can add decks. v60: people lists strictly scoped to the project/company (no cross-client names); company ✕ removes only that company's access. v59: videos upload via resumable Stream (tus, up to 30 GB); readable upload errors. v58: deliverables live in Supabase; owner + team upload from the portal (R2/Stream), edit/move/delete, 'Uploaded by'. v57: partners get the Studio company grid too (no auto-jump), counts show only their projects. v56: route only after sign-in resolves (owner no longer auto-jumped into a lone project). v55: Add company / Add project from the Studio (portal-onboard fn commits CMS files). (v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
+  const VERSION = 'v71';  // v71: owner can pick the background colour behind each company logo on the hub (table company_logo_bg). v70: versions stack when titles match ignoring case, spaces and punctuation ("AV07 - Obama 01" = "AV07 Obama 01"). v69: Canva short links (canva.link/…) are turned into the full design link on save (portal-api/canva-link) so public-view decks embed. v68: review folders can nest ("Parent / Child" names) and exist empty (review_sections) so the team can work out of them; sidebar + folder page list subfolders. v67: Final Deliverables folders can nest (folders inside folders, back goes up a level, New folder creates inside the open folder). v66: clients + team can add calendar events on their jobs (edit only their own; 'Added by'). v65: calendar events sorted by time within each day. v64: 12-hour times everywhere (calendar, stamps, scheduled sends). v63: per-job custom event types (Edit types + '+ New type' in the event window). v62: calendar is per job — event types are that job's folders, only that job's events load. v61: presentations from any tool (Google Slides, PowerPoint, Figma, Pitch, Gamma, Prezi, PDF/PPTX upload w/ slide player); team can add decks. v60: people lists strictly scoped to the project/company (no cross-client names); company ✕ removes only that company's access. v59: videos upload via resumable Stream (tus, up to 30 GB); readable upload errors. v58: deliverables live in Supabase; owner + team upload from the portal (R2/Stream), edit/move/delete, 'Uploaded by'. v57: partners get the Studio company grid too (no auto-jump), counts show only their projects. v56: route only after sign-in resolves (owner no longer auto-jumped into a lone project). v55: Add company / Add project from the Studio (portal-onboard fn commits CMS files). (v41: comments -> PDF sign-off export (owner-only, per-project review record: deliverables, approvals, threaded comments; print/save-as-PDF). (v40: dead-code; v39: RLS.)
   const reviews  = (await getCollection('reviews')).filter(r => r.data.published !== false);
   const projects = (await getCollection('reviewProjects')).filter(p => p.data.published !== false);
   // v58: deliverables load from Supabase (review_items) after sign-in, so they're no longer
@@ -1062,6 +1062,17 @@ const ADMIN_KEY       = null; // v58: retired — owner is decided only by the s
 .ccard:hover{border-color:rgba(186,192,30,.5);background:rgba(186,192,30,.04);transform:translateY(-2px)}
 .cc-hero{height:150px;display:flex;align-items:center;justify-content:center;padding:24px;background:#fff;border-bottom:1px solid var(--hair)}
 .cc-hero img{max-height:100%;max-width:100%;width:auto;object-fit:contain;display:block}
+.cc-hero{position:relative}
+.cc-bg{position:absolute;top:10px;right:10px;width:24px;height:24px;border-radius:50%;border:2px solid rgba(128,128,128,.7);background:#fff;cursor:pointer;opacity:0;transition:opacity .15s;padding:0}
+.ccard:hover .cc-bg,.cc-bg:focus-visible{opacity:1}
+.cc-pop{position:fixed;z-index:1000;background:#141517;border:1px solid var(--line);border-radius:12px;padding:12px 14px;min-width:220px}
+.cc-pop-h{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:10px}
+.cc-sw{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.cc-swb{width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,.25);cursor:pointer;padding:0}
+.cc-swb.on{border-color:var(--green);box-shadow:0 0 0 2px rgba(186,192,30,.35)}
+.cc-custom{width:28px;height:28px;border-radius:50%;overflow:hidden;border:2px dashed rgba(255,255,255,.35);display:inline-flex;cursor:pointer}
+.cc-custom input{width:44px;height:44px;margin:-8px;border:0;padding:0;background:none;cursor:pointer}
+.cc-pop-msg{font-size:12px;color:#e5757a;margin-top:8px;min-height:0}
 .cc-hero-empty{background:linear-gradient(150deg,#1a1c0f,#0c0d07)}
 .cc-hero-empty span{font-family:var(--disp);font-weight:800;font-size:46px;color:var(--green)}
 .cc-body{padding:16px 18px 18px}
@@ -2482,13 +2493,50 @@ function updateTopbar(clientKey){
 }
 
 /* ---------- company grid (Studio home) ---------- */
+let LOGO_BG = null; // company_key -> '#rrggbb'
+const LOGO_BG_SWATCHES = ['#ffffff','#0e0f10','#2b2d31','#8a8d91','#d3202f','#bac01e'];
+async function loadLogoBg(){
+  const m={};
+  try{ const r=await sb.from('company_logo_bg').select('company_key,color').eq('review_slug','studio'); ((r&&r.data)||[]).forEach(function(x){ m[x.company_key]=x.color; }); }catch(e){}
+  LOGO_BG=m;
+}
+async function saveLogoBg(key,color){
+  if(color){ const r=await sb.from('company_logo_bg').upsert({review_slug:'studio',company_key:key,color:color,updated_at:new Date().toISOString()},{onConflict:'review_slug,company_key'}); if(r.error) return r.error; LOGO_BG[key]=color; }
+  else { const r=await sb.from('company_logo_bg').delete().eq('review_slug','studio').eq('company_key',key); if(r.error) return r.error; delete LOGO_BG[key]; }
+  return null;
+}
+function closeLogoBgPop(){ const o=document.getElementById('ccPop'); if(o) o.remove(); }
+function openLogoBgPop(btn){
+  closeLogoBgPop();
+  const key=btn.getAttribute('data-bgkey'), hero=btn.parentNode;
+  const cur=LOGO_BG[key]||'#ffffff';
+  const pop=document.createElement('div'); pop.id='ccPop'; pop.className='cc-pop';
+  pop.innerHTML='<div class="cc-pop-h">Logo background</div><div class="cc-sw">'
+    +LOGO_BG_SWATCHES.map(function(c){ return '<button type="button" class="cc-swb'+(c===cur?' on':'')+'" data-c="'+c+'" style="background:'+c+'" aria-label="'+c+'"></button>'; }).join('')
+    +'<label class="cc-custom" title="Custom color"><input type="color" value="'+cur+'"></label></div><div class="cc-pop-msg" id="ccPopMsg"></div>';
+  document.body.appendChild(pop);
+  const rc=btn.getBoundingClientRect();
+  pop.style.top=Math.min(window.innerHeight-pop.offsetHeight-10, rc.bottom+8)+'px';
+  pop.style.left=Math.max(10, Math.min(window.innerWidth-pop.offsetWidth-10, rc.right-pop.offsetWidth))+'px';
+  async function apply(c){
+    hero.style.background=c; btn.style.background=c;
+    const err=await saveLogoBg(key, c.toLowerCase()==='#ffffff'?null:c);
+    const m=document.getElementById('ccPopMsg'); if(m) m.textContent=err?('Could not save: '+(err.message||'try again')):'';
+    pop.querySelectorAll('.cc-swb').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-c')===c); });
+  }
+  pop.querySelectorAll('.cc-swb').forEach(function(b){ b.onclick=function(){ apply(b.getAttribute('data-c')); }; });
+  pop.querySelector('input[type=color]').oninput=function(e){ apply(e.target.value); };
+  setTimeout(function(){ document.addEventListener('mousedown', function h(e){ if(!pop.contains(e.target)){ pop.remove(); document.removeEventListener('mousedown',h); } }); },0);
+}
 function renderCompanyGrid(clients){
+  if(LOGO_BG===null){ loadLogoBg().then(function(){ renderCompanyGrid(clients); }); return; }
   const app=document.getElementById('app');
   const vis={}; visibleProjectIds().forEach(function(id){ vis[id]=1; });
   const cards=(clients||[]).map(function(cl){
     const np=(cl.projects||[]).filter(function(id){ return vis[id]; }).length;
+    const bg = LOGO_BG[cl.key];
     const hero = cl.logo
-      ? '<div class="cc-hero"><img src="'+esc(cl.logo)+'" alt=""></div>'
+      ? '<div class="cc-hero"'+(bg?' style="background:'+bg+'"':'')+'><img src="'+esc(cl.logo)+'" alt="">'+(ADMIN?'<button type="button" class="cc-bg" data-bgkey="'+esc(cl.key)+'" aria-label="Choose logo background color" title="Logo background"'+(bg?' style="background:'+bg+'"':'')+'></button>':'')+'</div>'
       : '<div class="cc-hero cc-hero-empty"><span>'+esc((cl.name||'?').trim().charAt(0).toUpperCase())+'</span></div>';
     return '<a class="ccard" href="#c='+encodeURIComponent(cl.key)+'" tabindex="0">'+hero
       +'<div class="cc-body"><div class="c-eye">Company</div><h3>'+esc(cl.name)+'</h3>'
@@ -2497,6 +2545,7 @@ function renderCompanyGrid(clients){
   const add = ADMIN ? '<button type="button" class="ccard-add" id="nbAddCo"><span class="add-plus">+</span><span class="add-lbl">Add company</span><span class="add-sub">Logo, first project, phases</span></button>' : '';
   app.innerHTML='<section class="landing"><div class="eyebrow">Studio</div><h1 class="co-name">Companies</h1><p class="lead">Open a company to review its projects.</p><div class="cgrid">'+((cards+add)||'<p class="sec-empty">No companies yet. Add a project and tag it with a client.</p>')+'</div></section>';
   const ab=document.getElementById('nbAddCo'); if(ab) ab.onclick=function(){ nbOpen(null); };
+  app.querySelectorAll('.cc-bg').forEach(function(b){ b.onclick=function(e){ e.preventDefault(); e.stopPropagation(); openLogoBgPop(b); }; });
 }
 function renderNoAccess(){
   const app=document.getElementById('app');
