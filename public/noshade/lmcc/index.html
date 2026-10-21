@@ -40,10 +40,10 @@
   .floor h2 { font:900 clamp(40px,6vw,76px)/.9 var(--cond); text-transform:uppercase; margin:0; color:var(--ink); }
   .floor .head p { margin:0; max-width:60ch; color:var(--ink); font-weight:600; }
   .floor .k { color:var(--ink); }
-  .row { position:relative; display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); align-items:end; gap:8px; margin-top:26px; }
-  figure { margin:0; display:grid; justify-items:center; align-content:end; }
-  figure img { display:block; height:clamp(220px,30vw,400px); width:auto; max-width:100%; object-fit:contain; object-position:bottom; }
-  figcaption { width:100%; background:var(--ink); color:var(--bone); font:900 clamp(18px,2vw,26px)/1 var(--cond); text-transform:uppercase; text-align:center; padding:12px 6px 9px; }
+  .row { position:relative; display:flex; align-items:stretch; gap:10px; margin:26px auto 0; width:min(1500px,100vw); padding:0 16px; left:50%; transform:translateX(-50%); }
+  figure { margin:0; display:grid; grid-template-rows:1fr auto; justify-items:center; flex:var(--w) 1 0; min-width:0; }
+  figure img { display:block; width:100%; height:auto; align-self:end; }
+  figcaption { width:100%; background:var(--ink); color:var(--bone); font:900 clamp(16px,1.6vw,24px)/1 var(--cond); text-transform:uppercase; text-align:center; padding:12px 6px 9px; white-space:nowrap; }
   figcaption span { display:block; font:700 10px/1.3 var(--mono); letter-spacing:.14em; color:var(--red); margin-top:5px; }
   .floor .note { position:relative; padding:14px 0 40px; margin:0; color:var(--ink); font-size:14px; font-weight:600; }
 
@@ -64,9 +64,9 @@
     .hero { grid-template-columns:1fr; padding-top:28px; }
     .hero .xav { order:-1; height:300px; justify-self:end; margin:0 0 -40px; }
     .hero .words { padding-bottom:22px; }
-    .row { display:flex; overflow-x:auto; scroll-snap-type:x mandatory; gap:10px; }
-    figure { flex:0 0 58%; scroll-snap-align:center; }
-    figure img { height:300px; }
+    .row { overflow-x:auto; scroll-snap-type:x mandatory; width:100%; left:0; transform:none; }
+    figure { flex:0 0 auto; scroll-snap-align:center; }
+    figure img { width:calc(var(--w) * .48px); }
     footer .wrap { grid-template-columns:1fr; }
     .soro { justify-self:end; height:300px; }
   }
@@ -100,11 +100,11 @@
       <p>In Orun, vogue is a martial art and its five elements are the moves. At the ball, each category opens with its scene on screen, then the floor answers it live.</p>
     </div>
     <div class="row">
-      <figure><img src="c/xavier-arms.webp" alt="Xavier mid-air, arms framing his body" width="576" height="900" loading="lazy"><figcaption>Hand performance<span>Xavier</span></figcaption></figure>
-      <figure><img src="c/venus-reach.webp" alt="Venus stepping forward, arm extended" width="773" height="1100" loading="lazy"><figcaption>Catwalk<span>Venus</span></figcaption></figure>
-      <figure><img src="c/xavier-crouch.webp" alt="Xavier low in a crouch, one hand at his chain" width="600" height="900" loading="lazy"><figcaption>Duckwalk<span>Xavier</span></figcaption></figure>
-      <figure><img src="c/venus-dip.webp" alt="Venus sinking into a dip" width="538" height="900" loading="lazy"><figcaption>Spins &amp; dips<span>Venus</span></figcaption></figure>
-      <figure><img src="c/venus-squat.webp" alt="Venus low to the floor" width="537" height="900" loading="lazy"><figcaption>Floor performance<span>Venus</span></figcaption></figure>
+      <figure style="--w:500"><img src="c/hand-xavier.webp" alt="Xavier from the waist up, hands raised with a glowing constellation" width="326" height="595" loading="lazy"><figcaption>Hand performance<span>Xavier</span></figcaption></figure>
+      <figure style="--w:583"><img src="c/catwalk-xavier.webp" alt="Xavier mid-stride, arms framing his body" width="583" height="911" loading="lazy"><figcaption>Catwalk<span>Xavier</span></figcaption></figure>
+      <figure style="--w:538"><img src="c/duckwalk-zodiac.webp" alt="Zodiac low in a duckwalk" width="538" height="1088" loading="lazy"><figcaption>Duckwalk<span>Zodiac</span></figcaption></figure>
+      <figure style="--w:579"><img src="c/floor-venus.webp" alt="Venus in a floor performance pose" width="579" height="696" loading="lazy"><figcaption>Floor performance<span>Venus</span></figcaption></figure>
+      <figure style="--w:880"><img src="c/dip-venus.webp" alt="Venus landing a dip, flat on the floor" width="880" height="352" loading="lazy"><figcaption>Spins &amp; dips<span>Venus</span></figcaption></figure>
     </div>
     <p class="note">Character art from No Shade! Legends of Orun.</p>
   </div>
