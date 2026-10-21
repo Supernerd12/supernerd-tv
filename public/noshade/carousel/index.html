@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex,nofollow"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>No Shade! · Meet the Legend carousel options</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800;900&family=Figtree:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap">
+<style>
+  :root { --red:#EF2D38; --deep:#8E0F19; --ink:#0B0709; --panel:#171017; --bone:#F7F1F3; --muted:#a8979f; --green:#33FC51; --purple:#7822D6;
+    --cond:"Big Shoulders Display",Impact,sans-serif; --mono:"Space Mono",monospace; --body:"Figtree",system-ui,sans-serif; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#060405; color:var(--bone); font:400 16px/1.5 Figtree, sans-serif; }
+  main { max-width:1440px; margin:0 auto; padding:44px 28px 90px; }
+  .k { font:700 12px/1 var(--mono); letter-spacing:.16em; text-transform:uppercase; color:var(--red); }
+  h1 { font:900 64px/.9 var(--cond); text-transform:uppercase; margin:10px 0 10px; }
+  .lede { color:var(--muted); max-width:84ch; margin:0 0 30px; }
+  .row { display:grid; grid-template-columns:260px 432px 432px; gap:22px; align-items:start; padding:26px 0; border-top:1px solid #2d1f28; }
+  @media (max-width:1180px){ .row { grid-template-columns:1fr 1fr; } .row .info { grid-column:1/-1; } }
+  .info h2 { font:900 34px/1 var(--cond); text-transform:uppercase; margin:0 0 8px; }
+  .info p { margin:0 0 8px; color:var(--muted); font-size:14px; }
+  .lab { font:700 11px/1.4 var(--mono); letter-spacing:.1em; color:#8f7f88; text-transform:uppercase; margin-top:8px; }
+  .frame { width:432px; height:540px; overflow:hidden; }
+  .post { width:1080px; height:1350px; transform:scale(.4); transform-origin:0 0; position:relative; overflow:hidden; isolation:isolate; }
+  .abs { position:absolute; }
+  .L { position:absolute; inset:0; background-size:cover; background-position:center; }
+  .tile { position:absolute; display:inline-block; font:900 var(--fs,90px)/.9 var(--cond); text-transform:uppercase; padding:10px 22px 6px; white-space:nowrap; }
+  .mono { font-family:var(--mono); font-weight:700; letter-spacing:.14em; text-transform:uppercase; }
+  .crest { position:absolute; padding:14px; }
+  .crest img { display:block; width:100%; height:100%; object-fit:contain; }
+  /* tape: centered on a point, long enough to leave the frame on both ends */
+  .tape { position:absolute; width:2200px; height:84px; display:flex; align-items:center; overflow:hidden; white-space:nowrap; transform:translate(-50%,-50%) rotate(var(--r)); }
+  .tape span { font:900 44px/1 var(--cond); letter-spacing:.08em; text-transform:uppercase; padding:0 20px; flex:none; }
+</style></head>
+<body><main>
+  <span class="k">Mix and match: pick one option per slide for each post</span>
+  <h1>Meet the Legend · carousel slides</h1>
+  <p class="lede">Options for each slide of a Meet the Legend carousel. For each post we pick one option per slide. Rules: no flat backgrounds, the big series title on every slide, the crest wherever the House is named, a clean name wherever spray covers one, and the cutout on two slides at most.</p>
+  <div id="rows"></div>
+</main>
+<script>
+  const T = n => `a/tex/${n}.webp`, PT = (n, c) => `a/pat/${n}-${c}.webp`;
+  const tex = (n, op, blend="multiply", extra="") => `<div class="L" style="background-image:url('${T(n)}');mix-blend-mode:${blend};opacity:${op};${extra}"></div>`;
+  const pat = (n, c, op=1, extra="") => `<div class="L" style="background-image:url('${PT(n,c)}');opacity:${op};${extra}"></div>`;
+  const FIG = n => `a/fig/${n}.webp`, SP = (s, c) => `a/stroke/${s}-${c}.webp`, CREST = h => `a/crest/${h}.webp`, LET = `a/let/meet-the-legend.webp`;
+  let seed = 4; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+  function band(y0, y1, n, amp) { const top=[], bot=[]; for (let i=0;i<=n;i++){ const x=-2+i*(104/n); top.push([x, y0 + (rnd()-.5)*amp]); bot.unshift([x, y1 + (rnd()-.5)*amp]); } return "polygon(" + top.concat(bot).map(([x,y])=>`${x.toFixed(2)}% ${y.toFixed(2)}%`).join(",") + ")"; }
+  function jag(points, amp) { return "polygon(" + points.map(([x,y]) => `${(x + (rnd()-.5)*amp).toFixed(2)}% ${(y + (rnd()-.5)*amp).toFixed(2)}%`).join(",") + ")"; }
+  const tape = (x, y, r, bg, fg, txt) => `<div class="tape" style="left:${x}px;top:${y}px;--r:${r}deg;background:${bg};justify-content:center">${Array(15).fill(`<span style="color:${fg}">${txt}</span>`).join("")}</div>`;
+  // theme helpers: base color, text-on-base, lettering filter for base, accent
+  const TH = {
+    red:    { bg:"var(--red)", fg:"var(--ink)", letF:"brightness(0)", dark:false, deep:"deep", ink:"ink" },
+    purple: { bg:"var(--purple)", fg:"var(--bone)", letF:"brightness(0) invert(1)", dark:true, deep:"ink", ink:"ink" },
+    ink:    { bg:"var(--ink)", fg:"var(--bone)", letF:"brightness(0) invert(1)", dark:true, deep:"deep", ink:"deep" },
+    green:  { bg:"var(--green)", fg:"var(--ink)", letF:"brightness(0)", dark:false, deep:"ink", ink:"ink" },
+    bone:   { bg:"var(--bone)", fg:"var(--ink)", letF:"", dark:false, deep:"deep", ink:"ink" },
+  };
+
+  const L = {
+    torn: (t) => { seed = 4; const th = TH[t]; return { bg: th.bg, html:
+      tex("concrete", th.dark ? .14 : .32, th.dark ? "screen" : "multiply") + pat("halftone-fade", th.deep, .55) + `
+      <img class="abs" src="${LET}" style="left:46px;top:30px;height:255px;filter:${th.letF}">
+      <div class="abs" style="left:0;right:0;top:320px;height:520px;background:var(--bone);clip-path:${band(4,96,14,9)}"></div>
+      <div class="abs" style="left:0;right:0;top:320px;height:520px;background:#000;clip-path:${band(10,90,16,8)};overflow:hidden"><img src="${FIG('venus_face')}" style="position:absolute;left:-60px;top:-330px;width:1240px"></div>
+      <span class="tile" style="--fs:200px;left:60px;top:880px;background:var(--ink);color:var(--bone);transform:rotate(-4deg)">Venus</span>
+      <span class="tile" style="--fs:120px;left:380px;top:1080px;background:var(--bone);color:var(--ink);transform:rotate(3deg)">Estrela</span>
+      <div class="crest" style="left:66px;top:1100px;width:130px;height:130px;background:var(--ink);transform:rotate(-4deg)"><img src="${CREST('estrela')}"></div>
+      <span class="tile mono" style="--fs:22px;left:210px;top:1250px;background:var(--red);color:#fff;border:4px solid var(--ink);font-family:var(--mono)">House of Estrela · 16 · Bronx</span>` }; },
+
+    giant: (t) => { const th = TH[t]; const nameC = t==="ink" ? "var(--red)" : "var(--ink)"; return { bg: th.bg, html:
+      tex("brick", th.dark ? .12 : .3, th.dark ? "screen" : "multiply") + pat("site-dots-slash", th.ink, .14) + `
+      <img class="abs" src="${SP('swipe', t==='green' ? 'purple' : 'green')}" style="left:-60px;top:90px;width:1220px;opacity:.95">
+      <div class="abs" style="left:-14px;right:-14px;top:40px;font:900 400px/.8 var(--cond);color:${nameC};text-transform:uppercase;text-align:center">Xavier</div>
+      <div class="abs" style="left:-14px;right:-14px;top:380px;font:900 246px/.8 var(--cond);color:transparent;-webkit-text-stroke:5px ${nameC};text-transform:uppercase;text-align:center">Santiago</div>
+      <img class="abs" src="${FIG('xavier-hero')}" style="left:120px;top:110px;height:1420px">
+      <img class="abs" src="${LET}" style="left:36px;bottom:140px;height:240px;filter:${th.dark ? '' : 'brightness(0) invert(1)'}">
+      <div class="abs" style="left:0;right:0;bottom:0;height:120px;background:var(--ink);display:flex;align-items:center;gap:22px;padding:0 40px">
+        <img src="${CREST('estrela')}" style="height:84px"><span style="font:900 54px/1 var(--cond);text-transform:uppercase;color:var(--bone)">Xavier Santiago</span>
+        <span class="mono" style="margin-left:auto;font-size:20px;color:var(--green)">House of Estrela · 17</span></div>` }; },
+
+    tape: (t) => { const th = TH[t]; const tapeA = t==="green" ? ["var(--ink)","var(--green)"] : ["var(--green)","var(--ink)"]; return { bg: th.bg, html:
+      pat("site-dots-slash", th.ink, .2) + `<div class="L" style="background-image:url('a/pat/bronx-skyline.webp');background-position:bottom;background-size:auto 62%;background-repeat:repeat-x;mix-blend-mode:multiply;opacity:.92"></div>
+                  ${tape(140, 140, -45, "var(--ink)", "var(--bone)", "No Shade! ★")}
+      <img class="abs" src="${FIG('venus-hero')}" style="left:120px;top:120px;height:1500px">
+      ${tape(300, 300, -45, tapeA[0], tapeA[1], "No Shade! ★")}
+      ${tape(900, 1190, -45, tapeA[0], tapeA[1], "Comment ORUN ★")}
+      <img class="abs" src="${LET}" style="right:36px;top:36px;height:250px;filter:${th.letF}">
+      <span class="tile" style="--fs:130px;left:50px;top:900px;background:var(--ink);color:var(--bone);transform:rotate(-3deg)">Venus Estrela</span>
+      <div class="crest" style="left:56px;top:1050px;width:110px;height:110px;background:var(--ink)"><img src="${CREST('estrela')}"></div>
+      <span class="tile mono" style="--fs:22px;left:180px;top:1085px;background:var(--bone);color:var(--ink);font-family:var(--mono)">House of Estrela · 16 · Bronx</span>` }; },
+
+    spec: (t) => { seed = 21; const th = TH[t]; const rows = [["Age","17"],["From","Bronx, NY"],["Power","Celestial"],["House","Estrela"],["Role","Protagonist"]]; return { bg: th.bg, html:
+      pat("site-dots-slash", th.ink, .22) + `<div class="L" style="background:var(--ink);clip-path:polygon(0 0,58% 0,30% 100%,0 100%)"></div>
+      <div class="L" style="clip-path:polygon(0 0,58% 0,30% 100%,0 100%)">${tex("concrete",.1,"screen")}${pat("chain-link", t==='red' ? 'red' : (t==='purple' ? 'purple' : 'red'), .5)}</div>
+      <div class="abs" style="right:-30px;top:-40px;writing-mode:vertical-rl;font:900 330px/.8 var(--cond);color:transparent;-webkit-text-stroke:4px rgba(0,0,0,.4);text-transform:uppercase">Xavier</div>
+      <img class="abs" src="${FIG('xavier-hero')}" style="right:-260px;top:90px;height:1420px">
+      <img class="abs" src="${LET}" style="left:40px;top:30px;height:240px">
+      <span class="tile" style="--fs:120px;left:46px;top:300px;background:var(--bone);color:var(--ink);transform:rotate(-3deg)">Xavier</span>
+      <span class="tile" style="--fs:72px;left:70px;top:440px;background:var(--red);color:#fff;transform:rotate(2deg)">Santiago</span>
+      ${rows.map(([k,v],i)=>`<div class="abs" style="left:${50+(i%2)*26}px;top:${590+i*128}px;width:470px;height:108px;background:${i%2?'var(--bone)':'#1c141a'};clip-path:${jag([[0,0],[100,6],[97,100],[2,94]],4)};transform:rotate(${i%2?2:-2}deg);display:flex;align-items:center;gap:18px;padding:0 30px">
+        <span class="mono" style="font-size:20px;color:${i%2?'var(--deep)':'var(--muted)'}">${k}</span>${k==='House'?`<img src="${CREST('estrela')}" style="height:70px;margin-left:auto;filter:brightness(0)">`:''}<span style="${k==='House'?'':'margin-left:auto;'}font:900 58px/1 var(--cond);text-transform:uppercase;color:${i%2?'var(--ink)':'var(--bone)'}">${v}</span></div>`).join("")}` }; },
+
+    sprayed: (t) => { const th = TH[t]; const dark = th.dark; const ink = dark ? "var(--bone)" : "var(--ink)"; return { bg: th.bg, html:
+      (dark ? tex("concrete",.12,"screen") : `<div class="L" style="mix-blend-mode:multiply;opacity:.55;background:radial-gradient(circle at 1px 1px, rgba(0,0,0,.18) 1px, transparent 1.3px) 0 0/4px 4px"></div>`) + `
+      <img class="abs" src="${FIG('bolade-hero-v2')}" style="left:140px;top:60px;height:1480px;filter:grayscale(1) contrast(1.7) brightness(1.05) ${dark ? 'invert(0)' : ''};mix-blend-mode:${dark ? 'screen' : 'multiply'}">
+      <div class="abs" style="left:46px;top:40px;writing-mode:vertical-rl;transform:rotate(180deg);font:900 92px/.9 var(--cond);color:${ink};text-transform:uppercase">The Danu · Life & Death</div>
+      <img class="abs" src="${SP('zigzag', t==='bone' ? 'red' : 'green')}" style="left:40px;top:880px;width:1020px;opacity:.95">
+      <div class="abs" style="left:40px;right:30px;top:900px;font:900 290px/.8 var(--cond);color:${ink};text-transform:uppercase">Bolade</div>
+      <img class="abs" src="${SP('scribble', t==='bone' ? 'red' : 'green')}" style="left:250px;top:300px;width:340px;opacity:.9">
+      <div class="abs" style="left:46px;top:1150px;display:flex;align-items:center;gap:16px;transform:rotate(-2deg)">
+        <div class="crest" style="position:static;width:100px;height:100px;background:var(--ink)"><img src="${CREST('fundamentalist')}"></div>
+        <span class="tile" style="position:static;--fs:64px;background:${dark ? 'var(--bone)' : 'var(--ink)'};color:${dark ? 'var(--ink)' : 'var(--bone)'}">Bolade Dobulo</span></div>
+      <div class="abs mono" style="left:56px;top:1290px;font-size:21px;color:${ink}">A visionary. A heretic. A genius gone rogue.</div>
+      <img class="abs" src="${LET}" style="right:36px;top:36px;height:240px">` }; },
+    // ---------- SLIDE 2 · STATS ----------
+    ransom: (t) => { seed = 9; const th = TH[t]; const st = [["Age","17"],["From","Bronx, NY"],["Power","Celestial"],["House","Estrela"],["Role","Protagonist"]]; return { bg: th.bg, html:
+      tex("concrete", th.dark ? .12 : .3, th.dark ? "screen" : "multiply") + pat("halftone-radial", th.deep, .55) + `
+      <img class="abs" src="${FIG('xavier-hero')}" style="right:-330px;top:150px;height:1450px">
+      <img class="abs" src="${LET}" style="left:40px;top:30px;height:250px;filter:${th.letF}">
+      <span class="tile" style="--fs:96px;left:44px;top:300px;background:${th.dark?'var(--red)':'var(--ink)'};color:var(--bone);transform:rotate(-3deg)">Xavier's stats</span>
+      ${st.map(([k,v],i)=>`<div class="abs" style="left:${40+(i%2)*60}px;top:${450+i*165}px;display:flex;align-items:flex-end;gap:10px;transform:rotate(${[-3,2,-2,3,-1][i]}deg)">
+        <span class="mono" style="font-size:22px;background:var(--green);color:var(--ink);border:4px solid var(--ink);padding:6px 10px">${k}</span>
+        ${k==='House'?`<span style="background:var(--ink);padding:10px;display:inline-block"><img src="${CREST('estrela')}" style="height:92px;display:block"></span>`:''}
+        <span style="font:900 ${[120,96,100,100,92][i]}px/.9 var(--cond);text-transform:uppercase;padding:8px 18px 4px;background:${i%2?'var(--bone)':(th.dark?'var(--purple)':'var(--ink)')};color:${i%2?'var(--ink)':'var(--bone)'}">${v}</span></div>`).join("")}` }; },
+
+    skills: (t) => { seed = 13; const th = TH[t]; const st = [["Age","17",.45],["From","Bronx, NY",.9],["Power","Celestial",.8],["House","Estrela",.7],["Role","Protagonist",1]]; return { bg: th.bg, html:
+      pat("speed-lines", th.deep, .55) + tex("concrete", .1, "screen") + `
+      <img class="abs" src="${FIG('xavier-hero')}" style="right:-250px;top:80px;height:1450px">
+      <img class="abs" src="${LET}" style="left:40px;top:30px;height:250px;filter:${th.letF}">
+      <div class="abs" style="left:30px;top:300px;width:640px;height:110px;background:var(--bone);clip-path:${jag([[0,10],[100,0],[96,100],[3,92]],3)};display:flex;align-items:center;padding:0 34px"><span style="font:900 86px/1 var(--cond);text-transform:uppercase;color:var(--ink)">Skills</span><span class="mono" style="margin-left:auto;font-size:20px;color:var(--red)">Xavier Santiago</span></div>
+      ${st.map(([k,v,w],i)=>`<div class="abs" style="left:${40+i*8}px;top:${440+i*150}px;width:600px;height:128px;background:var(--ink);border:5px solid ${th.dark ? 'var(--red)' : 'var(--bone)'};clip-path:${jag([[0,4],[100,0],[98,100],[1,96]],3)};transform:rotate(${i%2?1.5:-1.5}deg)">
+        <div class="abs" style="left:0;top:0;bottom:0;width:${Math.round(w*100)}%;background:var(--red);clip-path:polygon(0 0,100% 0,94% 100%,0 100%)"></div>
+        <span class="abs mono" style="left:20px;top:16px;font-size:20px;color:var(--bone)">${k}</span>
+        ${k==='House'?`<img class="abs" src="${CREST('estrela')}" style="right:20px;top:14px;height:96px">`:''}
+        <span class="abs" style="left:20px;bottom:12px;font:900 64px/1 var(--cond);text-transform:uppercase;color:var(--bone)">${v}</span></div>`).join("")}` }; },
+
+    idcard: (t) => { const th = TH[t]; const st = [["Name","Xavier Santiago"],["Age","17"],["From","Bronx, NY"],["Power","Celestial"],["House","Estrela"],["Role","Protagonist"]]; return { bg: th.bg, html:
+      (th.dark ? tex("concrete", .1, "screen") : tex("concrete", .35)) + pat("chain-link", t==="red" ? "deep" : "red", t==="red" ? .75 : .4) + `
+      <img class="abs" src="${FIG('xavier-hero')}" style="right:-380px;top:60px;height:1500px">
+      <img class="abs" src="${LET}" style="left:40px;top:30px;height:250px;filter:${th.letF}">
+      <div class="abs" style="left:50px;top:330px;width:700px;height:900px;background:var(--bone);transform:rotate(-4deg);overflow:hidden">
+        ${tex("concrete",.18)}
+        <div class="abs" style="left:0;right:0;top:0;height:120px;background:var(--red);display:flex;align-items:center;gap:18px;padding:0 26px">
+          <span style="background:var(--ink);padding:8px;display:inline-block"><img src="${CREST('estrela')}" style="height:80px;display:block"></span>
+          <span style="font:900 54px/.9 var(--cond);text-transform:uppercase;color:#fff">Orun · House ID</span></div>
+        <div class="abs" style="left:30px;top:150px;width:250px;height:300px;background:var(--ink);overflow:hidden"><img src="${FIG('xavier-hero')}" style="position:absolute;left:-423px;top:-250px;height:1800px"></div>
+        <div class="abs" style="left:310px;top:150px;right:30px;display:grid;gap:10px">
+          ${st.slice(0,3).map(([k,v])=>`<div><div class="mono" style="font-size:16px;color:var(--deep)">${k}</div><div style="font:900 ${k==='Name'?54:58}px/.95 var(--cond);text-transform:uppercase;color:var(--ink)">${v}</div></div>`).join("")}</div>
+        <div class="abs" style="left:30px;right:30px;top:490px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+          ${st.slice(3).map(([k,v])=>`<div style="border-top:4px solid var(--ink);padding-top:8px"><div class="mono" style="font-size:16px;color:var(--deep)">${k}</div><div style="font:900 40px/1 var(--cond);text-transform:uppercase;color:var(--ink)">${v}</div></div>`).join("")}</div>
+        <div class="abs" style="left:30px;right:220px;bottom:40px;height:110px;background:repeating-linear-gradient(90deg,var(--ink) 0 6px,transparent 6px 10px,var(--ink) 10px 13px,transparent 13px 20px)"></div>
+        <div class="abs mono" style="left:30px;bottom:12px;font-size:16px;color:var(--ink)">No. 001 · Issued Bronx 1986</div>
+        <div class="abs" style="right:30px;bottom:40px;width:170px;height:170px;border:8px solid var(--red);border-radius:50%;display:grid;place-items:center;transform:rotate(-14deg)"><span style="font:900 46px/.9 var(--cond);color:var(--red);text-transform:uppercase;text-align:center">Jagun</span></div>
+      </div>` }; },
+
+    bignum: (t) => { const th = TH[t]; return { bg: th.bg, html:
+      tex("concrete", th.dark ? .12 : .3, th.dark ? "screen" : "multiply") + pat("halftone-fade", "ink", .4) + `
+      <div class="abs" style="left:10px;top:290px;font:900 900px/.78 var(--cond);color:transparent;-webkit-text-stroke:8px ${th.dark ? 'var(--bone)' : 'var(--ink)'};letter-spacing:-.04em">17</div>
+      <img class="abs" src="${FIG('xavier-hero')}" style="right:-260px;top:110px;height:1450px">
+      <img class="abs" src="${LET}" style="left:40px;top:30px;height:250px;filter:${th.letF}">
+      <span class="tile mono" style="--fs:26px;left:60px;top:300px;background:var(--ink);color:var(--bone);font-family:var(--mono)">Age</span>
+      <div class="abs" style="left:40px;bottom:50px;width:620px;background:var(--ink);padding:26px 30px;display:grid;gap:10px">
+        <div style="display:flex;align-items:center;gap:16px"><img src="${CREST('estrela')}" style="height:70px"><span style="font:900 64px/1 var(--cond);text-transform:uppercase;color:var(--bone)">Xavier Santiago</span></div>
+        ${[["From","Bronx, NY"],["Power","Celestial"],["House","Estrela"],["Role","Protagonist"]].map(([k,v])=>`<div style="display:flex;justify-content:space-between;border-top:2px solid #3a2b35;padding-top:8px"><span class="mono" style="font-size:18px;color:var(--muted)">${k}</span><span style="font:900 40px/1 var(--cond);text-transform:uppercase;color:${k==='Power'?'var(--green)':'var(--bone)'}">${v}</span></div>`).join("")}</div>` }; },
+
+    // ---------- SLIDE 3 · QUOTE ----------
+    qspray: (t) => { const th = TH[t]; const ink = th.dark ? "var(--bone)" : "var(--ink)"; return { bg: th.bg, html:
+      tex("concrete", th.dark ? .12 : .3, th.dark ? "screen" : "multiply") + pat("site-dots-slash", th.ink, .18) + `
+      <img class="abs" src="${FIG('bolade-hero-v2')}" style="right:-330px;top:180px;height:1400px">
+      <img class="abs" src="${LET}" style="left:40px;top:30px;height:250px;filter:${th.letF}">
+      <img class="abs" src="${SP('swipe', t==='purple' ? 'green' : 'purple')}" style="left:20px;top:560px;width:720px;opacity:.95">
+      <div class="abs" style="left:60px;top:400px;width:640px;font:900 92px/.92 var(--cond);text-transform:uppercase;color:${ink}">“I am the one actually <span style="color:var(--bone)">building the future.</span> And they banished me for it.”</div>
+      <div class="abs" style="left:60px;top:1050px;display:flex;align-items:center;gap:16px">
+        <span style="background:var(--ink);padding:10px;display:inline-block"><img src="${CREST('fundamentalist')}" style="height:84px;display:block"></span>
+        <div><div style="font:900 60px/1 var(--cond);text-transform:uppercase;color:${ink}">Bolade Dobulo</div><div class="mono" style="font-size:20px;color:${ink};opacity:.75">The Danu · Life & Death</div></div></div>` }; },
+
+    qscene: (t) => { const th = TH[t]; const tint = t==="purple" ? "var(--purple)" : (t==="ink" ? "var(--deep)" : "var(--red)"); return { bg: "#000", html: `
+      <div class="L" style="background:#000"><img src="a/frame/xavier-0.webp" style="position:absolute;left:-330px;top:-20px;height:1500px;filter:grayscale(1) contrast(1.2) brightness(1.55)"></div>
+      <div class="L" style="background:${tint};mix-blend-mode:multiply"></div>
+      <div class="L" style="background:linear-gradient(0deg, rgba(11,7,9,.9) 0%, rgba(11,7,9,.35) 38%, transparent 55%)"></div>
+      ${pat("halftone-fade","ink",.35)}
+      <img class="abs" src="${LET}" style="left:40px;top:30px;height:250px;filter:brightness(0) invert(1)">
+      <img class="abs" src="${SP('slash', t==='purple' ? 'green' : 'purple')}" style="left:-40px;top:760px;width:820px;opacity:.9">
+      <div class="abs" style="left:60px;right:80px;top:820px;font:900 104px/.9 var(--cond);text-transform:uppercase;color:var(--bone)">“Survival and presence are not the same thing.”</div>
+      <div class="abs" style="left:60px;bottom:60px;display:flex;align-items:center;gap:16px">
+        <span style="background:var(--ink);padding:10px;display:inline-block;border:3px solid var(--bone)"><img src="${CREST('estrela')}" style="height:70px;display:block"></span>
+        <div><div style="font:900 60px/1 var(--cond);text-transform:uppercase;color:var(--bone)">Xavier Santiago</div><div class="mono" style="font-size:20px;color:var(--bone);opacity:.8">House of Estrela · Bronx, 1986</div></div></div>
+      <div class="tape" style="left:960px;top:150px;--r:45deg;background:var(--ink);justify-content:center">${Array(15).fill('<span style="color:var(--bone)">No Shade! ★</span>').join("")}</div>` }; },
+
+    qtype: (t) => { const th = TH[t]; const ink = th.dark ? "var(--bone)" : "var(--ink)"; return { bg: th.bg, html:
+      tex("concrete", th.dark ? .12 : .32, th.dark ? "screen" : "multiply") + pat("speed-lines", th.deep, .35) + `
+      <img class="abs" src="${CREST('estrela')}" style="left:50%;top:42%;width:620px;transform:translate(-50%,-50%);opacity:${t==='ink' ? .2 : .22};filter:${t==='ink' ? 'none' : 'brightness(0)'};mix-blend-mode:${t==='ink' ? 'screen' : 'multiply'}">
+      <img class="abs" src="${LET}" style="left:40px;top:30px;height:250px;filter:${th.letF}">
+      <img class="abs" src="${SP('underline', t==='purple' ? 'green' : 'purple')}" style="left:30px;top:830px;width:880px">
+      <div class="abs" style="left:60px;right:60px;top:510px;font:900 150px/.86 var(--cond);text-transform:uppercase;color:${ink}">“Not in spite of the world. <span style="color:var(--bone)">Because of it.”</span></div>
+      <div class="abs" style="right:80px;top:1120px;font:900 64px/1 var(--cond);text-transform:uppercase;color:${ink}">— Venus Estrela</div>` }; },
+
+    qnote: (t) => { seed = 29; const th = TH[t]; return { bg: th.bg, html:
+      tex("brick", th.dark ? .12 : .28, th.dark ? "screen" : "multiply") + pat("site-dots-slash", th.ink, .12) + `
+      <img class="abs" src="${FIG('venus-hero')}" style="right:-200px;top:140px;height:1450px">
+      <img class="abs" src="${LET}" style="left:40px;top:30px;height:250px;filter:${th.letF}">
+      ${["She lives","out loud.","Not in spite","of the world.","Because of it."].map((w,i)=>`<div class="abs" style="left:${50+[0,40,10,60,20][i]}px;top:${330+i*150}px;padding:16px 26px 10px;background:var(--bone);clip-path:${jag([[0,6],[100,0],[98,96],[2,100]],3)};transform:rotate(${[-3,2,-2,3,-1][i]}deg)">${tex("concrete",.15)}<span style="position:relative;font:900 ${i===4?110:96}px/.9 var(--cond);text-transform:uppercase;color:${i===4?'var(--red)':'var(--ink)'}">${w}</span></div>`).join("")}
+      <div class="abs" style="left:120px;top:315px;width:180px;height:44px;background:rgba(247,241,243,.55);transform:rotate(-12deg)"></div>
+      <div class="abs" style="left:50px;bottom:60px;display:flex;align-items:center;gap:16px;background:var(--ink);padding:14px 22px">
+        <img src="${CREST('estrela')}" style="height:70px"><span style="font:900 56px/1 var(--cond);text-transform:uppercase;color:var(--bone)">Venus Estrela</span></div>` }; },
+
+    qsubtitle: (t) => { const th = TH[t]; return { bg: "#000", html: `
+      <img class="abs" src="a/frame/soro-1.webp" style="left:-200px;top:0;height:1350px;width:auto;filter:brightness(.6) saturate(1.1)">
+      <div class="L" style="background:linear-gradient(0deg, ${t==='purple' ? 'rgba(120,34,214,.85)' : 'rgba(11,7,9,.9)'} 0%, transparent 55%)"></div>
+      ${pat("scanlines-grain","ink",.25)}
+      <img class="abs" src="${LET}" style="left:40px;top:30px;height:250px;filter:brightness(0) invert(1)">
+      <div class="abs" style="left:60px;right:60px;bottom:250px;display:grid;gap:12px;justify-items:start">
+        <span style="font:900 96px/1 var(--cond);text-transform:uppercase;background:var(--bone);color:var(--ink);padding:8px 20px 2px">“Oh, what a gift</span>
+        <span style="font:900 96px/1 var(--cond);text-transform:uppercase;background:var(--bone);color:var(--ink);padding:8px 20px 2px">you are.”</span></div>
+      <div class="abs" style="left:60px;bottom:90px;display:flex;align-items:center;gap:16px">
+        <span style="background:var(--ink);padding:10px;display:inline-block;border:3px solid var(--bone)"><img src="${CREST('fundamentalist')}" style="height:70px;display:block"></span>
+        <div><div style="font:900 60px/1 var(--cond);text-transform:uppercase;color:var(--bone)">Soro</div><div class="mono" style="font-size:20px;color:var(--bone);opacity:.8">The Danu · Bolade's blade</div></div></div>` }; },
+
+    // ---------- SLIDES 4-5 · STORY ----------
+    spanels: (t) => { seed = 41; const th = TH[t]; const F = n => `a/frame/xavier-${n}.webp`; return { bg: th.bg, html:
+      tex("concrete", th.dark ? .12 : .3, th.dark ? "screen" : "multiply") + pat("halftone-fade", th.deep, .45) + `
+      <img class="abs" src="${LET}" style="left:40px;top:30px;height:250px;filter:${th.letF}">
+      <span class="tile mono" style="--fs:24px;right:40px;top:60px;background:var(--ink);color:var(--bone);font-family:var(--mono)">Ch. 01 · The new kid</span>
+      <div class="abs" style="left:40px;right:40px;top:300px;height:470px;background:var(--ink);clip-path:${jag([[0,2],[100,0],[99,96],[1,100]],2)};padding:10px"><img src="${F(0)}" style="width:100%;height:100%;object-fit:cover;object-position:30% 30%;display:block"></div>
+      <div class="abs" style="left:40px;width:490px;top:790px;height:400px;background:var(--ink);clip-path:${jag([[0,0],[100,4],[96,100],[2,98]],2)};padding:10px"><img src="${F(1)}" style="width:100%;height:100%;object-fit:cover;object-position:80% 40%;display:block"></div>
+      <div class="abs" style="right:40px;width:490px;top:810px;height:400px;background:var(--ink);clip-path:${jag([[4,0],[100,2],[100,100],[0,96]],2)};padding:10px"><img src="${F(2)}" style="width:100%;height:100%;object-fit:cover;object-position:30% 30%;display:block"></div>
+      <span class="tile" style="--fs:40px;left:70px;top:690px;background:var(--bone);color:var(--ink);font-family:var(--body);font-weight:700;text-transform:none;font-size:30px;padding:12px 18px">Bronx, 1986. The new kid.</span>
+      <span class="tile" style="left:70px;top:1120px;background:var(--bone);color:var(--ink);font-family:var(--body);font-weight:700;text-transform:none;font-size:28px;padding:10px 16px">His rhythm hides the chaos.</span>
+      <span class="tile" style="right:70px;top:1140px;background:var(--bone);color:var(--ink);font-family:var(--body);font-weight:700;text-transform:none;font-size:28px;padding:10px 16px">First day at Bronx Science Prep.</span>
+      <span class="handle mono" style="position:absolute;left:44px;bottom:40px;font-size:20px;color:${th.dark ? 'var(--muted)' : 'rgba(0,0,0,.65)'}">Xavier Santiago · 1/2</span>` }; },
+
+    sbleed: (t) => { const th = TH[t]; return { bg: "#000", html: `
+      <img class="abs" src="a/frame/xavier-2.webp" style="left:-560px;top:0;height:1350px">
+      <div class="L" style="background:linear-gradient(0deg, rgba(11,7,9,.92) 0%, rgba(11,7,9,.6) 30%, transparent 52%)"></div>
+      ${pat("scanlines-grain","ink",.18)}
+      <img class="abs" src="${LET}" style="left:40px;top:30px;height:250px;filter:brightness(0) invert(1)">
+      <div class="abs" style="left:0;top:640px;background:${t==='purple' ? 'var(--purple)' : 'var(--red)'};padding:14px 28px 10px 40px"><span style="font:900 110px/.9 var(--cond);text-transform:uppercase;color:var(--bone)">Bronx · 1986</span></div>
+      <div class="abs" style="left:40px;right:40px;bottom:110px;background:var(--bone);padding:30px 34px;border-left:12px solid ${t==='purple' ? 'var(--purple)' : 'var(--red)'}">
+        <div class="mono" style="font-size:24px;color:var(--deep);margin-bottom:10px">Ch. 01 · The new kid</div>
+        <div style="font:400 52px/1.22 var(--body);color:var(--ink)">On the dance floor he's untouchable, with a stillness at the top of every move that his mother taught him.</div></div>
+      <span class="mono" style="position:absolute;left:44px;bottom:44px;font-size:26px;color:var(--bone)">Xavier Santiago · 2/2</span>` }; },
+
+    sstrip: (t) => { const th = TH[t]; const F = n => `a/frame/xavier-${n}.webp`; const cap = ["The new kid.","His rhythm hides the chaos.","First day at Bronx Science Prep."]; return { bg: th.bg, html:
+      tex("concrete", th.dark ? .12 : .3, th.dark ? "screen" : "multiply") + pat("site-dots-slash", th.ink, .15) + `
+      <img class="abs" src="${LET}" style="left:40px;top:30px;height:250px;filter:${th.letF}">
+      <div class="abs" style="left:110px;top:290px;width:860px;height:1010px;background:#0d0a0c;transform:rotate(-2deg);padding:20px 70px">
+        <div class="abs" style="left:14px;top:0;bottom:0;width:36px;background:repeating-linear-gradient(0deg,transparent 0 22px,var(--bone) 22px 46px);opacity:.85;-webkit-mask:linear-gradient(#000,#000)"></div>
+        <div class="abs" style="right:14px;top:0;bottom:0;width:36px;background:repeating-linear-gradient(0deg,transparent 0 22px,var(--bone) 22px 46px);opacity:.85"></div>
+        ${[0,1,2].map(i=>`<div style="position:relative;height:300px;margin:10px 0;overflow:hidden"><img src="${F(i)}" style="width:100%;height:100%;object-fit:cover;object-position:${['25% 30%','80% 40%','30% 30%'][i]};display:block">
+          <span class="mono" style="position:absolute;left:12px;bottom:10px;font-size:18px;background:var(--ink);color:var(--bone);padding:6px 10px">0${i+1} · ${cap[i]}</span></div>`).join("")}
+      </div>
+      <img class="abs" src="${SP('scribble', t==='purple' ? 'green' : 'purple')}" style="left:800px;top:1170px;width:260px;opacity:.95">
+      <span class="tile" style="--fs:64px;right:40px;top:120px;background:var(--ink);color:var(--bone);transform:rotate(3deg)">Ch. 01</span>` }; },
+
+    sfile: (t) => { seed = 55; const th = TH[t]; const F = n => `a/frame/xavier-${n}.webp`; return { bg: th.bg, html:
+      tex("concrete", th.dark ? .12 : .3, th.dark ? "screen" : "multiply") + pat("chain-link", t==="red" ? "deep" : "red", t==="red" ? .7 : .45) + `
+      <img class="abs" src="${LET}" style="left:40px;top:30px;height:250px;filter:${th.letF}">
+      ${[[0,60,320,-5,"Bronx, 1986"],[1,520,420,4,"The block"],[2,120,820,-2,"Bronx Science Prep"]].map(([n,x,y,r,c])=>`<div class="abs" style="left:${x}px;top:${y}px;width:500px;background:var(--bone);padding:18px 18px 70px;transform:rotate(${r}deg)">
+        <img src="${F(n)}" style="width:100%;height:330px;object-fit:cover;display:block">
+        <span class="abs" style="left:22px;bottom:18px;font:900 40px/1 var(--cond);text-transform:uppercase;color:var(--ink)">${c}</span>
+        <div class="abs" style="left:50%;top:-22px;width:160px;height:44px;background:rgba(247,241,243,.6);transform:translateX(-50%) rotate(${-r*2}deg)"></div></div>`).join("")}
+      <div class="abs" style="right:40px;bottom:70px;width:420px;background:var(--ink);padding:22px 24px;transform:rotate(2deg)">
+        <div class="mono" style="font-size:18px;color:${t==='purple' ? 'var(--green)' : 'var(--red)'};margin-bottom:6px">Case file · Xavier Santiago</div>
+        <div style="font:500 26px/1.35 var(--body);color:var(--bone)">A cosmic storm hits Yankee Stadium. His eyes turn gold, and now he can see them.</div></div>` }; },
+
+    // ---------- SLIDE 6 · CALL TO ACTION ----------
+    ctape: (t) => { const th = TH[t]; const ink = th.dark ? "var(--bone)" : "var(--ink)"; return { bg: th.bg, html:
+      tex("concrete", th.dark ? .12 : .32, th.dark ? "screen" : "multiply") + pat("hazard-stripes", th.ink, .07) + `
+      <img class="abs" src="${LET}" style="left:40px;top:30px;height:250px;filter:${th.letF}">
+      ${tape(540, 330, -8, "var(--ink)", "var(--bone)", "Comment ORUN ★")}
+      ${tape(540, 1100, -8, "var(--green)", "var(--ink)", "Comment ORUN ★")}
+      <div class="abs" style="left:60px;right:60px;top:500px;font:900 210px/.84 var(--cond);text-transform:uppercase;color:${ink}">Comment<br><span style="display:inline-block;margin-top:26px;color:var(--bone);background:var(--ink);padding:14px 24px 0">ORUN</span> 🔑</div>
+      <div class="abs" style="left:60px;right:60px;top:950px;display:flex;align-items:center;justify-content:space-between">
+        <span style="font:400 34px/1.3 var(--body);color:${ink}">We'll DM you the key to the House.</span></div>
+      <div class="abs" style="left:60px;bottom:50px;background:var(--ink);padding:16px 26px"><span style="font:900 64px/1 var(--cond);text-transform:uppercase;color:var(--bone)">noshade.tv</span></div>` }; },
+
+    cjoin: (t, logo='stroke') => { const th = TH[t]; const ink = th.dark ? "var(--bone)" : "var(--ink)"; return { bg: th.bg, html:
+      pat("adire-bands", th.deep, .5) + tex("concrete", th.dark ? .1 : .25, th.dark ? "screen" : "multiply") + `
+      <img class="abs" src="${LET}" style="left:40px;top:30px;height:250px;filter:${th.letF}">
+      <img class="abs" src="${logo==='stroke' ? 'a/logo/NoShade_EF2D38_flat.webp' : 'a/logo/NoShade_white.webp'}" style="left:50%;top:300px;width:600px;transform:translateX(-50%);filter:${logo==='black' ? 'brightness(0)' : 'none'}">
+      <div class="abs" style="left:60px;right:60px;top:800px;text-align:center;font:900 120px/.9 var(--cond);text-transform:uppercase;color:${ink}">Join the House</div>
+      <div class="abs" style="left:60px;right:60px;top:950px;text-align:center;font:400 36px/1.3 var(--body);color:${ink}">Comment <b>ORUN</b> and we'll send you the key 🔑</div>
+      <div class="abs" style="left:50%;top:1090px;transform:translateX(-50%);background:var(--green);padding:20px 40px"><span style="font:900 70px/1 var(--cond);text-transform:uppercase;color:var(--ink)">noshade.tv</span></div>` }; },
+
+    cdm: (t) => { const th = TH[t]; const ink = th.dark ? "var(--bone)" : "var(--ink)"; return { bg: th.bg, html:
+      tex("concrete", th.dark ? .12 : .3, th.dark ? "screen" : "multiply") + pat("speed-lines", th.deep, .4) + `
+      <img class="abs" src="${LET}" style="left:40px;top:30px;height:250px;filter:${th.letF}">
+      <div class="abs" style="left:60px;top:330px;width:520px;font:900 130px/.86 var(--cond);text-transform:uppercase;color:${ink}">Comment ORUN.<br><span style="color:var(--bone)">Check your DMs.</span></div>
+      <div class="abs" style="right:60px;top:300px;width:400px;height:820px;background:#0d0a0c;border-radius:56px;border:10px solid #000;padding:70px 20px 20px;transform:rotate(4deg)">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px"><img src="a/logo/NoShade_EF2D38_flat.webp" style="width:70px;height:70px;object-fit:contain;background:#000;border-radius:50%"><span style="font:700 24px/1 var(--body);color:var(--bone)">noshadeworld</span></div>
+        <div style="background:#262027;border-radius:26px;padding:20px 22px;font:400 24px/1.35 var(--body);color:var(--bone);margin-bottom:14px">The Houses of Orun are open 👀 Pick yours and get on the list.</div>
+        <div style="background:var(--green);border-radius:16px;padding:16px;text-align:center;font:900 32px/1 var(--cond);text-transform:uppercase;color:var(--ink);margin-bottom:10px">Join the House</div>
+        <div style="background:#262027;border-radius:16px;padding:16px;text-align:center;font:700 22px/1 var(--body);color:var(--bone)">noshade.tv</div></div>
+      <div class="abs" style="left:60px;bottom:60px;background:var(--ink);padding:16px 26px"><span style="font:900 64px/1 var(--cond);text-transform:uppercase;color:var(--bone)">noshade.tv</span></div>` }; },
+
+    cnext: (t) => { const th = TH[t]; const ink = th.dark ? "var(--bone)" : "var(--ink)"; return { bg: th.bg, html:
+      pat("sunburst", th.deep, .45) + tex("concrete", th.dark ? .1 : .28, th.dark ? "screen" : "multiply") + `
+      <img class="abs" src="${FIG('venus-hero')}" style="right:-120px;top:140px;height:1350px;filter:brightness(0);opacity:.92">
+      <div class="abs" style="right:230px;top:430px;font:900 300px/1 var(--cond);color:${th.dark ? 'var(--green)' : 'var(--bone)'}">?</div>
+      <img class="abs" src="${LET}" style="left:40px;top:30px;height:250px;filter:${th.letF}">
+      <div class="abs" style="left:60px;top:360px;width:560px;font:900 150px/.86 var(--cond);text-transform:uppercase;color:${ink}">Who's<br>next?</div>
+      <div class="abs" style="left:60px;top:680px;width:520px;font:400 36px/1.3 var(--body);color:${ink}">Comment <b>ORUN</b> to be first when the next Legend drops 🔑</div>
+      <div class="abs" style="left:60px;bottom:60px;background:var(--ink);padding:16px 26px"><span style="font:900 64px/1 var(--cond);text-transform:uppercase;color:var(--bone)">noshade.tv</span></div>` }; },
+
+    cjoinw: (t) => L.cjoin(t, 'white'),
+    cjoinb: (t) => L.cjoin(t, 'black'),
+  };
+
+  const ROWS = [
+    ["#", "Slide 1 · Cover", "Stops the scroll and shows who this is."],
+    ["torn", "Torn reveal", "Venus. A torn band shows her eyes, and the crest sits on the House tile.", ["red","purple"]],
+    ["giant", "Giant name", "Xavier. One spray swipe behind the name. The clean name and crest are in the strip.", ["red","ink"]],
+    ["tape", "Caution tape", "Venus. One repeated message, the tapes all run the same way, and Comment ORUN sits in the corner.", ["red","purple"]],
+    ["sprayed", "Sprayed over", "Bolade. The original background, with the spray behind his name and a clean name tile.", ["bone","ink"]],
+    ["#", "Slide 2 · Stats", "Age, From, Power, House (with crest), Role. The character stays big."],
+    ["spec", "Spec sheet", "Jagged stat tiles on chain-link and dots.", ["red","purple"]],
+    ["ransom", "Ransom tiles", "Each stat is its own tilted label and value tile, like a ransom note. The labels are green for pop.", ["red","ink"]],
+    ["skills", "Skills list", "Persona-style stacked rows with red fill bars. The bars only show layout; we don't have numeric stats.", ["ink","purple"]],
+    ["idcard", "House ID card", "A 1986 Orun House ID: photo, fields, barcode and a Jagun stamp, on chain-link.", ["ink","red"]],
+    ["bignum", "Big number", "The age as a giant outline number, with the other stats in a panel.", ["purple","red"]],
+    ["#", "Slide 3 · Quote", "One line in their voice (or the Mythkeeper's), with a clean name and crest attribution."],
+    ["qspray", "Spray-backed quote", "Bolade's line from his bible, with a spray swipe behind the payoff words and a giant outline quote mark.", ["red","ink"]],
+    ["qscene", "Colorized scene", "No cutout: a story frame recolored to brand red or purple, the quote over it, a spray slash and tape on the edges.", ["red","purple"]],
+    ["qtype", "Type only", "No character at all: the line huge on texture, with a spray underline behind the payoff and a crest attribution.", ["red","purple"]],
+    ["qnote", "Torn-paper note", "Venus's line on torn bone paper strips, taped up over brick.", ["red","ink"]],
+    ["qsubtitle", "Film subtitle", "A full-bleed story frame with the line as subtitle bars, like a movie still. Soro's line from the site.", ["ink","purple"]],
+    ["#", "Slides 4–5 · Story", "Story frames do the work here: no repeated cutout. Captions come from Xavier's story copy on noshade.tv."],
+    ["spanels", "Comic panels", "Three story frames as jagged manga panels with narration boxes, and a chapter tag.", ["red","purple"]],
+    ["sbleed", "Full-bleed scene", "One frame filling the slide, a big location stamp, and a narration card.", ["red","purple"]],
+    ["sstrip", "Film strip", "A tilted film strip of three frames with numbered captions and a spray scribble.", ["red","purple"]],
+    ["sfile", "Case file", "Frames taped up like polaroids on chain-link, with location labels and a case-file note.", ["ink","red"]],
+    ["#", "Slide 6 · Call to action", "Comment ORUN + noshade.tv on every option. No repeated cutout."],
+    ["ctape", "Caution tape", "COMMENT ORUN huge between two tapes that repeat it, with noshade.tv at the bottom.", ["red","purple"]],
+    ["cjoin", "Join the House", "The logo big, Join the House, the ORUN instruction and a green noshade.tv button, on adire bands.", ["red","ink"]],
+    ["cjoinw", "Join the House · white logo", "The same slide with the solid white logo, no stroke.", ["red","ink"]],
+    ["cjoinb", "Join the House · black logo", "The same slide with the solid black logo, no stroke.", ["red","purple"]],
+    ["cdm", "Check your DMs", "Shows exactly what happens: a phone with our real DM and its Join the House button.", ["red","purple"]],
+    ["cnext", "Who's next?", "A silhouette tease of the next Legend on a sunburst, with the ORUN instruction and noshade.tv.", ["red","purple"]],
+  ];
+  document.getElementById("rows").innerHTML = ROWS.map(r => r[0]==="#" ? `<div style="padding:70px 0 14px;margin-top:30px;border-top:4px solid var(--green)"><div style="font:900 96px/.9 var(--cond);text-transform:uppercase;color:var(--green)">${r[1]}</div><p style="color:var(--muted);margin:10px 0 0;font-size:18px">${r[2]}</p></div>` :
+    `<div class="row"><div class="info"><h2>${r[1]}</h2><p>${r[2]}</p></div>` + r[3].map(t => `<div><div class="frame"><div class="post" data-k="${r[0]}" data-t="${t}"></div></div><div class="lab">${t}</div></div>`).join("") + `</div>`).join("");
+  document.querySelectorAll(".post").forEach(p => { const r = L[p.dataset.k](p.dataset.t); p.style.background = r.bg; p.innerHTML = r.html; });
+</script>
+</body></html>
