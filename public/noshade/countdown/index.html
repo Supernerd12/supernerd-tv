@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+<title>No Shade! · Trailer countdown options</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800;900&family=Figtree:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap">
+<style>
+  :root { --red:#EF2D38; --deep:#8E0F19; --ink:#0B0709; --bone:#F7F1F3; --muted:#a8979f; --green:#33FC51; --purple:#7822D6;
+    --cond:"Big Shoulders Display",Impact,sans-serif; --mono:"Space Mono",monospace; --body:"Figtree",system-ui,sans-serif; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#060405; color:var(--bone); font:400 16px/1.5 var(--body); }
+  main { max-width:1500px; margin:0 auto; padding:44px 28px 90px; }
+  h1 { font:900 64px/.9 var(--cond); text-transform:uppercase; margin:10px 0 10px; }
+  .k { font:700 12px/1 var(--mono); letter-spacing:.16em; text-transform:uppercase; color:var(--red); }
+  .lede { color:var(--muted); max-width:86ch; margin:0 0 20px; }
+  .sec { padding:60px 0 12px; margin-top:24px; border-top:4px solid var(--green); }
+  .sec h2 { font:900 84px/.9 var(--cond); text-transform:uppercase; color:var(--green); margin:0; }
+  .sec p { color:var(--muted); margin:10px 0 0; font-size:17px; max-width:90ch; }
+  .row { display:flex; gap:20px; align-items:flex-start; flex-wrap:wrap; padding:22px 0; }
+  .cell .lab { font:700 11px/1.4 var(--mono); letter-spacing:.1em; color:#8f7f88; text-transform:uppercase; margin-top:8px; }
+  .f45 { width:324px; height:405px; overflow:hidden; } .f45 .post { width:1080px; height:1350px; transform:scale(.3); }
+  .f916 { width:243px; height:432px; overflow:hidden; } .f916 .post { width:1080px; height:1920px; transform:scale(.225); }
+  .post { transform-origin:0 0; position:relative; overflow:hidden; isolation:isolate; }
+  .abs { position:absolute; } .L { position:absolute; inset:0; background-size:cover; background-position:center; }
+  .mono { font-family:var(--mono); font-weight:700; letter-spacing:.14em; text-transform:uppercase; }
+  .tape { position:absolute; width:2600px; height:96px; display:flex; align-items:center; justify-content:center; overflow:hidden; white-space:nowrap; transform:translate(-50%,-50%) rotate(var(--r)); }
+  .tape span { font:900 50px/1 var(--cond); letter-spacing:.08em; text-transform:uppercase; padding:0 22px; flex:none; }
+  .safe { position:absolute; left:0; right:0; border:3px dashed rgba(51,252,81,.55); pointer-events:none; }
+</style></head>
+<body><main>
+  <span class="k">No Shade! · trailer countdown</span>
+  <h1>Countdown to the trailer</h1>
+  <p class="lede">Three looks for the countdown to the trailer premiere, each shown at 7, 3 and 1 day out, in feed (1080×1350) and Story (1080×1920). Every look builds toward the reveal: the character shows a little more each day. The date shown is 11.01, to match the rollout plan; change it in one place if the trailer date moves. On Stories, the dashed green box marks where Instagram's own countdown sticker goes (people can tap "remind me").</p>
+  <div id="out"></div>
+</main>
+<script>
+  const T = n => `../carousel/a/tex/${n}.webp`, PT = (n, c) => `../carousel/a/pat/${n}-${c}.webp`;
+  const tex = (n, op, blend="multiply") => `<div class="L" style="background-image:url('${T(n)}');mix-blend-mode:${blend};opacity:${op}"></div>`;
+  const pat = (n, c, op=1) => `<div class="L" style="background-image:url('${PT(n,c)}');opacity:${op}"></div>`;
+  const FIG = n => `../carousel/a/fig/${n}.webp`, SP = (s, c) => `../carousel/a/stroke/${s}-${c}.webp`;
+  const LOGO = `../carousel/a/logo/NoShade_white.webp`;
+  const DATE = "11.01";
+  let seed = 4; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+  function band(y0, y1, n, amp) { const top=[], bot=[]; for (let i=0;i<=n;i++){ const x=-2+i*(104/n); top.push([x, y0 + (rnd()-.5)*amp]); bot.unshift([x, y1 + (rnd()-.5)*amp]); } return "polygon(" + top.concat(bot).map(([x,y])=>`${x.toFixed(2)}% ${y.toFixed(2)}%`).join(",") + ")"; }
+  const tape = (x, y, r, bg, fg, txt) => `<div class="tape" style="left:${x}px;top:${y}px;--r:${r}deg;background:${bg}">${Array(17).fill(`<span style="color:${fg}">${txt}</span>`).join("")}</div>`;
+  // reveal: 7 days = mostly hidden, 1 day = nearly full
+  const reveal = d => ({7:.12, 3:.45, 1:.85}[d]);
+
+  // LOOK A · Silhouette reveal: the figure fills in day by day, giant number
+  const A = (d, H) => { const r = reveal(d); return `
+    ${pat("sunburst","deep",.55)}${tex("concrete",.3)}
+    <img class="abs" src="${FIG('xavier-hero')}" style="right:-220px;top:${H-1500}px;height:1520px;filter:brightness(0)">
+    <img class="abs" src="${FIG('xavier-hero')}" style="right:-220px;top:${H-1500}px;height:1520px;clip-path:inset(${Math.round((1-r)*100)}% 0 0 0)">
+    <img class="abs" src="${LOGO}" style="left:50px;top:50px;width:330px">
+    <div class="abs" style="left:30px;top:${H*0.24}px;font:900 760px/.78 var(--cond);color:var(--ink)">${d}</div>
+    <div class="abs" style="left:56px;top:${H*0.24+600}px;font:900 120px/.9 var(--cond);text-transform:uppercase;color:var(--bone)">${d===1?'Day':'Days'}</div>
+    <div class="abs" style="left:56px;top:${H*0.24+730}px;background:var(--ink);padding:14px 22px"><span style="font:900 56px/1 var(--cond);text-transform:uppercase;color:var(--bone)">Trailer · ${DATE}</span></div>`; };
+
+  // LOOK B · Caution tape: tape repeats the drop date, number between
+  const B = (d, H) => `
+    ${tex("concrete",.32)}${pat("hazard-stripes","ink",.06)}
+    <img class="abs" src="${FIG('venus-hero')}" style="left:50%;top:${H-1450}px;height:1500px;transform:translateX(-20%);filter:${d===7?'brightness(0)':d===3?'brightness(.35)':'none'}">
+    ${tape(540, H*0.30, -8, "var(--ink)", "var(--bone)", `Trailer ${DATE} ★`)}
+    ${tape(540, H*0.30+520, -8, "var(--green)", "var(--ink)", `Trailer ${DATE} ★`)}
+    <img class="abs" src="${LOGO}" style="left:50px;top:50px;width:330px;filter:brightness(0)">
+    <div class="abs" style="left:56px;top:${H*0.30+80}px;font:900 380px/.8 var(--cond);color:var(--bone)">${d}</div>
+    <div class="abs" style="left:56px;top:${H*0.30+400}px;font:900 70px/1 var(--cond);text-transform:uppercase;color:var(--ink)">${d===1?'Day to go':'Days to go'}</div>`;
+
+  // LOOK C · Torn reveal: the tear opens wider each day
+  const C = (d, H) => { seed = 9; const h = {7:120, 3:300, 1:560}[d]; const top = H*0.42 - h/2; return `
+    ${tex("concrete",.3)}${pat("halftone-fade","deep",.6)}
+    <div class="abs" style="left:0;right:0;top:${top-40}px;height:${h+80}px;background:var(--bone);clip-path:${band(6,94,14,10)}"></div>
+    <div class="abs" style="left:0;right:0;top:${top}px;height:${h}px;background:#000;clip-path:${band(8,92,16,9)};overflow:hidden"><img src="../carousel/a/frame/world-arena.webp" style="position:absolute;left:-300px;top:${-(1350-h)/2}px;height:1350px"></div>
+    <img class="abs" src="${LOGO}" style="left:50px;top:50px;width:330px;filter:brightness(0)">
+    <div class="abs" style="left:56px;top:${top+h+90}px;display:flex;align-items:flex-end;gap:24px">
+      <span style="font:900 300px/.78 var(--cond);color:var(--ink)">${d}</span>
+      <span style="font:900 80px/.9 var(--cond);text-transform:uppercase;color:var(--bone);padding-bottom:10px">${d===1?'Day':'Days'}<br>until Orun</span></div>
+    <div class="abs" style="right:56px;top:70px;background:var(--ink);padding:12px 20px"><span style="font:900 50px/1 var(--cond);text-transform:uppercase;color:var(--bone)">Trailer · ${DATE}</span></div>`; };
+
+  const LOOKS = [
+    ["A · Silhouette fill", "Xavier's silhouette fills in from the bottom each day: 7 days is mostly black, 1 day is almost all him. A giant number with Trailer · 11.01.", A],
+    ["B · Caution tape", "Two tapes repeat \"TRAILER 11.01 ★\" with the day count between them. Venus goes from silhouette, to shadow, to full color.", B],
+    ["C · Torn reveal", "A tear across the frame opens a little wider each day onto the Imori Ball arena. \"7 days until Orun.\"", C],
+  ];
+  if (new URLSearchParams(location.search).has("strip")) { document.querySelector("main").innerHTML = '<div id="out"></div>'; document.querySelector("main").style.padding="0"; }
+  const STRIP = new URLSearchParams(location.search).has("strip");
+  document.getElementById("out").innerHTML = STRIP ? `<div style="display:grid;grid-template-columns:repeat(3,324px);gap:12px">` + LOOKS.flatMap(([t,d,fn]) => [7,3,1].map(n => `<div class="f45"><div class="post" style="background:var(--red)">${fn(n,1350)}</div></div>`)).join("") + `</div>` : LOOKS.map(([title, desc, fn]) => `<div class="sec"><h2>${title}</h2><p>${desc}</p></div>
+    <div class="row">${[7,3,1].map(d => `<div class="cell"><div class="f45"><div class="post" style="background:var(--red)">${fn(d,1350)}</div></div><div class="lab">Feed · ${d} day${d>1?'s':''}</div></div>`).join("")}
+      <div class="cell"><div class="f916"><div class="post" style="background:var(--red)">${fn(1,1920)}<div class="safe" style="top:1560px;height:230px;left:240px;right:240px"></div></div></div><div class="lab">Story · 1 day</div></div></div>`).join("");
+</script>
+</body></html>
