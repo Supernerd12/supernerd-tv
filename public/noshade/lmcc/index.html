@@ -33,18 +33,18 @@
   .parts p { margin:0; color:var(--muted); font-size:15px; }
   .t { font:700 12px/1 var(--mono); letter-spacing:.12em; color:var(--red); text-transform:uppercase; }
 
-  /* the floor: five poses, one per Element of Vogue, standing on a runway line */
+  /* the floor: the five Elements of Vogue as looping scenes */
   .floor { position:relative; z-index:1; margin-top:72px; background:var(--red); overflow:hidden; }
   .floor::before { content:""; position:absolute; inset:0; background:url(../carousel/a/pat/halftone-fade-deep.webp) center/cover; opacity:.45; mix-blend-mode:multiply; }
   .floor .head { position:relative; padding:44px 0 0; display:grid; gap:8px; }
   .floor h2 { font:900 clamp(40px,6vw,76px)/.9 var(--cond); text-transform:uppercase; margin:0; color:var(--ink); }
   .floor .head p { margin:0; max-width:60ch; color:var(--ink); font-weight:600; }
   .floor .k { color:var(--ink); }
-  .row { position:relative; display:flex; align-items:stretch; gap:10px; margin:26px auto 0; width:min(1500px,100vw); padding:0 16px; left:50%; transform:translateX(-50%); }
-  figure { margin:0; display:grid; grid-template-rows:1fr auto; justify-items:center; flex:var(--w) 1 0; min-width:0; }
-  figure img { display:block; width:100%; height:auto; align-self:end; }
-  figcaption { width:100%; background:var(--ink); color:var(--bone); font:900 clamp(16px,1.6vw,24px)/1 var(--cond); text-transform:uppercase; text-align:center; padding:12px 6px 9px; white-space:nowrap; }
-  figcaption span { display:block; font:700 10px/1.3 var(--mono); letter-spacing:.14em; color:var(--red); margin-top:5px; }
+  /* the five element scenes, playing on loop; each already carries its element's name in its own lettering */
+  .row { position:relative; display:grid; grid-template-columns:repeat(5, minmax(0,1fr)); gap:10px; margin:26px auto 0; width:min(1500px,100vw); padding:0 16px; left:50%; transform:translateX(-50%); }
+  .row picture, .row img { display:block; width:100%; height:auto; aspect-ratio:1; }
+  .row img { border:3px solid var(--ink); background:var(--ink); }
+  @media (max-width:760px) { .row { grid-template-columns:repeat(2, minmax(0,1fr)); } .row picture:last-child { grid-column:1 / -1; width:calc(50% - 5px); justify-self:center; } }
   .floor .note { position:relative; padding:14px 0 40px; margin:0; color:var(--ink); font-size:14px; font-weight:600; }
 
   footer .wrap { display:grid; grid-template-columns:1fr auto; align-items:end; gap:20px; padding-top:40px; }
@@ -54,19 +54,17 @@
   .soro { height:min(420px,48vw); width:auto; display:block; }
 
   /* entrance: poses step onto the floor one after another */
-  .js .row figure img { transform:translateY(40px); opacity:0; transition:transform .7s var(--ease), opacity .5s var(--ease); }
-  .js .row.on figure img { transform:none; opacity:1; }
-  .js .row.on figure:nth-child(2) img { transition-delay:.08s } .js .row.on figure:nth-child(3) img { transition-delay:.16s }
-  .js .row.on figure:nth-child(4) img { transition-delay:.24s } .js .row.on figure:nth-child(5) img { transition-delay:.32s }
-  @media (prefers-reduced-motion: reduce) { .js .row figure img { transform:none; opacity:1; transition:none; } }
+  .js .row img { transform:translateY(40px); opacity:0; transition:transform .7s var(--ease), opacity .5s var(--ease); }
+  .js .row.on img { transform:none; opacity:1; }
+  .js .row.on picture:nth-child(2) img { transition-delay:.08s } .js .row.on picture:nth-child(3) img { transition-delay:.16s }
+  .js .row.on picture:nth-child(4) img { transition-delay:.24s } .js .row.on picture:nth-child(5) img { transition-delay:.32s }
+  @media (prefers-reduced-motion: reduce) { .js .row img { transform:none; opacity:1; transition:none; } }
 
   @media (max-width:760px) {
     .hero { grid-template-columns:1fr; padding-top:28px; }
     .hero .xav { order:-1; height:300px; justify-self:end; margin:0 0 -40px; }
     .hero .words { padding-bottom:22px; }
-    .row { overflow-x:auto; scroll-snap-type:x mandatory; width:100%; left:0; transform:none; }
-    figure { flex:0 0 auto; scroll-snap-align:center; }
-    figure img { width:calc(var(--w) * .48px); }
+    .row { width:100%; left:0; transform:none; }
     footer .wrap { grid-template-columns:1fr; }
     .soro { justify-self:end; height:300px; }
   }
@@ -100,13 +98,13 @@
       <p>In Orun, vogue is a martial art and its five elements are the moves. At the ball, each category opens with its scene on screen, then the floor answers it live.</p>
     </div>
     <div class="row">
-      <figure style="--w:500"><img src="c/hand-xavier.webp" alt="Xavier from the waist up, hands raised with a glowing constellation" width="326" height="595" loading="lazy"><figcaption>Hand performance<span>Xavier</span></figcaption></figure>
-      <figure style="--w:583"><img src="c/catwalk-xavier.webp" alt="Xavier mid-stride, arms framing his body" width="583" height="911" loading="lazy"><figcaption>Catwalk<span>Xavier</span></figcaption></figure>
-      <figure style="--w:538"><img src="c/duckwalk-zodiac.webp" alt="Zodiac low in a duckwalk" width="538" height="1088" loading="lazy"><figcaption>Duckwalk<span>Zodiac</span></figcaption></figure>
-      <figure style="--w:579"><img src="c/floor-venus.webp" alt="Venus in a floor performance pose" width="579" height="696" loading="lazy"><figcaption>Floor performance<span>Venus</span></figcaption></figure>
-      <figure style="--w:880"><img src="c/dip-venus.webp" alt="Venus landing a dip, flat on the floor" width="880" height="352" loading="lazy"><figcaption>Spins &amp; dips<span>Venus</span></figcaption></figure>
+      <picture><source media="(prefers-reduced-motion: reduce)" srcset="e/hand-still.webp"><img src="e/hand.webp" alt="Hand Performance, an Element of Vogue, animated scene from No Shade! Legends of Orun" width="600" height="600" loading="lazy"></picture>
+      <picture><source media="(prefers-reduced-motion: reduce)" srcset="e/catwalk-still.webp"><img src="e/catwalk.webp" alt="Catwalk, an Element of Vogue, animated scene from No Shade! Legends of Orun" width="600" height="600" loading="lazy"></picture>
+      <picture><source media="(prefers-reduced-motion: reduce)" srcset="e/duckwalk-still.webp"><img src="e/duckwalk.webp" alt="Duckwalk, an Element of Vogue, animated scene from No Shade! Legends of Orun" width="600" height="600" loading="lazy"></picture>
+      <picture><source media="(prefers-reduced-motion: reduce)" srcset="e/floor-still.webp"><img src="e/floor.webp" alt="Floor Performance, an Element of Vogue, animated scene from No Shade! Legends of Orun" width="600" height="600" loading="lazy"></picture>
+      <picture><source media="(prefers-reduced-motion: reduce)" srcset="e/spin-still.webp"><img src="e/spin.webp" alt="Spins and Dips, an Element of Vogue, animated scene from No Shade! Legends of Orun" width="600" height="600" loading="lazy"></picture>
     </div>
-    <p class="note">Character art from No Shade! Legends of Orun.</p>
+    <p class="note">Animated scenes from No Shade! Legends of Orun.</p>
   </div>
 </section>
 
