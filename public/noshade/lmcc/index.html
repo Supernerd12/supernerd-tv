@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="robots" content="noindex,nofollow"><meta name="viewport" content="width=device-width,initial-scale=1">
+<html lang="en" class="no-js"><head><meta charset="utf-8"><meta name="robots" content="noindex,nofollow"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>No Shade! Live: The Ball at Orun · Work sample</title>
 <meta name="description" content="Work sample for No Shade! Live: The Ball at Orun, a free vogue ball in Harlem, June 2027.">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@800;900&family=Figtree:wght@400;600&family=Space+Mono:wght@700&display=swap">
@@ -47,6 +47,65 @@
   @media (max-width:760px) { .row { grid-template-columns:repeat(2, minmax(0,1fr)); } .row picture:last-child { grid-column:1 / -1; width:calc(50% - 5px); justify-self:center; } }
   .floor .note { position:relative; padding:14px 0 40px; margin:0; color:var(--ink); font-size:14px; font-weight:600; }
 
+
+  /* work sample 2: a show that plays itself (story-style progress bars), "See all" drops the grid, any image opens full size */
+  .images { position:relative; z-index:1; padding-top:64px; padding-bottom:8px; }
+  .images .head { display:grid; gap:8px; margin-bottom:22px; }
+  .images h2 { font:900 clamp(40px,6vw,76px)/.9 var(--cond); text-transform:uppercase; margin:0; }
+  .images .head p { margin:0; max-width:60ch; color:var(--muted); }
+  .show { position:relative; background:#000; border-left:8px solid var(--red); }
+  .show .bars { position:absolute; z-index:3; left:14px; right:14px; top:12px; display:flex; gap:5px; }
+  .show .bars i { flex:1; height:4px; background:rgba(247,241,243,.28); overflow:hidden; }
+  .show .bars i b { display:block; height:100%; width:0; background:var(--bone); }
+  .show .bars i.done b { width:100%; }
+  .show .bars i.on b { animation:fill var(--dur) linear forwards; }
+  .show.paused .bars i.on b { animation-play-state:paused; }
+  @keyframes fill { to { width:100%; } }
+  .show .frame { position:relative; aspect-ratio:16/9; overflow:hidden; cursor:zoom-in; }
+  .show .frame img { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; opacity:0; transform:scale(1.04); transition:opacity .7s var(--ease), transform 5s linear; }
+  .show .frame img.bg { object-fit:cover; filter:blur(28px) brightness(.45); transform:scale(1.15); }
+  .show .frame img.cur { opacity:1; transform:scale(1); }
+  .show .frame img.bg.cur { transform:scale(1.1); }
+  .show .nav { position:absolute; z-index:3; top:50%; transform:translateY(-50%); width:52px; height:52px; border:0; background:rgba(11,7,9,.7); color:var(--bone); font:900 30px/1 var(--cond); cursor:pointer; }
+  .show .nav:hover, .show .nav:focus-visible { background:var(--red); }
+  .show .prev { left:12px; } .show .next { right:12px; }
+  .cap { display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:6px 18px; align-items:baseline; padding:14px 18px; background:rgba(11,7,9,.92); border:1px solid var(--line); border-top:0; }
+  .cap .num { font:900 34px/1 var(--cond); color:var(--red); }
+  .cap .txt { min-width:0; } .cap .txt b { display:block; font-weight:600; } .cap .txt span { color:var(--muted); font-size:14px; }
+  .cap .t { font:700 12px/1 var(--mono); letter-spacing:.12em; color:var(--red); text-transform:uppercase; }
+  .all-btn { margin-top:14px; display:inline-flex; gap:10px; align-items:center; font:900 22px/1 var(--cond); text-transform:uppercase; color:var(--bone); background:none; border:2px solid var(--bone); padding:11px 18px 9px; cursor:pointer; }
+  .all-btn:hover, .all-btn:focus-visible { background:var(--bone); color:var(--ink); }
+  .all-btn span { display:inline-block; transition:transform .4s var(--ease); }
+  .all-btn[aria-expanded="true"] span { transform:rotate(180deg); }
+  .drawer { display:grid; grid-template-rows:0fr; transition:grid-template-rows .6s var(--ease); }
+  .drawer.open { grid-template-rows:1fr; }
+  .drawer > div { overflow:hidden; }
+  .gal { display:flex; flex-wrap:wrap; gap:10px; padding-top:16px; }
+  .gal figure { margin:0; flex:var(--r) 1 calc(var(--r) * 200px); display:grid; gap:8px; min-width:0; }
+  .gal a { display:block; aspect-ratio:var(--r); background:#000; border:3px solid var(--ink); cursor:zoom-in; }
+  .gal img { display:block; width:100%; height:100%; object-fit:cover; }
+  .gal a:hover img, .gal a:focus-visible img { opacity:.85; }
+  .gal figcaption { font-size:14px; line-height:1.4; color:var(--muted); overflow-wrap:anywhere; }
+  .gal figcaption b { color:var(--bone); font-weight:600; }
+  .gal figcaption .t { margin-right:6px; }
+  .no-js .drawer { grid-template-rows:1fr; } .no-js .show, .no-js .all-btn { display:none; }
+  /* full-size view */
+  .lb { border:0; padding:0; margin:0; width:100vw; height:100vh; max-width:none; max-height:none; background:rgba(11,7,9,.96); color:var(--bone); }
+  .lb::backdrop { background:rgba(11,7,9,.8); }
+  .lb[open] { display:grid; grid-template-rows:minmax(0,1fr) auto; }
+  .lb figure { margin:0; display:grid; place-items:center; min-height:0; padding:56px 72px 0; }
+  .lb img { max-width:100%; max-height:100%; object-fit:contain; }
+  .lb .cap { background:none; border:0; padding:16px 72px 24px; }
+  .lb .x { position:absolute; top:14px; right:14px; width:46px; height:46px; border:0; background:var(--red); color:var(--bone); font:900 26px/1 var(--cond); cursor:pointer; }
+  .lb .nav { position:absolute; top:50%; transform:translateY(-50%); width:52px; height:52px; border:0; background:rgba(247,241,243,.12); color:var(--bone); font:900 30px/1 var(--cond); cursor:pointer; }
+  .lb .nav:hover, .lb .nav:focus-visible { background:var(--red); }
+  .lb .prev { left:12px; } .lb .next { right:12px; }
+  @media (max-width:760px) {
+    .gal figure { flex:1 1 calc(50% - 5px); max-width:calc(50% - 5px); } .gal figcaption { font-size:12px; }
+    .show .nav { width:40px; height:40px; font-size:24px; } .cap { grid-template-columns:auto minmax(0,1fr); } .cap .t { grid-column:1 / -1; grid-row:1; }
+    .lb figure { padding:60px 10px 0; } .lb .cap { padding:12px 16px 20px; } .lb .nav { top:auto; bottom:18px; transform:none; } }
+  @media (prefers-reduced-motion: reduce) { .show .frame img { transition:none; transform:none; } .drawer { transition:none; } }
+
   footer .wrap { display:grid; grid-template-columns:1fr auto; align-items:end; gap:20px; padding-top:40px; }
   .sign { display:flex; flex-wrap:wrap; gap:14px 28px; align-items:center; color:var(--muted); font-size:15px; padding-bottom:44px; }
   .btn { font:900 26px/1 var(--cond); text-transform:uppercase; color:var(--ink); background:var(--red); padding:14px 22px 11px; text-decoration:none; }
@@ -75,18 +134,18 @@
     <img class="logo" src="logo-main.webp" alt="No Shade! Legends of Orun" width="900" height="556">
     <span class="k">Work sample · Shaun Harrison</span>
     <h1>No Shade! Live: The Ball at Orun</h1>
-    <p class="lede">A free vogue ball in Harlem, June 2027, built around No Shade! Legends of Orun, an original animated series where voguing is power. This three-minute sample has two parts: the series trailer, then a reel of live events I've art-directed and produced.</p>
+    <p class="lede">A free vogue ball in Harlem, June 2027, built around No Shade! Legends of Orun, an original animated series where voguing is power. This three-minute sample has two parts: the series trailer, then the ballroom William Lockhart brings to the event and a reel of live events I've art-directed and produced.</p>
   </div>
   <img class="xav" src="c/xavier-18.webp" alt="Xavier calling down a black hole, one arm raised" width="703" height="1300" fetchpriority="high">
 </header>
 
 <main class="wrap">
   <div class="player">
-    <iframe src="https://customer-jo6j16htmygzl1y3.cloudflarestream.com/b0abdb937d46e36f72820cd995617b9e/iframe?preload=metadata" title="No Shade! Live: The Ball at Orun, work sample (3:04)" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
+    <iframe src="https://customer-jo6j16htmygzl1y3.cloudflarestream.com/f5f6ee1472ee57dfa79155e2bda045c0/iframe?preload=metadata" title="No Shade! Live: The Ball at Orun, work sample (3:03)" allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
   </div>
   <div class="parts">
     <div><span class="t">Part 1 · 0:04</span><b>The series</b><p>The trailer for No Shade! Legends of Orun. A new animated scene from the series premieres at the ball.</p></div>
-    <div><span class="t">Part 2 · 1:32</span><b>Live events</b><p>Apollo Theater Young Patrons Sessions, Harlem, 2017 (art director and producer), and the Hollywood Unlocked Impact Awards, 2022–2025 (art director).</p></div>
+    <div><span class="t">Part 2 · 1:32</span><b>Live events</b><p>The ballroom with William Lockhart (Mood Is Black), then Apollo Theater Young Patrons Sessions, Harlem, 2017 (art director and producer), and the Hollywood Unlocked Impact Awards (art director).</p></div>
   </div>
 </main>
 
@@ -108,6 +167,43 @@
   </div>
 </section>
 
+<section class="wrap images" id="images" aria-labelledby="images-h">
+  <div class="head">
+    <span class="k">Work sample 2 · Images</span>
+    <h2 id="images-h">The world and the floor</h2>
+    <p>The series art, the ballroom William Lockhart brings to the event, and live events I've art-directed and produced.</p>
+  </div>
+  <div class="show" id="show" aria-roledescription="carousel" aria-label="Ten images, playing automatically">
+    <div class="bars" aria-hidden="true"></div>
+    <div class="frame" role="button" tabindex="0" aria-label="Open this image full size"></div>
+    <button class="nav prev" type="button" aria-label="Previous image">‹</button>
+    <button class="nav next" type="button" aria-label="Next image">›</button>
+  </div>
+  <div class="cap" id="show-cap" aria-live="polite"></div>
+  <button class="all-btn" id="all-btn" type="button" aria-expanded="false" aria-controls="drawer">See all 10 <span aria-hidden="true">↓</span></button>
+  <div class="drawer" id="drawer"><div>
+  <div class="gal">
+    <figure style="--r:0.806"><a href="g/01-key-art.webp"><img src="g/01-key-art.webp" alt="No Shade! Legends of Orun" width="1289" height="1600" loading="lazy"></a><figcaption><span class="t">Key art</span><b>No Shade! Legends of Orun</b><br>Art: Shaun Harrison</figcaption></figure>
+    <figure style="--r:1.522"><a href="g/02-ball-red-spin.webp"><img src="g/02-ball-red-spin.webp" alt="The floor in red" width="1600" height="1051" loading="lazy"></a><figcaption><span class="t">The ballroom</span><b>The floor in red</b><br>Courtesy of William Lockhart, Mood Is Black</figcaption></figure>
+    <figure style="--r:0.747"><a href="g/03-xavier.webp"><img src="g/03-xavier.webp" alt="Xavier, call-out poster" width="1195" height="1600" loading="lazy"></a><figcaption><span class="t">The series</span><b>Xavier, call-out poster</b><br>Art: Shaun Harrison</figcaption></figure>
+    <figure style="--r:1.501"><a href="g/04-ball-leap.webp"><img src="g/04-ball-leap.webp" alt="The leap, judges watching" width="1600" height="1066" loading="lazy"></a><figcaption><span class="t">The ballroom</span><b>The leap, judges watching</b><br>Courtesy of William Lockhart, Mood Is Black</figcaption></figure>
+    <figure style="--r:0.747"><a href="g/05-venus.webp"><img src="g/05-venus.webp" alt="Venus, call-out poster" width="1195" height="1600" loading="lazy"></a><figcaption><span class="t">The series</span><b>Venus, call-out poster</b><br>Art: Shaun Harrison</figcaption></figure>
+    <figure style="--r:1.501"><a href="g/06-ball-floor.webp"><img src="g/06-ball-floor.webp" alt="Floor work in the circle" width="1600" height="1066" loading="lazy"></a><figcaption><span class="t">The ballroom</span><b>Floor work in the circle</b><br>Courtesy of William Lockhart, Mood Is Black</figcaption></figure>
+    <figure style="--r:0.667"><a href="g/07-ball-high-kick.webp"><img src="g/07-ball-high-kick.webp" alt="High kick" width="1067" height="1600" loading="lazy"></a><figcaption><span class="t">The ballroom</span><b>High kick</b><br>Courtesy of William Lockhart, Mood Is Black</figcaption></figure>
+    <figure style="--r:1.595"><a href="g/08-apollo.webp"><img src="g/08-apollo.webp" alt="Apollo Theater Young Patrons Sessions, Harlem, 2017" width="1600" height="1003" loading="lazy"></a><figcaption><span class="t">Live events</span><b>Apollo Theater Young Patrons Sessions, Harlem, 2017</b><br>Art direction and production: Shaun Harrison. Photo: Calligrafist Photography</figcaption></figure>
+    <figure style="--r:1.500"><a href="g/09-impact-awards.webp"><img src="g/09-impact-awards.webp" alt="Hollywood Unlocked Impact Awards, 2023" width="1600" height="1067" loading="lazy"></a><figcaption><span class="t">Live events</span><b>Hollywood Unlocked Impact Awards, 2023</b><br>Stage and screens art-directed by Shaun Harrison</figcaption></figure>
+    <figure style="--r:1.778"><a href="g/10-encore-screens.webp"><img src="g/10-encore-screens.webp" alt="ENCORE, Good Dayz × Red Door, NYC Pride 2026" width="1600" height="900" loading="lazy"></a><figcaption><span class="t">Live events</span><b>ENCORE, Good Dayz × Red Door, NYC Pride 2026</b><br>Screen design by Shaun Harrison</figcaption></figure>
+  </div>
+  </div></div>
+  <dialog class="lb" id="lb" aria-label="Image, full size">
+    <figure><img alt=""></figure>
+    <div class="cap"></div>
+    <button class="x" type="button" aria-label="Close">×</button>
+    <button class="nav prev" type="button" aria-label="Previous image">‹</button>
+    <button class="nav next" type="button" aria-label="Next image">›</button>
+  </dialog>
+</section>
+
 <footer>
   <div class="wrap">
     <div class="sign">
@@ -119,7 +215,52 @@
 </footer>
 
 <script>
-  document.documentElement.classList.add("js");
+  document.documentElement.classList.replace("no-js", "js");
+  // Work sample 2. One owner for the autoplay timer: play()/stop() are the only way in, and a second play() replaces the first.
+  (() => {
+    const DUR = 4800, figs = [...document.querySelectorAll(".gal figure")];
+    const items = figs.map(f => ({ src: f.querySelector("img").getAttribute("src"), alt: f.querySelector("img").alt, cap: f.querySelector("figcaption").innerHTML }));
+    const show = document.getElementById("show"), frame = show.querySelector(".frame"), bars = show.querySelector(".bars");
+    const cap = document.getElementById("show-cap"), lb = document.getElementById("lb");
+    const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    show.style.setProperty("--dur", DUR + "ms");
+    bars.innerHTML = items.map(() => "<i><b></b></i>").join("");
+    const layers = items.map(it => { const bg = new Image(), fg = new Image(); bg.className = "bg"; bg.alt = ""; fg.alt = it.alt; fg.decoding = bg.decoding = "async"; frame.append(bg, fg); return [bg, fg]; });
+    const load = (k) => { const l = layers[k % items.length], s = items[k % items.length].src; if (!l[1].src) l[0].src = l[1].src = s; };   // current + next only
+    const capHTML = (i) => `<span class="num">${String(i + 1).padStart(2, "0")}</span><div class="txt">${items[i].cap.replace(/<span class="t">[^<]*<\/span>/, "").replace("<br>", "<span>").concat("</span>")}</div>${items[i].cap.match(/<span class="t">[^<]*<\/span>/)[0]}`;
+    let i = 0, timer = null, held = new Set();
+    function go(n) {
+      i = (n + items.length) % items.length; load(i); load(i + 1);
+      layers.forEach((l, k) => l.forEach(x => x.classList.toggle("cur", k === i)));
+      [...bars.children].forEach((b, k) => { b.className = k < i ? "done" : ""; });
+      void bars.offsetWidth; bars.children[i].className = "on";
+      cap.innerHTML = capHTML(i);
+      if (lb.open) openLB(i);
+      play();
+    }
+    function play() { stop(); if (calm || held.size) { show.classList.add("paused"); return; } show.classList.remove("paused"); timer = setTimeout(() => go(i + 1), DUR); }
+    function stop() { clearTimeout(timer); timer = null; }
+    function hold(why, on) { on ? held.add(why) : held.delete(why); if (held.size) { stop(); show.classList.add("paused"); } else play(); }
+    show.addEventListener("pointerenter", () => hold("hover", true)); show.addEventListener("pointerleave", () => hold("hover", false));
+    document.addEventListener("visibilitychange", () => hold("hidden", document.hidden));
+    new IntersectionObserver(es => hold("offscreen", !es[0].isIntersecting), { threshold: .3 }).observe(show);
+    show.querySelector(".prev").onclick = () => go(i - 1); show.querySelector(".next").onclick = () => go(i + 1);
+    // full size
+    function openLB(n) { i = n; lb.querySelector("img").src = items[n].src; lb.querySelector("img").alt = items[n].alt; lb.querySelector(".cap").innerHTML = capHTML(n); if (!lb.open) { lb.showModal(); hold("lightbox", true); } }
+    frame.onclick = () => openLB(i); frame.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openLB(i); } };
+    figs.forEach((f, k) => f.querySelector("a").addEventListener("click", e => { e.preventDefault(); openLB(k); }));
+    lb.querySelector(".x").onclick = () => lb.close();
+    lb.querySelector(".prev").onclick = () => openLB((i - 1 + items.length) % items.length);
+    lb.querySelector(".next").onclick = () => openLB((i + 1) % items.length);
+    lb.addEventListener("click", e => { if (e.target === lb) lb.close(); });
+    lb.addEventListener("keydown", e => { if (e.key === "ArrowLeft") lb.querySelector(".prev").click(); if (e.key === "ArrowRight") lb.querySelector(".next").click(); });
+    lb.addEventListener("close", () => { hold("lightbox", false); go(i); });
+    // see all
+    const btn = document.getElementById("all-btn"), drawer = document.getElementById("drawer");
+    btn.onclick = () => { const open = !drawer.classList.contains("open"); drawer.classList.toggle("open", open); btn.setAttribute("aria-expanded", open); btn.firstChild.textContent = open ? "Hide the grid " : "See all 10 "; };
+    go(0);
+  })();
+
   const row = document.querySelector(".row");
   if ("IntersectionObserver" in window) {
     const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { row.classList.add("on"); io.disconnect(); } }), { threshold: .25 });
