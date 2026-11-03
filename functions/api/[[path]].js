@@ -540,7 +540,7 @@ export async function onRequest(ctx) {
             [per * packs, packs, per, body.id]);
           if (p3?.name)
             await run(env, "DELETE FROM todos WHERE kind='grocery' AND done=0 AND text=?1", [p3.name]);
-          return json({ ok: true, remaining: full });
+          return json({ ok: true, remaining: per * packs });
         }
 
         const f = ['name','brand','serving_desc','serving_g','servings_per_container',
