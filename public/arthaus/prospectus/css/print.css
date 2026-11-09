@@ -238,3 +238,8 @@ img{display:block;width:100%;height:100%;object-fit:cover}
 .kpi b em{font-style:normal;color:var(--brass);font-size:.8em;margin:0 .06em}
 /* team row tuning for advisors */
 .slot2{height:calc(var(--u)*8.4)}
+/* notes page (p43) */
+#p43 .nt{position:absolute;left:calc(var(--u)*4.4);right:calc(var(--u)*4.4);top:calc(var(--u)*15.4);display:flex;flex-direction:column;gap:calc(var(--u)*2.4)}
+#p43 .g .h{display:flex;align-items:center;gap:calc(var(--u)*.8);color:var(--forest);margin-bottom:calc(var(--u)*.4)}
+#p43 .g .h i{width:calc(var(--u)*1.1);height:calc(var(--u)*1.1);display:block}
+#p43 .ln{height:calc(var(--u)*2.5);border-bottom:1.5px solid rgba(23,56,42,.28)}
