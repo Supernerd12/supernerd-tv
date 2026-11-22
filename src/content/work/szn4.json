@@ -7,14 +7,30 @@
     "Live Experience"
   ],
   "hero": "/work/uploads/Screen Shot 2026-06-09 at 4.27.25 PM.webp",
-  "description": "",
+  "description": "Stage visuals for SZN4's sold-out live debut at the Troubadour in West Hollywood, the group formed on Netflix's Building the Band. The brief was the road from a retro tour bus driver's seat: a drive through golden hour, neon city nights, rain, snow and the beach, changing with the mood of each song, with SZN4 logo loops (an engine smoking out the name, a desert gas station, the tour bus, and a shimmering champagne curtain with the logo lit across it) for the moments the group talked to the crowd.",
   "pieces": [
     {
-      "title": "LA Performance",
-      "hero": "",
-      "video": "",
+      "title": "LA Performance | The Troubadour",
+      "hero": "/work/uploads/szn4-troubadour-hero.webp",
+      "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/7b7e5d43cf3c051da0e6980e989d8c7d/manifest/video.m3u8",
       "description": "",
-      "gallery": []
+      "gallery": [
+        "/work/uploads/szn4-curtain-loop.webp",
+        "/work/uploads/szn4-troubadour-screen.webp",
+        "/work/uploads/szn4-engine-smoke.webp",
+        "/work/uploads/szn4-gas-station.webp",
+        "/work/uploads/szn4-tour-bus.webp",
+        "/work/uploads/szn4-golden-hour.webp",
+        "/work/uploads/szn4-neon-city.webp",
+        "/work/uploads/szn4-beach.webp",
+        "/work/uploads/szn4-snow.webp",
+        "/work/uploads/szn4-rain.webp",
+        "/work/uploads/szn4-la-night.webp",
+        "/work/uploads/szn4-troubadour-band.webp",
+        "/work/uploads/szn4-troubadour-crowd.webp",
+        "/work/uploads/szn4-inspo-drapes.webp",
+        "/work/uploads/szn4-inspo-neon.webp"
+      ]
     }
   ]
 }
