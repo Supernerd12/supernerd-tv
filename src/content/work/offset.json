@@ -1,0 +1,35 @@
+{
+  "title": "Offset",
+  "order": 25,
+  "categories": [
+    "Art Direction",
+    "Motion Design",
+    "TV Show",
+    "Live Experience"
+  ],
+  "hero": "/work/uploads/offset-tonight-show-hero.webp",
+  "description": "Supernerd designed and animated the LED screen content for Offset's performance of \"Hating On Me\" on The Tonight Show Starring Jimmy Fallon. The screens carry a grand old room through the whole song, changing its light on the drops, breaking apart in the bridge and finishing on a waving flag, all timed to the track and delivered to the show for Notch playback.",
+  "pieces": [
+    {
+      "title": "Hating On Me | The Tonight Show Starring Jimmy Fallon",
+      "hero": "/work/uploads/offset-hating-on-me-performance.webp",
+      "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/3bda6a69a7abbf02c00d4d1794db9861/manifest/video.m3u8",
+      "description": "",
+      "gallery": [
+        "/work/uploads/offset-hom-screen-37.webp",
+        "/work/uploads/offset-hom-screen-66.webp",
+        "/work/uploads/offset-hom-screen-100.webp",
+        "/work/uploads/offset-hom-screen-150.webp",
+        "/work/uploads/offset-hom-screen-158.webp",
+        "/work/uploads/offset-hom-screen-166.webp"
+      ]
+    },
+    {
+      "title": "Behind the Scenes",
+      "hero": "/work/uploads/offset-tonight-show-bts.webp",
+      "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/35e912e184daebee453973ee73562d34/manifest/video.m3u8",
+      "description": "",
+      "gallery": []
+    }
+  ]
+}
