@@ -13,23 +13,34 @@
     {
       "title": "Hating On Me | The Tonight Show Starring Jimmy Fallon",
       "hero": "/work/uploads/offset-hating-on-me-performance.webp",
-      "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/3bda6a69a7abbf02c00d4d1794db9861/manifest/video.m3u8",
+      "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/44d7260ed7a0805414b2b4a1a495406e/manifest/video.m3u8",
       "description": "",
       "gallery": [
+        "/work/uploads/offset-hom-stage-plot.webp",
+        "/work/uploads/offset-hom-led-wall-stage.webp",
+        "/work/uploads/offset-hom-empty-set.webp",
+        "/work/uploads/offset-hom-props-board.webp",
+        "/work/uploads/offset-hom-moodboard.webp",
+        "/work/uploads/offset-hom-inspo-headlines.webp",
+        "/work/uploads/offset-hom-inspo-newspaper-led.webp",
+        "/work/uploads/offset-hom-inspo-ledger.webp",
+        "/work/uploads/offset-hom-visualizer-ballerinas.webp",
+        "/work/uploads/offset-hom-storyboard-parlor.webp",
         "/work/uploads/offset-hom-screen-37.webp",
-        "/work/uploads/offset-hom-screen-66.webp",
         "/work/uploads/offset-hom-screen-100.webp",
-        "/work/uploads/offset-hom-screen-150.webp",
-        "/work/uploads/offset-hom-screen-158.webp",
-        "/work/uploads/offset-hom-screen-166.webp"
+        "/work/uploads/offset-hom-screen-158.webp"
       ]
     },
     {
-      "title": "Behind the Scenes",
-      "hero": "/work/uploads/offset-tonight-show-bts.webp",
-      "video": "https://customer-jo6j16htmygzl1y3.cloudflarestream.com/35e912e184daebee453973ee73562d34/manifest/video.m3u8",
-      "description": "",
-      "gallery": []
+      "title": "Cardi & Kulture Billboards",
+      "hero": "/work/uploads/screen-shot-2026-06-11-at-2.56.49-am.webp",
+      "video": "",
+      "no_video": true,
+      "description": "We were contacted by Offset to create two billboards for Cardi B's birthday to live in Los Angeles",
+      "gallery": [
+        "/work/uploads/kulture-sunset-strip-1.webp",
+        "/work/uploads/cardi-b-sunset-strip.webp"
+      ]
     }
   ]
 }
